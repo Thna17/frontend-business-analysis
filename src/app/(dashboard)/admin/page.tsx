@@ -7,7 +7,8 @@ export default async function AdminDashboardPage() {
   const [metrics, users] = await Promise.all([getAdminMetrics(), getRecentUsers()]);
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-shell py-8">
+      <div className="dashboard-container space-y-6">
       <section className="rounded-2xl border bg-white/90 p-5">
         <p className="text-xs font-semibold tracking-[0.15em] text-amber-700 uppercase">
           Administrator Dashboard
@@ -43,6 +44,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <RecentUsersCard users={users} />
+      </div>
     </div>
   );
 }

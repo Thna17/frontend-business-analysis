@@ -31,25 +31,27 @@
 }
 
 :root {
-  --radius: 0.7rem;
-  --background: oklch(0.985 0.003 250);
-  --foreground: oklch(0.24 0.02 255);
+  --font-body: "Poppins", "Avenir Next", "Segoe UI", sans-serif;
+  --font-heading: "Plus Jakarta Sans", "Poppins", "Avenir Next", sans-serif;
+  --radius: 0.9rem;
+  --background: #f3f4f6;
+  --foreground: #101828;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.02 255);
+  --card-foreground: #101828;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.02 255);
-  --primary: oklch(0.46 0.12 236);
-  --primary-foreground: oklch(0.98 0.01 250);
-  --secondary: oklch(0.95 0.01 236);
-  --secondary-foreground: oklch(0.33 0.03 255);
-  --muted: oklch(0.95 0.01 236);
-  --muted-foreground: oklch(0.53 0.03 250);
-  --accent: oklch(0.9 0.05 202);
-  --accent-foreground: oklch(0.28 0.04 234);
+  --popover-foreground: #101828;
+  --primary: #d4af35;
+  --primary-foreground: #101828;
+  --secondary: #f8f9fb;
+  --secondary-foreground: #344054;
+  --muted: #eef1f4;
+  --muted-foreground: #667085;
+  --accent: #f5ecd0;
+  --accent-foreground: #101828;
   --destructive: oklch(0.63 0.23 25);
-  --border: oklch(0.89 0.01 250);
-  --input: oklch(0.9 0.01 250);
-  --ring: oklch(0.56 0.11 236);
+  --border: #e4e7ec;
+  --input: #d0d5dd;
+  --ring: #d4af35;
 }
 
 @layer base {
@@ -65,12 +67,31 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body), sans-serif;
-    background-image:
-      radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.12), transparent 32%),
-      radial-gradient(circle at 95% 12%, rgba(59, 130, 246, 0.1), transparent 30%);
   }
 
   .font-heading {
     font-family: var(--font-heading), sans-serif;
+  }
+}
+
+@layer components {
+  .dashboard-shell {
+    @apply min-h-screen bg-background text-foreground;
+  }
+
+  .dashboard-container {
+    @apply mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .dashboard-surface {
+    @apply rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)];
+  }
+
+  .dashboard-kpi-card {
+    @apply rounded-2xl border border-border bg-card p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04)];
+  }
+
+  .dashboard-title {
+    @apply font-heading text-4xl font-semibold tracking-tight text-foreground;
   }
 }
