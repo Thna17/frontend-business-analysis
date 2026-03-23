@@ -1,4 +1,13 @@
-import { DollarSign, ShoppingCart, UserRound, UserRoundMinus } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Box,
+  DollarSign,
+  ShoppingCart,
+  Star,
+  UserRound,
+  UserRoundMinus,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MetricItem } from "@/features/owner-dashboard/dashboard-mock";
 
@@ -12,6 +21,10 @@ function MetricIcon({ icon }: Pick<MetricItem, "icon">) {
   if (icon === "users") return <UserRound className={className} />;
   if (icon === "churn") return <UserRoundMinus className={className} />;
   if (icon === "aov") return <ShoppingCart className={className} />;
+  if (icon === "today") return <ArrowUpRight className={className} />;
+  if (icon === "product") return <Box className={className} />;
+  if (icon === "star") return <Star className={className} />;
+  if (icon === "alert") return <AlertTriangle className="size-5 text-rose-600" />;
 
   return <DollarSign className={className} />;
 }
@@ -25,12 +38,14 @@ export function KpiCard({ item }: KpiCardProps) {
           <MetricIcon icon={item.icon} />
         </div>
 
-        <p className="mt-7 text-5xl font-semibold tracking-tight text-[#101828]">{item.value}</p>
+        <p className="mt-7 text-[1.95rem] font-semibold tracking-tight text-[#101828]">{item.value}</p>
 
         <div className="mt-3 flex items-center gap-2 text-sm">
-          <span className={item.changeDirection === "up" ? "text-emerald-600" : "text-rose-600"}>
-            {item.change}
-          </span>
+          {item.change ? (
+            <span className={item.changeDirection === "up" ? "text-emerald-600" : "text-rose-600"}>
+              {item.change}
+            </span>
+          ) : null}
           <span className="text-[#98a2b3]">{item.compareLabel}</span>
         </div>
       </CardContent>

@@ -17,8 +17,8 @@ export default function OwnerDashboardPage() {
 
       <div className="dashboard-container mt-10 space-y-7">
         <section>
-          <h1 className="dashboard-title text-5xl">Dashboard</h1>
-          <p className="mt-2 text-xl text-[#667085]">
+          <h1 className="dashboard-title">Dashboard</h1>
+          <p className="dashboard-subtitle mt-2">
             Welcome back, Alex. Here&apos;s what&apos;s happening today.
           </p>
         </section>

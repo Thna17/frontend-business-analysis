@@ -9,7 +9,7 @@ export function ProductRankingCard({ items }: ProductRankingCardProps) {
   return (
     <Card className="dashboard-surface h-full border-[#e7e9ee] shadow-none">
       <CardHeader className="px-7 pt-7 pb-2">
-        <CardTitle className="text-[1.8rem] font-semibold tracking-tight text-[#101828]">
+        <CardTitle className="dashboard-section-title">
           Product Revenue Ranking
         </CardTitle>
       </CardHeader>

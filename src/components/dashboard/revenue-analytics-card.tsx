@@ -6,7 +6,7 @@ export function RevenueAnalyticsCard() {
     <Card className="dashboard-surface border-[#e7e9ee] shadow-none">
       <CardHeader className="flex flex-row items-start justify-between px-7 pt-7 pb-0">
         <div>
-          <CardTitle className="text-[1.8rem] font-semibold tracking-tight text-[#101828]">
+          <CardTitle className="dashboard-section-title">
             Revenue Analytics
           </CardTitle>
           <p className="mt-1 text-[15px] text-[#667085]">Monthly revenue trends for the current year</p>

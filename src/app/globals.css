@@ -45,7 +45,7 @@
   --secondary: #f8f9fb;
   --secondary-foreground: #344054;
   --muted: #eef1f4;
-  --muted-foreground: #667085;
+  --muted-foreground: #343842;
   --accent: #f5ecd0;
   --accent-foreground: #101828;
   --destructive: oklch(0.63 0.23 25);
@@ -92,6 +92,14 @@
   }
 
   .dashboard-title {
-    @apply font-heading text-4xl font-semibold tracking-tight text-foreground;
+    @apply font-heading text-3xl font-semibold tracking-tight text-foreground md:text-[2.1rem];
+  }
+
+  .dashboard-subtitle {
+    @apply text-base text-[#667085] md:text-lg;
+  }
+
+  .dashboard-section-title {
+    @apply text-2xl font-semibold tracking-tight text-[#101828];
   }
 }
