@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 
 interface TopNavigationProps {
   items: DashboardNavItem[];
+  settingsHref?: string;
 }
 
-export function TopNavigation({ items }: TopNavigationProps) {
+export function TopNavigation({ items, settingsHref = "/settings" }: TopNavigationProps) {
   const pathname = usePathname();
 
   return (
@@ -52,10 +53,10 @@ export function TopNavigation({ items }: TopNavigationProps) {
             variant="ghost"
             className={cn(
               "h-12 rounded-full bg-white px-4 text-sm text-slate-900",
-              pathname === "/settings" && "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
+              pathname === settingsHref && "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
             )}
           >
-            <Link href="/settings">
+            <Link href={settingsHref}>
               <Settings className="size-5" />
               Setting
             </Link>

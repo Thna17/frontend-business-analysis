@@ -4,7 +4,17 @@ export interface MetricItem {
   change: string;
   changeDirection: "up" | "down";
   compareLabel: string;
-  icon: "revenue" | "users" | "churn" | "aov" | "today" | "product" | "star" | "alert";
+  icon:
+    | "revenue"
+    | "users"
+    | "churn"
+    | "aov"
+    | "today"
+    | "product"
+    | "star"
+    | "alert"
+    | "calendar"
+    | "business";
 }
 
 export interface RankingItem {
@@ -105,11 +115,48 @@ export interface ReportHistoryItem {
   status: "READY" | "PROCESSING";
 }
 
+export interface AdminUserDirectoryItem {
+  id: string;
+  name: string;
+  tier: string;
+  initials: string;
+  color: string;
+  status: "online" | "idle";
+}
+
+export interface AdminAuditLogItem {
+  id: string;
+  title: string;
+  timeAgo: string;
+}
+
+export interface AdminRevenueVelocityItem {
+  month: string;
+  valueLabel: string;
+  width: number;
+  highlight?: boolean;
+}
+
+export interface AdminSegmentItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: "building" | "sparkles" | "store" | "graduation";
+}
+
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
   { label: "Product", href: "/product" },
   { label: "Analytics", href: "/analytics" },
+  { label: "Subscriptions", href: "/subscriptions" },
+  { label: "Report", href: "/report" },
+];
+
+export const adminTopNavItems: DashboardNavItem[] = [
+  { label: "Dashboard", href: "/admin" },
+  { label: "Analytics", href: "/admin-analytics" },
+  { label: "Product", href: "/product" },
   { label: "Subscriptions", href: "/subscriptions" },
   { label: "Report", href: "/report" },
 ];
@@ -575,5 +622,181 @@ export const reportHistory: ReportHistoryItem[] = [
     type: "Customer",
     dateGenerated: "Oct 21, 2026",
     status: "READY",
+  },
+];
+
+export const adminDashboardMetrics: MetricItem[] = [
+  {
+    title: "Total Users",
+    value: "128",
+    change: "+12.5%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "users",
+  },
+  {
+    title: "Subscriptions",
+    value: "67",
+    change: "+5.2%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "product",
+  },
+  {
+    title: "Monthly Revenue",
+    value: "$14,820",
+    change: "+8%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "revenue",
+  },
+  {
+    title: "User Growth",
+    value: "128",
+    change: "",
+    changeDirection: "up",
+    compareLabel: "new users this month",
+    icon: "today",
+  },
+];
+
+export const adminGrowthProjection = [
+  { month: "Jan", value: 36 },
+  { month: "Feb", value: 44 },
+  { month: "Mar", value: 63 },
+  { month: "Apr", value: 58 },
+  { month: "May", value: 69 },
+  { month: "Jun", value: 81 },
+];
+
+export const adminUserDirectory: AdminUserDirectoryItem[] = [
+  {
+    id: "ad-1",
+    name: "Jing Jing",
+    tier: "Free Tier",
+    initials: "JJ",
+    color: "#e5e7eb",
+    status: "online",
+  },
+  {
+    id: "ad-2",
+    name: "Mengchheang",
+    tier: "PLUS TIER",
+    initials: "MC",
+    color: "#c7d2fe",
+    status: "online",
+  },
+  {
+    id: "ad-3",
+    name: "Brathna",
+    tier: "PRO",
+    initials: "BR",
+    color: "#fde68a",
+    status: "idle",
+  },
+];
+
+export const adminAuditLogs: AdminAuditLogItem[] = [
+  { id: "log-1", title: "System Update", timeAgo: "2m ago" },
+  { id: "log-2", title: "API Credential Refresh", timeAgo: "1h ago" },
+];
+
+export const adminAnalyticsMetrics: MetricItem[] = [
+  {
+    title: "Total Users",
+    value: "1,420,000",
+    change: "+12.5%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "users",
+  },
+  {
+    title: "Subscriptions",
+    value: "14,820",
+    change: "+5.2%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "calendar",
+  },
+  {
+    title: "Monthly Revenue",
+    value: "$2.48M",
+    change: "+8%",
+    changeDirection: "up",
+    compareLabel: "vs last month",
+    icon: "revenue",
+  },
+  {
+    title: "Total Businesses",
+    value: "12,104",
+    change: "-0.4%",
+    changeDirection: "down",
+    compareLabel: "vs last month",
+    icon: "business",
+  },
+];
+
+export const adminAnalyticsTrends: Record<"6m" | "yearly", Array<{ month: string; value: number }>> = {
+  "6m": [
+    { month: "Jan", value: 200 },
+    { month: "Feb", value: 410 },
+    { month: "Mar", value: 300 },
+    { month: "Apr", value: 760 },
+    { month: "May", value: 1120 },
+    { month: "Jun", value: 1400 },
+  ],
+  yearly: [
+    { month: "Jan", value: 90 },
+    { month: "Feb", value: 140 },
+    { month: "Mar", value: 220 },
+    { month: "Apr", value: 380 },
+    { month: "May", value: 510 },
+    { month: "Jun", value: 700 },
+    { month: "Jul", value: 860 },
+    { month: "Aug", value: 980 },
+    { month: "Sep", value: 1100 },
+    { month: "Oct", value: 1230 },
+    { month: "Nov", value: 1360 },
+    { month: "Dec", value: 1520 },
+  ],
+};
+
+export const adminRevenueVelocity: AdminRevenueVelocityItem[] = [
+  { month: "March", valueLabel: "$1.92M", width: 74 },
+  { month: "April", valueLabel: "$2.15M", width: 81 },
+  { month: "May", valueLabel: "$2.34M", width: 89 },
+  { month: "June (Current)", valueLabel: "$2.48M", width: 95, highlight: true },
+];
+
+export const adminSubscriptionDistribution = [
+  { label: "Free Tier", percent: 75, users: "963K", color: "#7c6203" },
+  { label: "Plus Tier", percent: 20, users: "257K", color: "#d4af35" },
+  { label: "Pro Tier", percent: 5, users: "64.2K", color: "#111827" },
+];
+
+export const adminUserSegments: AdminSegmentItem[] = [
+  {
+    id: "seg-1",
+    title: "Enterprise Orgs",
+    description: "Global scaling accounts",
+    icon: "building",
+  },
+  {
+    id: "seg-2",
+    title: "Power Creatives",
+    description: "High-volume content creators",
+    icon: "sparkles",
+  },
+  {
+    id: "seg-3",
+    title: "SME Retailers",
+    description: "Direct-to-consumer businesses",
+    icon: "store",
+  },
+  {
+    id: "seg-4",
+    title: "Education Portals",
+    description: "Institutional learning platforms",
+    icon: "graduation",
   },
 ];
