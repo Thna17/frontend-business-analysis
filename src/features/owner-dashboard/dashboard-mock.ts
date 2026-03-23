@@ -97,13 +97,21 @@ export interface BillingHistoryItem {
   status: "Paid" | "Pending";
 }
 
+export interface ReportHistoryItem {
+  id: string;
+  name: string;
+  type: "Sales" | "Revenue" | "Product" | "Customer";
+  dateGenerated: string;
+  status: "READY" | "PROCESSING";
+}
+
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
   { label: "Product", href: "/product" },
   { label: "Analytics", href: "/analytics" },
   { label: "Subscriptions", href: "/subscriptions" },
-  { label: "Report" },
+  { label: "Report", href: "/report" },
 ];
 
 export const metricItems: MetricItem[] = [
@@ -526,4 +534,46 @@ export const subscriptionBillingHistory: BillingHistoryItem[] = [
   { id: "INV-9402", plan: "Pro Monthly", amount: 49, date: "Sep 24, 2026", status: "Paid" },
   { id: "INV-8831", plan: "Pro Monthly", amount: 49, date: "Aug 24, 2026", status: "Paid" },
   { id: "INV-7720", plan: "Starter Monthly", amount: 19, date: "Jul 24, 2026", status: "Paid" },
+];
+
+export const reportInsights = [
+  {
+    title: "Revenue increased by 12%",
+    description: "Growth is primarily driven by new enterprise subscriptions this month.",
+    tone: "amber" as const,
+  },
+  {
+    title: "Customer churn down 3.4%",
+    description: "Retention campaigns for 'Silver' tier users are showing results.",
+    tone: "slate" as const,
+  },
+  {
+    title: "Top product: Analytics Pro",
+    description: "Most downloaded report type correlates with this product's usage.",
+    tone: "slate" as const,
+  },
+];
+
+export const reportHistory: ReportHistoryItem[] = [
+  {
+    id: "rpt-1",
+    name: "Q3 Sales Analysis",
+    type: "Sales",
+    dateGenerated: "Oct 24, 2026",
+    status: "READY",
+  },
+  {
+    id: "rpt-2",
+    name: "Monthly Revenue Summary",
+    type: "Revenue",
+    dateGenerated: "Oct 23, 2026",
+    status: "PROCESSING",
+  },
+  {
+    id: "rpt-3",
+    name: "Customer Retention Oct",
+    type: "Customer",
+    dateGenerated: "Oct 21, 2026",
+    status: "READY",
+  },
 ];
