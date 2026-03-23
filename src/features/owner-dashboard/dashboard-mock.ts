@@ -52,11 +52,28 @@ export interface ProductRow {
   avatar: string;
 }
 
+export interface AnalyticsMetric {
+  label: string;
+  value: string;
+  delta: string;
+  tone: "green" | "amber" | "slate";
+}
+
+export interface AnalyticsSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface HeatmapCell {
+  day: string;
+  value: number;
+}
+
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
   { label: "Product", href: "/product" },
-  { label: "Analytics" },
+  { label: "Analytics", href: "/analytics" },
   { label: "Subscriptions" },
   { label: "Report" },
 ];
@@ -312,4 +329,95 @@ export const productRankingItems: RankingItem[] = [
   { name: "Cappuccino", value: 1920, width: 80 },
   { name: "Iced Tea", value: 1250, width: 54 },
   { name: "Espresso", value: 830, width: 36 },
+];
+
+export const analyticsMetrics: AnalyticsMetric[] = [
+  { label: "Revenue Growth", value: "+18.5%", delta: "+2.4%", tone: "green" },
+  { label: "Average Order Value", value: "$84.20", delta: "+$5.12", tone: "green" },
+  { label: "Customer Growth", value: "+9.2%", delta: "+124", tone: "amber" },
+  { label: "Conversion Rate", value: "4.2%", delta: "-0.1%", tone: "slate" },
+];
+
+export const analyticsRevenueSeries: Record<"3m" | "6m" | "12m", AnalyticsSeriesPoint[]> = {
+  "3m": [
+    { label: "Apr", value: 60 },
+    { label: "May", value: 68 },
+    { label: "Jun", value: 74 },
+  ],
+  "6m": [
+    { label: "Jan", value: 34 },
+    { label: "Feb", value: 41 },
+    { label: "Mar", value: 66 },
+    { label: "Apr", value: 57 },
+    { label: "May", value: 72 },
+    { label: "Jun", value: 83 },
+  ],
+  "12m": [
+    { label: "Jul", value: 26 },
+    { label: "Aug", value: 31 },
+    { label: "Sep", value: 28 },
+    { label: "Oct", value: 44 },
+    { label: "Nov", value: 55 },
+    { label: "Dec", value: 59 },
+    { label: "Jan", value: 52 },
+    { label: "Feb", value: 63 },
+    { label: "Mar", value: 72 },
+    { label: "Apr", value: 68 },
+    { label: "May", value: 79 },
+    { label: "Jun", value: 86 },
+  ],
+};
+
+export const analyticsCustomerSeries: AnalyticsSeriesPoint[] = [
+  { label: "Mon", value: 24 },
+  { label: "Tue", value: 30 },
+  { label: "Wed", value: 58 },
+  { label: "Thu", value: 52 },
+  { label: "Fri", value: 64 },
+  { label: "Sat", value: 70 },
+];
+
+export const analyticsCategoryShare = [
+  { label: "Coffee", value: 55, color: "#d4af35" },
+  { label: "Food", value: 25, color: "#eadbb0" },
+  { label: "Beverages", value: 20, color: "#d8dee7" },
+];
+
+export const analyticsHeatmap: HeatmapCell[][] = [
+  [
+    { day: "Mon", value: 1 },
+    { day: "Tue", value: 2 },
+    { day: "Wed", value: 1 },
+    { day: "Thu", value: 3 },
+    { day: "Fri", value: 4 },
+    { day: "Sat", value: 5 },
+    { day: "Sun", value: 4 },
+  ],
+  [
+    { day: "Mon", value: 1 },
+    { day: "Tue", value: 1 },
+    { day: "Wed", value: 2 },
+    { day: "Thu", value: 3 },
+    { day: "Fri", value: 4 },
+    { day: "Sat", value: 4 },
+    { day: "Sun", value: 3 },
+  ],
+  [
+    { day: "Mon", value: 2 },
+    { day: "Tue", value: 3 },
+    { day: "Wed", value: 4 },
+    { day: "Thu", value: 5 },
+    { day: "Fri", value: 5 },
+    { day: "Sat", value: 3 },
+    { day: "Sun", value: 1 },
+  ],
+  [
+    { day: "Mon", value: 1 },
+    { day: "Tue", value: 1 },
+    { day: "Wed", value: 2 },
+    { day: "Thu", value: 3 },
+    { day: "Fri", value: 3 },
+    { day: "Sat", value: 4 },
+    { day: "Sun", value: 3 },
+  ],
 ];
