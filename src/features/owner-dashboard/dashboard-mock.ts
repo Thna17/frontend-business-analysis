@@ -69,12 +69,40 @@ export interface HeatmapCell {
   value: number;
 }
 
+export interface SubscriptionUsageMetric {
+  title: string;
+  value: string;
+  note: string;
+  progress: number;
+  icon: "users" | "reports" | "queries" | "storage";
+}
+
+export interface SubscriptionPlanTier {
+  id: string;
+  tier: string;
+  name: string;
+  subtitle: string;
+  priceLabel: string;
+  perLabel: string;
+  features: string[];
+  cta: string;
+  tone: "default" | "highlight" | "outline";
+}
+
+export interface BillingHistoryItem {
+  id: string;
+  plan: string;
+  amount: number;
+  date: string;
+  status: "Paid" | "Pending";
+}
+
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
   { label: "Product", href: "/product" },
   { label: "Analytics", href: "/analytics" },
-  { label: "Subscriptions" },
+  { label: "Subscriptions", href: "/subscriptions" },
   { label: "Report" },
 ];
 
@@ -420,4 +448,82 @@ export const analyticsHeatmap: HeatmapCell[][] = [
     { day: "Sat", value: 4 },
     { day: "Sun", value: 3 },
   ],
+];
+
+export const subscriptionCurrentPlan = {
+  name: "Pro Plan",
+  price: 49,
+  status: "ACTIVE NOW",
+  description: "Current monthly subscription for advanced analytics and priority support.",
+  nextBillingDate: "October 24, 2026",
+};
+
+export const subscriptionUsageMetrics: SubscriptionUsageMetric[] = [
+  { title: "Active Users", value: "8 / 10", note: "", progress: 80, icon: "users" },
+  { title: "Reports Generated", value: "124", note: "+ 12% from last month", progress: 60, icon: "reports" },
+  { title: "Analytics Queries", value: "8,432", note: "Unlimited queries included", progress: 72, icon: "queries" },
+  { title: "Storage Used", value: "2.3 GB", note: "", progress: 42, icon: "storage" },
+];
+
+export const subscriptionPlanTiers: SubscriptionPlanTier[] = [
+  {
+    id: "foundation",
+    tier: "TIER I",
+    name: "Foundation",
+    subtitle: "Starter",
+    priceLabel: "$19",
+    perLabel: "/mo",
+    features: [
+      "Up to 3 team members",
+      "Sales transaction management",
+      "Basic revenue dashboard",
+      "Product catalog tracking",
+      "Monthly billing reports",
+      "Email support",
+    ],
+    cta: "Choose Foundation",
+    tone: "outline",
+  },
+  {
+    id: "pro",
+    tier: "TIER II",
+    name: "Pro",
+    subtitle: "Most Popular",
+    priceLabel: "$49",
+    perLabel: "/mo",
+    features: [
+      "Everything in Foundation",
+      "Advanced analytics insights",
+      "Usage metrics and alerts",
+      "Priority billing support",
+      "CSV import/export tools",
+      "Role-based dashboard access",
+    ],
+    cta: "In Use",
+    tone: "highlight",
+  },
+  {
+    id: "business",
+    tier: "TIER III",
+    name: "Business",
+    subtitle: "Enterprise Ready",
+    priceLabel: "Custom",
+    perLabel: "",
+    features: [
+      "Everything in Pro",
+      "Multi-business account support",
+      "Dedicated account manager",
+      "Custom onboarding workflow",
+      "SLA and uptime commitment",
+      "Security and compliance review",
+    ],
+    cta: "Contact Sales",
+    tone: "default",
+  },
+];
+
+export const subscriptionBillingHistory: BillingHistoryItem[] = [
+  { id: "INV-9402", plan: "Pro Monthly", amount: 49, date: "Sep 24, 2026", status: "Paid" },
+  { id: "INV-8831", plan: "Pro Monthly", amount: 49, date: "Aug 24, 2026", status: "Paid" },
+  { id: "INV-7720", plan: "Starter Monthly", amount: 19, date: "Jul 24, 2026", status: "Paid" },
 ];
