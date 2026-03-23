@@ -37,7 +37,7 @@ export default function HomePage() {
         <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-cyan-200 uppercase">
           Smart Business Analytics SaaS
         </p>
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
           Start Your SRS-Driven Frontend Foundation
         </h1>
         <p className="mt-4 max-w-2xl text-sm text-slate-200 sm:text-base">

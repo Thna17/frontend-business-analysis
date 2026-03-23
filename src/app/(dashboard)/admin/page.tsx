@@ -13,10 +13,10 @@ export default async function AdminDashboardPage() {
         <p className="text-xs font-semibold tracking-[0.15em] text-amber-700 uppercase">
           Administrator Dashboard
         </p>
-        <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="dashboard-title mt-1 text-slate-900">
           Platform Monitoring and User Management
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="dashboard-subtitle mt-2">
           Monitor subscriptions, platform usage, and user account growth.
         </p>
       </section>

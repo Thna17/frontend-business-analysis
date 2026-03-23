@@ -20,7 +20,7 @@ export function RecentSalesCard({ rows }: RecentSalesCardProps) {
   return (
     <section className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
       <div className="flex items-center justify-between border-b border-[#edf1f5] px-7 py-6">
-        <h3 className="text-[1.8rem] font-semibold tracking-tight text-[#101828]">Recent Sales Transactions</h3>
+        <h3 className="dashboard-section-title">Recent Sales Transactions</h3>
         <button type="button" className="text-sm font-medium text-[#d4af35]">
           View all
         </button>
