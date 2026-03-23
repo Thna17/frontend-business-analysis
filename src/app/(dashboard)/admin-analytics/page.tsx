@@ -5,7 +5,7 @@ import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
 export default function AdminAnalyticsPage() {
   return (
     <div className="dashboard-shell pb-14">
-      <TopNavigation items={adminTopNavItems} />
+      <TopNavigation items={adminTopNavItems} settingsHref="/admin-settings" />
 
       <div className="dashboard-container mt-10 space-y-7">
         <AdminAnalyticsWorkspace />
