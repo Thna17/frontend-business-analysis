@@ -47,9 +47,18 @@ export function TopNavigation({ items }: TopNavigationProps) {
             </ul>
           </nav>
 
-          <Button variant="ghost" className="h-12 rounded-full bg-white px-4 text-sm text-slate-900">
-            <Settings className="size-5" />
-            Setting
+          <Button
+            asChild
+            variant="ghost"
+            className={cn(
+              "h-12 rounded-full bg-white px-4 text-sm text-slate-900",
+              pathname === "/settings" && "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
+            )}
+          >
+            <Link href="/settings">
+              <Settings className="size-5" />
+              Setting
+            </Link>
           </Button>
           <Button variant="ghost" size="icon" className="size-12 rounded-full bg-white text-slate-900">
             <Bell className="size-5" />
