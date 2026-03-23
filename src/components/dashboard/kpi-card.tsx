@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
   ArrowUpRight,
+  Building2,
+  CalendarDays,
   Box,
   DollarSign,
   ShoppingCart,
@@ -24,6 +26,8 @@ function MetricIcon({ icon }: Pick<MetricItem, "icon">) {
   if (icon === "today") return <ArrowUpRight className={className} />;
   if (icon === "product") return <Box className={className} />;
   if (icon === "star") return <Star className={className} />;
+  if (icon === "calendar") return <CalendarDays className={className} />;
+  if (icon === "business") return <Building2 className={className} />;
   if (icon === "alert") return <AlertTriangle className="size-5 text-rose-600" />;
 
   return <DollarSign className={className} />;
