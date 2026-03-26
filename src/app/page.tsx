@@ -46,7 +46,10 @@ export default function HomePage() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/auth/login">Go to Login</Link>
+            <Link href="/login">Go to Login</Link>
+          </Button>
+          <Button variant="outline" asChild className="border-white/30 bg-white/10 text-white hover:bg-white/20">
+            <Link href="/signup">Create Account</Link>
           </Button>
           <Button variant="outline" asChild className="border-white/30 bg-white/10 text-white hover:bg-white/20">
             <Link href="/owner">Business Owner Dashboard</Link>
