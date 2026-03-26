@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,14 +18,12 @@ export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false
+    );
     const { itemCount } = useCart();
-
-    // Prevent hydration mismatch by only showing auth-dependent UI after mount
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        setMounted(true);
-    }, []);
 
     useEffect(() => {
         dispatch(loadUserFromStorage());
@@ -232,4 +230,3 @@ export default function Header() {
         </header>
     );
 }
-
