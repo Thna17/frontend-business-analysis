@@ -5,34 +5,14 @@ import {
     useGetCartQuery,
     useAddCartItemMutation,
     useUpdateCartItemMutation,
-    useRemoveCartItemMutation
+    useRemoveCartItemMutation,
+    type CartResponse,
+    type CartItemResponse,
 } from "@/redux/services/api";
 import { Product, Size, Color } from "@/types";
 
-interface BackendCartItem {
-    id: string;
-    cartId: string;
-    productId: string;
-    quantity: number;
-    unitPrice: number;
-    lineTotal: number;
-    product: Product & { images?: Array<{ url: string; sortOrder: number }> };
-    createdAt: string;
-    updatedAt: string;
-}
-
-interface BackendCart {
-    id: string;
-    customerId: string | null;
-    guestToken: string | null;
-    items: BackendCartItem[];
-    subtotal: number;
-    createdAt: string;
-    updatedAt: string;
-}
-
 interface CartContextType {
-    cart: BackendCart | null;
+    cart: CartResponse | null;
     isLoading: boolean;
     addToCart: (product: Product, size?: Size, color?: Color, quantity?: number) => Promise<void>;
     removeFromCart: (itemId: string) => Promise<void>;
@@ -95,13 +75,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const clearCart = () => {
         // Clear all items one by one - backend doesn't have a clear endpoint exposed via routes
         if (cart?.items) {
-            cart.items.forEach((item: BackendCartItem) => {
+            cart.items.forEach((item: CartItemResponse) => {
                 removeFromCart(item.id);
             });
         }
     };
 
-    const itemCount = cart?.items.reduce((sum: number, item: BackendCartItem) => sum + item.quantity, 0) || 0;
+    const itemCount = cart?.items.reduce((sum: number, item: CartItemResponse) => sum + item.quantity, 0) || 0;
 
     return (
         <CartContext.Provider
