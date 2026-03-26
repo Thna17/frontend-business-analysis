@@ -1,0 +1,148 @@
+import type {
+  BillingEvent,
+  SubscriptionChartItem,
+  SubscriptionPlan,
+  SubscriptionStat,
+} from "@/types/subscription";
+
+export const subscriptionStats: SubscriptionStat[] = [
+  {
+    title: "Total ARR",
+    value: "$1,420,000",
+    change: "↗ +12.5%",
+    note: "vs last mo",
+    positive: true,
+    icon: "▣",
+  },
+  {
+    title: "Monthly RR",
+    value: "$118,334",
+    change: "↗ +5.2%",
+    note: "vs last mo",
+    positive: true,
+    icon: "◫",
+  },
+  {
+    title: "Total Subscribers",
+    value: "14,820",
+    change: "",
+    note: "vs last mo",
+    positive: true,
+    icon: "◔",
+  },
+  {
+    title: "Churn Rate",
+    value: "2.41%",
+    change: "↗ -0.4%",
+    note: "vs last mo",
+    positive: false,
+    icon: "◧",
+  },
+];
+
+export const subscriptionChartData: SubscriptionChartItem[] = [
+  { month: "JAN", value: 38 },
+  { month: "FEB", value: 46 },
+  { month: "MAR", value: 42 },
+  { month: "APR", value: 60 },
+  { month: "MAY", value: 74 },
+  { month: "JUN", value: 66 },
+  { month: "JUL", value: 88 },
+  { month: "AUG", value: 102 },
+  { month: "SEP", value: 96 },
+  { month: "OCT", value: 118 },
+  { month: "NOV", value: 126 },
+  { month: "DEC", value: 134 },
+];
+
+export const subscriptionPlans: SubscriptionPlan[] = [
+  {
+    name: "Free",
+    subtitle: "Casual curation for individuals",
+    price: "$0",
+    suffix: "/monthly",
+    users: "8,421",
+    features: [
+      { text: "Up to 3 collections", disabled: false },
+      { text: "Basic insights", disabled: false },
+      { text: "Priority Support", disabled: true },
+    ],
+    highlighted: false,
+    badge: "",
+  },
+  {
+    name: "Plus",
+    subtitle: "Professional creator tools",
+    price: "$29",
+    suffix: "/monthly",
+    users: "4,102",
+    features: [
+      { text: "Unlimited collections", disabled: false },
+      { text: "Advanced API access", disabled: false },
+      { text: "Priority Support", disabled: false },
+    ],
+    highlighted: true,
+    badge: "MOST POPULAR",
+  },
+  {
+    name: "Pro",
+    subtitle: "Enterprise-grade scale",
+    price: "$99",
+    suffix: "/monthly",
+    users: "2,297",
+    features: [
+      { text: "White-label branding", disabled: false },
+      { text: "Dedicated Account Mgr", disabled: false },
+      { text: "SSO & Governance", disabled: false },
+    ],
+    highlighted: false,
+    badge: "",
+  },
+];
+
+export const billingEvents: BillingEvent[] = [
+  {
+    initials: "JD",
+    name: "Julianne Davis",
+    email: "julianne@example.com",
+    eventType: "Renewal",
+    plan: "PLUS",
+    amount: "$29.00",
+    date: "2 mins ago",
+    status: "Successful",
+    statusType: "success",
+  },
+  {
+    initials: "MK",
+    name: "Marcus Knight",
+    email: "marcus@knight.io",
+    eventType: "Upgrade",
+    plan: "PRO",
+    amount: "$99.00",
+    date: "14 mins ago",
+    status: "Successful",
+    statusType: "success",
+  },
+  {
+    initials: "SL",
+    name: "Sarah Lopez",
+    email: "sarah.l@studio.com",
+    eventType: "Cancellation",
+    plan: "FREE",
+    amount: "$0.00",
+    date: "1 hour ago",
+    status: "Processed",
+    statusType: "processed",
+  },
+  {
+    initials: "TW",
+    name: "Thomas Wright",
+    email: "t.wright@enterprise.com",
+    eventType: "Failed Renewal",
+    plan: "PLUS",
+    amount: "$29.00",
+    date: "2 hours ago",
+    status: "Action Req.",
+    statusType: "danger",
+  },
+];
