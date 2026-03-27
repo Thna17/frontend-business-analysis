@@ -1,70 +1,41 @@
-import { BarChart3, DollarSign, Package, TrendingUp } from "lucide-react";
-import { RevenueAnalyticsCard } from "@/components/sba/revenue-analytics-card";
-import { SalesTable } from "@/components/sba/sales-table";
-import { StatCard } from "@/components/sba/stat-card";
-import { SubscriptionCard } from "@/components/sba/subscription-card";
-import { TopProductsCard } from "@/components/sba/top-products-card";
-import { getRevenueAnalytics } from "@/features/analytics/analytics-service";
-import { getBusinessProfile } from "@/features/business/business-service";
-import { getSales } from "@/features/sales/sales-service";
-import { getSubscription } from "@/features/subscriptions/subscription-service";
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import { ProductRankingCard } from "@/components/dashboard/product-ranking-card";
+import { RecentSalesCard } from "@/components/dashboard/recent-sales-card";
+import { RevenueAnalyticsCard } from "@/components/dashboard/revenue-analytics-card";
+import { TopNavigation } from "@/components/dashboard/top-navigation";
+import {
+  metricItems,
+  rankingItems,
+  salesTransactions,
+  topNavItems,
+} from "@/features/owner-dashboard/dashboard-mock";
 
-export default async function OwnerDashboardPage() {
-  const [analytics, business, sales, subscription] = await Promise.all([
-    getRevenueAnalytics(),
-    getBusinessProfile(),
-    getSales(),
-    getSubscription(),
-  ]);
-
+export default function OwnerDashboardPage() {
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border bg-white/90 p-5">
-        <p className="text-xs font-semibold tracking-[0.15em] text-cyan-700 uppercase">
-          Business Owner Dashboard
-        </p>
-        <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          {business.businessName}
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Manage sales transactions, review revenue analytics, and monitor your subscription plan.
-        </p>
-      </section>
+    <div className="dashboard-shell pb-10">
+      <TopNavigation items={topNavItems} />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total Revenue"
-          value={`$${analytics.totalRevenue.toLocaleString()}`}
-          hint="Current month"
-          icon={DollarSign}
-        />
-        <StatCard
-          title="Growth"
-          value={`${analytics.growthPercentage}%`}
-          hint="Compared with last month"
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Sales Records"
-          value={sales.length.toString()}
-          hint="Tracked transactions"
-          icon={Package}
-        />
-        <StatCard
-          title="Analytics Coverage"
-          value="5 metrics"
-          hint="Daily and monthly"
-          icon={BarChart3}
-        />
-      </section>
+      <div className="dashboard-container mt-10 space-y-7">
+        <section>
+          <h1 className="dashboard-title">Dashboard</h1>
+          <p className="dashboard-subtitle mt-2">
+            Welcome back, Alex. Here&apos;s what&apos;s happening today.
+          </p>
+        </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <RevenueAnalyticsCard analytics={analytics} />
-        <TopProductsCard analytics={analytics} />
-      </section>
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {metricItems.map((item) => (
+            <KpiCard key={item.title} item={item} />
+          ))}
+        </section>
 
-      <SalesTable sales={sales} />
-      <SubscriptionCard subscription={subscription} />
+        <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+          <RevenueAnalyticsCard />
+          <ProductRankingCard items={rankingItems} />
+        </section>
+
+        <RecentSalesCard rows={salesTransactions} />
+      </div>
     </div>
   );
 }
