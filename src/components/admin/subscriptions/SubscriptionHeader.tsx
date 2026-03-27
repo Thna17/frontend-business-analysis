@@ -4,7 +4,7 @@ export default function SubscriptionHeader() {
       <div>
         <h1>Subscription Management</h1>
         <p>
-          Oversee tiers, monitor MRR growth, and curate subscriber experience.
+         Manage your plans, track revenue growth, and improve your customers’ experience.
         </p>
       </div>
 

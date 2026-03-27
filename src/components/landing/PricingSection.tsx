@@ -1,16 +1,16 @@
 const pricingPlans = [
   {
     tier: "TIER I",
-    name: "Foundation",
-    price: "$2,400",
+    name: "Free",
+    price: "$0",
     suffix: "/mo",
     features: [
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
+      "Create and manage 1 business profile",
+      "Add, edit, and delete sales records",
+      "Basic revenue overview",
+      "Simple dashboard view",
+      "Search by product name",
+      "Filter by date and category",
     ],
     highlighted: false,
     badge: "",
@@ -18,16 +18,16 @@ const pricingPlans = [
   },
   {
     tier: "TIER II",
-    name: "Enterprise",
-    price: "$8,500",
+    name: "Plus",
+    price: "$19",
     suffix: "/mo",
     features: [
-      "All Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
+      "All Free features",
+      "Advanced revenue analytics",
+      "Daily sales trends",
+      "Monthly sales comparison",
+      "Growth percentage insights",
+      "Top-performing product analysis",
     ],
     highlighted: true,
     badge: "RECOMMENDED",
@@ -35,16 +35,16 @@ const pricingPlans = [
   },
   {
     tier: "TIER III",
-    name: "Institutional",
-    price: "Custom",
-    suffix: "",
+    name: "Pro",
+    price: "$49",
+    suffix: "/mo",
     features: [
-      "All Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
-      "AI Foundation Features",
+      "All Plus features",
+      "Full analytics dashboard",
+      "Detailed product performance insights",
+      "Subscription status monitoring",
+      "Priority support",
+      "Best for growing businesses",
     ],
     highlighted: false,
     badge: "",
@@ -58,13 +58,12 @@ export default function PricingSection() {
       <div className="container">
         <div className="pricing-heading">
           <div>
-            <p className="section-label">INVESTMENT TIERS</p>
-            <h2>Capital Allocation</h2>
+            <p className="section-label">PRICING</p>
+            <h2>Choose Your Plan</h2>
           </div>
 
           <p className="pricing-text">
-            Select the tier that aligns with your institutional scope. All
-            packages include our core architectural backbone.
+            Select the plan that fits your business needs. Start free and upgrade anytime.
           </p>
         </div>
 

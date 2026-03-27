@@ -1,33 +1,45 @@
+import type { LucideIcon } from "lucide-react";
+
+/* =========================
+   STATS
+========================= */
 export type SubscriptionStat = {
   title: string;
   value: string;
   change: string;
   note: string;
   positive: boolean;
-  icon: string;
+  icon: LucideIcon; // FIXED HERE
 };
 
+/* =========================
+   CHART
+========================= */
 export type SubscriptionChartItem = {
   month: string;
   value: number;
 };
 
-export type PlanFeature = {
-  text: string;
-  disabled: boolean;
-};
-
+/* =========================
+   PLANS
+========================= */
 export type SubscriptionPlan = {
   name: string;
   subtitle: string;
   price: string;
   suffix: string;
   users: string;
-  features: PlanFeature[];
+  features: {
+    text: string;
+    disabled: boolean;
+  }[];
   highlighted: boolean;
   badge: string;
 };
 
+/* =========================
+   BILLING EVENTS
+========================= */
 export type BillingEvent = {
   initials: string;
   name: string;
@@ -37,5 +49,5 @@ export type BillingEvent = {
   amount: string;
   date: string;
   status: string;
-  statusType: string;
+  statusType: "success" | "processed" | "danger";
 };

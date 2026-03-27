@@ -11,9 +11,9 @@ export default function AdminTopNav() {
     <header className="admin-topnav">
       <div className="admin-brand">
         <div className="admin-brand-logo">
-          <div className="admin-brand-logo-inner" />
+          <span className="admin-brand-smile">◡</span>
         </div>
-        <span>Syntrix</span>
+        <span className="admin-brand-text">Syntrix</span>
       </div>
 
       <nav className="admin-topnav-menu">
@@ -21,7 +21,7 @@ export default function AdminTopNav() {
           <a
             key={item}
             href="#"
-            className={item === "Analytics" ? "active" : ""}
+            className={item === "Subscriptions" ? "active" : ""}
           >
             {item}
           </a>

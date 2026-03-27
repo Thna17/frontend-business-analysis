@@ -1387,6 +1387,35 @@
     gap: 16px;
   }
 }
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
+.admin-brand-logo {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #94a3b8;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  background: transparent;
+}
+
+.admin-brand-smile {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.admin-brand-text {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
 
 

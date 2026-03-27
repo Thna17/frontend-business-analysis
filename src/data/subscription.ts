@@ -5,41 +5,54 @@ import type {
   SubscriptionStat,
 } from "@/types/subscription";
 
+import {
+  DollarSign,
+  TrendingUp,
+  Users,
+  AlertTriangle,
+} from "lucide-react";
+
+/* =========================
+   STATS
+========================= */
 export const subscriptionStats: SubscriptionStat[] = [
   {
-    title: "Total ARR",
+    title: "Total Revenue (ARR)",
     value: "$1,420,000",
     change: "↗ +12.5%",
-    note: "vs last mo",
+    note: "compared to last month",
     positive: true,
-    icon: "▣",
+    icon: DollarSign,
   },
   {
-    title: "Monthly RR",
+    title: "Monthly Revenue",
     value: "$118,334",
     change: "↗ +5.2%",
-    note: "vs last mo",
+    note: "compared to last month",
     positive: true,
-    icon: "◫",
+    icon: TrendingUp,
   },
   {
     title: "Total Subscribers",
     value: "14,820",
     change: "",
-    note: "vs last mo",
+    note: "active this month",
     positive: true,
-    icon: "◔",
+    icon: Users,
   },
   {
     title: "Churn Rate",
     value: "2.41%",
-    change: "↗ -0.4%",
-    note: "vs last mo",
+    change: "↘ -0.4%",
+    note: "lower than last month",
     positive: false,
-    icon: "◧",
+    icon: AlertTriangle,
   },
 ];
 
+/* =========================
+   CHART DATA
+========================= */
 export const subscriptionChartData: SubscriptionChartItem[] = [
   { month: "JAN", value: 38 },
   { month: "FEB", value: 46 },
@@ -55,79 +68,85 @@ export const subscriptionChartData: SubscriptionChartItem[] = [
   { month: "DEC", value: 134 },
 ];
 
+/* =========================
+   PLANS
+========================= */
 export const subscriptionPlans: SubscriptionPlan[] = [
   {
     name: "Free",
-    subtitle: "Casual curation for individuals",
+    subtitle: "Perfect for getting started",
     price: "$0",
-    suffix: "/monthly",
+    suffix: "/month",
     users: "8,421",
     features: [
-      { text: "Up to 3 collections", disabled: false },
-      { text: "Basic insights", disabled: false },
-      { text: "Priority Support", disabled: true },
+      { text: "Create and manage 1 business profile", disabled: false },
+      { text: "Add, edit, and delete sales records", disabled: false },
+      { text: "Basic sales and revenue overview", disabled: false },
     ],
     highlighted: false,
     badge: "",
   },
   {
     name: "Plus",
-    subtitle: "Professional creator tools",
-    price: "$29",
-    suffix: "/monthly",
+    subtitle: "Best for growing businesses",
+    price: "$19",
+    suffix: "/month",
     users: "4,102",
     features: [
-      { text: "Unlimited collections", disabled: false },
-      { text: "Advanced API access", disabled: false },
-      { text: "Priority Support", disabled: false },
+      { text: "Everything in Free", disabled: false },
+      { text: "Advanced analytics and revenue insights", disabled: false },
+      { text: "Priority customer support", disabled: false },
     ],
     highlighted: true,
     badge: "MOST POPULAR",
   },
   {
     name: "Pro",
-    subtitle: "Enterprise-grade scale",
-    price: "$99",
-    suffix: "/monthly",
+    subtitle: "Built for scaling teams",
+    price: "$49",
+    suffix: "/month",
     users: "2,297",
     features: [
-      { text: "White-label branding", disabled: false },
-      { text: "Dedicated Account Mgr", disabled: false },
-      { text: "SSO & Governance", disabled: false },
+      { text: "Everything in Plus", disabled: false },
+      { text: "Full analytics dashboard", disabled: false },
+      { text: "Advanced performance insights and support", disabled: false },
     ],
     highlighted: false,
     badge: "",
   },
 ];
 
+/* =========================
+   BILLING EVENTS
+========================= */
 export const billingEvents: BillingEvent[] = [
   {
     initials: "JD",
     name: "Julianne Davis",
     email: "julianne@example.com",
-    eventType: "Renewal",
+    eventType: "Subscription renewed",
     plan: "PLUS",
-    amount: "$29.00",
+    amount: "$19.00",
     date: "2 mins ago",
-    status: "Successful",
+    status: "Completed",
     statusType: "success",
   },
   {
     initials: "MK",
     name: "Marcus Knight",
     email: "marcus@knight.io",
-    eventType: "Upgrade",
+    eventType: "Upgraded to Pro",
     plan: "PRO",
-    amount: "$99.00",
+    amount: "$49.00",
     date: "14 mins ago",
-    status: "Successful",
+    status: "Completed",
     statusType: "success",
   },
   {
     initials: "SL",
     name: "Sarah Lopez",
     email: "sarah.l@studio.com",
-    eventType: "Cancellation",
+    eventType: "Cancelled subscription",
     plan: "FREE",
     amount: "$0.00",
     date: "1 hour ago",
@@ -138,11 +157,11 @@ export const billingEvents: BillingEvent[] = [
     initials: "TW",
     name: "Thomas Wright",
     email: "t.wright@enterprise.com",
-    eventType: "Failed Renewal",
+    eventType: "Payment failed",
     plan: "PLUS",
-    amount: "$29.00",
+    amount: "$19.00",
     date: "2 hours ago",
-    status: "Action Req.",
+    status: "Action needed",
     statusType: "danger",
   },
 ];
