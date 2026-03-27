@@ -6,7 +6,7 @@ export default function Loading() {
                     <div className="absolute inset-0 border-4 border-gray-200 rounded-full" />
                     <div className="absolute inset-0 border-4 border-black rounded-full border-t-transparent animate-spin" />
                 </div>
-                <h2 className="text-2xl font-serif tracking-[0.3em]"></h2>
+                <h2 className="text-2xl font-serif tracking-[0.3em]">PHKA</h2>
                 <p className="text-sm text-gray-500 mt-2">Loading...</p>
             </div>
         </div>
