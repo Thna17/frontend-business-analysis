@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getHomeRouteByRole,
+  isPathAllowedForRole,
+  sanitizeNextPath,
+} from "@/features/auth/access-control";
 import { setCredentials } from "@/redux/features/auth/authSlice";
 import { type AppDispatch } from "@/redux/store";
 import { useLoginMutation } from "@/redux/services/api";
@@ -27,6 +32,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
   const [email, setEmail] = useState("owner@smartanalytics.local");
   const [password, setPassword] = useState("Owner12345");
@@ -53,11 +59,19 @@ export default function LoginPage() {
         sessionStorage.setItem("token", result.accessToken);
       }
 
-      router.push(result.user.role === "business_owner" ? "/owner" : "/admin");
+      const requestedNext = sanitizeNextPath(searchParams.get("next"));
+      if (requestedNext && isPathAllowedForRole(requestedNext, result.user.role)) {
+        router.replace(requestedNext);
+        return;
+      }
+
+      router.replace(getHomeRouteByRole(result.user.role));
     } catch (error) {
       const message = getErrorMessage(error, "Unable to sign in. Please try again.");
       if (message.toLowerCase().includes("verification")) {
-        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        const requestedNext = sanitizeNextPath(searchParams.get("next"));
+        const nextQuery = requestedNext ? `&next=${encodeURIComponent(requestedNext)}` : "";
+        router.push(`/verify-email?email=${encodeURIComponent(email)}${nextQuery}`);
         return;
       }
       setErrorMessage(message);

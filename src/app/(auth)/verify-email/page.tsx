@@ -7,6 +7,11 @@ import { useDispatch } from "react-redux";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getHomeRouteByRole,
+  isPathAllowedForRole,
+  sanitizeNextPath,
+} from "@/features/auth/access-control";
 import { setCredentials } from "@/redux/features/auth/authSlice";
 import { type AppDispatch } from "@/redux/store";
 import { useResendVerificationOtpMutation, useVerifyEmailOtpMutation } from "@/redux/services/api";
@@ -51,7 +56,14 @@ export default function VerifyEmailPage() {
           token: result.accessToken,
         }),
       );
-      router.push(result.user.role === "business_owner" ? "/owner" : "/admin");
+
+      const requestedNext = sanitizeNextPath(searchParams.get("next"));
+      if (requestedNext && isPathAllowedForRole(requestedNext, result.user.role)) {
+        router.replace(requestedNext);
+        return;
+      }
+
+      router.replace(getHomeRouteByRole(result.user.role));
     } catch (error) {
       setErrorMessage(getErrorMessage(error, "Unable to verify code."));
     }

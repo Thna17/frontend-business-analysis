@@ -8,10 +8,17 @@ export interface AuthUser {
   isEmailVerified: boolean;
 }
 
+export type AuthStatus =
+  | "idle"
+  | "checking"
+  | "authenticated"
+  | "unauthenticated";
+
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  status: AuthStatus;
 }
 
 function getStoredToken(): string | null {
@@ -38,6 +45,7 @@ const initialState: AuthState = {
   user: initialUser,
   token: initialToken,
   isAuthenticated: Boolean(initialToken && initialUser),
+  status: initialToken && initialUser ? "authenticated" : "idle",
 };
 
 const authSlice = createSlice({
@@ -52,6 +60,7 @@ const authSlice = createSlice({
       state.user = user;
       state.token = token;
       state.isAuthenticated = true;
+      state.status = "authenticated";
 
       if (typeof window !== "undefined") {
         localStorage.setItem("token", token);
@@ -62,6 +71,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.status = "unauthenticated";
 
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -75,13 +85,19 @@ const authSlice = createSlice({
       state.token = token;
       state.user = user;
       state.isAuthenticated = Boolean(token && user);
+      state.status = token && user ? "authenticated" : "unauthenticated";
+    },
+    setAuthStatus: (state, action: PayloadAction<AuthStatus>) => {
+      state.status = action.payload;
     },
   },
 });
 
-export const { setCredentials, logout, loadUserFromStorage } = authSlice.actions;
+export const { setCredentials, logout, loadUserFromStorage, setAuthStatus } =
+  authSlice.actions;
 
 export default authSlice.reducer;
 
 export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
+export const selectAuthStatus = (state: { auth: AuthState }) => state.auth.status;

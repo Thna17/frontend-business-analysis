@@ -182,7 +182,7 @@ export function AdminAnalyticsWorkspace() {
               const circumference = 2 * Math.PI * 43;
               const progress = (item.percent / 100) * circumference;
               return (
-                <div key={item.tier} className="flex flex-col items-center">
+                <div key={item.label} className="flex flex-col items-center">
                   <svg width="124" height="124" viewBox="0 0 124 124">
                     <circle cx="62" cy="62" r="43" fill="none" stroke="#ecf0f5" strokeWidth="9" />
                     <circle
@@ -200,8 +200,10 @@ export function AdminAnalyticsWorkspace() {
                       {item.percent}%
                     </text>
                   </svg>
-                  <p className="mt-3 text-xs font-semibold tracking-wider text-[#98a2b3]">{item.tier}</p>
-                  <p className="mt-1 text-4xl font-semibold tracking-tight text-[#101828]">{item.valueLabel}</p>
+                  <p className="mt-3 text-xs font-semibold tracking-wider text-[#98a2b3]">
+                    {item.label.toUpperCase()}
+                  </p>
+                  <p className="mt-1 text-4xl font-semibold tracking-tight text-[#101828]">{item.users}</p>
                 </div>
               );
             })}

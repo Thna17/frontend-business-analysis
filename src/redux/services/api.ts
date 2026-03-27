@@ -1,6 +1,16 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+  createApi,
+  fetchBaseQuery,
+} from "@reduxjs/toolkit/query/react";
 import type { Product } from "@/types";
-import type { AuthUser } from "@/redux/features/auth/authSlice";
+import {
+  logout as clearAuthState,
+  setCredentials,
+  type AuthUser,
+} from "@/redux/features/auth/authSlice";
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -116,19 +126,78 @@ function getStoredAccessToken(): string | null {
   return localStorage.getItem("token");
 }
 
+function extractRouteFromArgs(args: string | FetchArgs): string {
+  return typeof args === "string" ? args : args.url;
+}
+
+function shouldSkipAutoRefresh(route: string): boolean {
+  return route.startsWith("/auth/login")
+    || route.startsWith("/auth/register")
+    || route.startsWith("/auth/refresh")
+    || route.startsWith("/auth/verify-email-otp")
+    || route.startsWith("/auth/resend-verification-otp")
+    || route.startsWith("/auth/forgot-password")
+    || route.startsWith("/auth/reset-password");
+}
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
+  prepareHeaders: (headers, { getState }) => {
+    const state = getState() as { auth?: { token?: string | null } };
+    const token = state.auth?.token ?? getStoredAccessToken();
+
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
+  credentials: "include",
+});
+
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  const statusCode = typeof result.error?.status === "number" ? result.error.status : null;
+  const route = extractRouteFromArgs(args);
+  if (statusCode !== 401 || shouldSkipAutoRefresh(route)) {
+    return result;
+  }
+
+  const refreshResult = await rawBaseQuery(
+    {
+      url: "/auth/refresh",
+      method: "POST",
+    },
+    api,
+    extraOptions,
+  );
+
+  if (refreshResult.data) {
+    const session = transformAuthSession(
+      refreshResult.data as ApiEnvelope<{ accessToken: string; user: unknown }>,
+    );
+    api.dispatch(
+      setCredentials({
+        token: session.accessToken,
+        user: session.user,
+      }),
+    );
+
+    result = await rawBaseQuery(args, api, extraOptions);
+    return result;
+  }
+
+  api.dispatch(clearAuthState());
+  return result;
+};
+
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
-    prepareHeaders: (headers) => {
-      const token = getStoredAccessToken();
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      return headers;
-    },
-    credentials: "include",
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Product", "User", "Cart"],
   endpoints: (builder) => ({
     getProducts: builder.query<Product[], void>({

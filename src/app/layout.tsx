@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "@/redux/provider";
+import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 
 const manrope = Manrope({
   variable: "--font-body",
@@ -27,7 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
       <body className="bg-background text-foreground antialiased">
-        <ReduxProvider>{children}</ReduxProvider>
+        <ReduxProvider>
+          <AuthBootstrap />
+          {children}
+        </ReduxProvider>
       </body>
     </html>
   );
