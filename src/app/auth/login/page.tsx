@@ -39,7 +39,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md bg-white/95 shadow-xl">
         <CardHeader>
           <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase">Authentication</p>
-          <CardTitle className="font-heading text-xl">Sign in to Smart Business Analytics</CardTitle>
+          <CardTitle className="font-heading text-2xl">Sign in to Smart Business Analytics</CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
