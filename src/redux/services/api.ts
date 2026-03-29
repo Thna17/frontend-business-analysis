@@ -173,6 +173,44 @@ export interface SubscriptionDashboardResponse {
   }>;
 }
 
+export interface ReportsDashboardResponse {
+  generator: {
+    reportTypes: Array<"Sales" | "Revenue" | "Product" | "Customer">;
+    categories: string[];
+    dateRanges: Array<"Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year">;
+    exportFormats: Array<"PDF" | "CSV" | "Excel">;
+  };
+  insights: Array<{
+    title: string;
+    description: string;
+    tone: "amber" | "slate";
+  }>;
+  quickExports: string[];
+  history: Array<{
+    id: string;
+    name: string;
+    type: "Sales" | "Revenue" | "Product" | "Customer";
+    status: "READY" | "PROCESSING";
+    dateGenerated: string;
+    format: "PDF" | "CSV" | "Excel";
+  }>;
+  summary: {
+    generatedReports: number;
+    currentRevenue: number;
+    previousRevenue: number;
+    productDownloads: number;
+    churnDownPercentage: number;
+    businessName: string;
+  };
+}
+
+export interface GenerateReportRequest {
+  reportType: "Sales" | "Revenue" | "Product" | "Customer";
+  categoryFilter: string;
+  dateRange: "Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year";
+  exportFormat: "PDF" | "CSV" | "Excel";
+}
+
 export interface OwnerOverviewQuery {
   range?: "6m" | "12m";
   startDate?: string;
@@ -608,6 +646,40 @@ export const api = createApi({
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
       invalidatesTags: ["User"],
     }),
+    getReportsDashboard: builder.query<ReportsDashboardResponse, { page?: number; limit?: number } | void>({
+      query: (params) => ({
+        url: "/reports/dashboard",
+        params: params ?? { page: 1, limit: 5 },
+      }),
+      transformResponse: (response: ApiEnvelope<ReportsDashboardResponse>) => response.data,
+      providesTags: ["User"],
+    }),
+    generateReport: builder.mutation<
+      ReportsDashboardResponse["history"][number] & {
+        result: { totalRevenue: number; totalOrders: number; totalUnits: number };
+      },
+      GenerateReportRequest
+    >({
+      query: (body) => ({
+        url: "/reports",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<
+        ReportsDashboardResponse["history"][number] & {
+          result: { totalRevenue: number; totalOrders: number; totalUnits: number };
+        }
+      >) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    deleteReport: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/reports/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
     getOwnerDashboardOverview: builder.query<OwnerDashboardOverviewResponse, OwnerOverviewQuery | void>({
       query: (params) => ({
         url: "/analytics/owner-overview",
@@ -801,6 +873,9 @@ export const {
   useChangeSubscriptionPlanMutation,
   useCancelSubscriptionMutation,
   useReactivateSubscriptionMutation,
+  useGetReportsDashboardQuery,
+  useGenerateReportMutation,
+  useDeleteReportMutation,
   useGetOwnerDashboardOverviewQuery,
   useGetOwnerAnalyticsDashboardQuery,
   useGetSalesQuery,
