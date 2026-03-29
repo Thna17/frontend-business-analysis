@@ -49,6 +49,10 @@ interface ChangePasswordRequest {
   newPassword: string;
 }
 
+interface ChangeSubscriptionPlanRequest {
+  plan: "free" | "pro" | "business";
+}
+
 export interface BusinessProfile {
   id: string;
   ownerUserId: string;
@@ -121,6 +125,52 @@ export interface OwnerAnalyticsDashboardResponse {
     day: string;
     value: number;
   }>>;
+}
+
+export interface SubscriptionDashboardResponse {
+  currentPlan: {
+    id: string;
+    key: "free" | "pro" | "business";
+    name: string;
+    status: "active" | "expired" | "canceled";
+    monthlyPrice: number;
+    nextBillingDate: string | null;
+    features: string[];
+    description: string;
+  };
+  paymentMethod: {
+    provider: string;
+    label: string;
+    merchantName: string;
+    bakongId: string;
+    currency: string;
+  };
+  usage: {
+    activeUsers: { used: number; limit: number };
+    reportsGenerated: { used: number; limit: number };
+    analyticsQueries: { used: number; limit: number };
+    storage: { usedGb: number; limitGb: number };
+  };
+  plans: Array<{
+    id: "free" | "pro" | "business";
+    tier: string;
+    name: string;
+    subtitle: string;
+    monthlyPrice: number;
+    features: string[];
+  }>;
+  notifications: {
+    email: boolean;
+  };
+  billingHistory: Array<{
+    id: string;
+    plan: string;
+    amount: number;
+    currency: string;
+    status: "pending" | "succeeded" | "failed";
+    date: string | null;
+    provider: string;
+  }>;
 }
 
 export interface OwnerOverviewQuery {
@@ -525,6 +575,39 @@ export const api = createApi({
       transformResponse: transformAuthSession,
       invalidatesTags: ["User"],
     }),
+    getSubscriptionDashboard: builder.query<SubscriptionDashboardResponse, { page?: number; limit?: number } | void>({
+      query: (params) => ({
+        url: "/subscriptions/dashboard",
+        params: params ?? { page: 1, limit: 3 },
+      }),
+      transformResponse: (response: ApiEnvelope<SubscriptionDashboardResponse>) => response.data,
+      providesTags: ["User"],
+    }),
+    changeSubscriptionPlan: builder.mutation<{ message: string }, ChangeSubscriptionPlanRequest>({
+      query: (body) => ({
+        url: "/subscriptions/plan",
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
+    cancelSubscription: builder.mutation<{ message: string }, void>({
+      query: () => ({
+        url: "/subscriptions/cancel",
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
+    reactivateSubscription: builder.mutation<{ message: string }, void>({
+      query: () => ({
+        url: "/subscriptions/reactivate",
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
     getOwnerDashboardOverview: builder.query<OwnerDashboardOverviewResponse, OwnerOverviewQuery | void>({
       query: (params) => ({
         url: "/analytics/owner-overview",
@@ -714,6 +797,10 @@ export const {
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useChangePasswordMutation,
+  useGetSubscriptionDashboardQuery,
+  useChangeSubscriptionPlanMutation,
+  useCancelSubscriptionMutation,
+  useReactivateSubscriptionMutation,
   useGetOwnerDashboardOverviewQuery,
   useGetOwnerAnalyticsDashboardQuery,
   useGetSalesQuery,
