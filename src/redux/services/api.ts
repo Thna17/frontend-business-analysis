@@ -16,6 +16,7 @@ interface ApiEnvelope<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: unknown;
 }
 
 interface LoginRequest {
@@ -46,6 +47,98 @@ interface ResetPasswordRequest {
 interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface BusinessProfile {
+  id: string;
+  ownerUserId: string;
+  name: string;
+  category: string;
+  description: string | null;
+  currency: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface OwnerDashboardOverviewResponse {
+  kpi: {
+    totalRevenue: number;
+    salesCount: number;
+    avgOrderValue: number;
+    growthPercentage: number;
+    currentPeriodRevenue: number;
+    previousPeriodRevenue: number;
+  };
+  chart: {
+    range: "6m" | "12m";
+    series: Array<{
+      month: string;
+      label: string;
+      amount: number;
+    }>;
+  };
+  topProducts: Array<{
+    name: string;
+    revenue: number;
+    quantitySold: number;
+    percent: number;
+  }>;
+}
+
+export interface OwnerOverviewQuery {
+  range?: "6m" | "12m";
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface SalesListItem {
+  id: string;
+  businessId: string;
+  ownerUserId: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  category: string;
+  soldAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface SalesListMeta {
+  count: number;
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+}
+
+export interface SalesListResponse {
+  items: SalesListItem[];
+  meta: SalesListMeta;
+}
+
+export interface SalesListQuery {
+  search?: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SaleProductSuggestion {
+  name: string;
+  category: string;
+  price: number;
+  lastSoldAt: string;
+}
+
+export interface SaleWriteInput {
+  productName: string;
+  category: string;
+  price: number;
+  quantity: number;
+  soldAt: string;
 }
 
 interface AuthSessionResponse {
@@ -118,6 +211,17 @@ function transformAuthSession(
   return {
     accessToken: response.data.accessToken,
     user: normalizeAuthUser(response.data.user),
+  };
+}
+
+function normalizeSalesListMeta(meta: unknown): SalesListMeta {
+  const safeMeta = asRecord(meta);
+  return {
+    count: Number(safeMeta.count ?? 0),
+    total: Number(safeMeta.total ?? 0),
+    page: Number(safeMeta.page ?? 1),
+    limit: Number(safeMeta.limit ?? 10),
+    hasNextPage: Boolean(safeMeta.hasNextPage),
   };
 }
 
@@ -304,6 +408,64 @@ export const api = createApi({
       transformResponse: transformAuthSession,
       invalidatesTags: ["User"],
     }),
+    getOwnerDashboardOverview: builder.query<OwnerDashboardOverviewResponse, OwnerOverviewQuery | void>({
+      query: (params) => ({
+        url: "/analytics/owner-overview",
+        params: params ?? { range: "6m" },
+      }),
+      transformResponse: (response: ApiEnvelope<OwnerDashboardOverviewResponse>) => response.data,
+      providesTags: ["User"],
+    }),
+    getSales: builder.query<SalesListResponse, SalesListQuery | void>({
+      query: (params) => ({
+        url: "/sales",
+        params: params ?? { page: 1, limit: 3 },
+      }),
+      transformResponse: (response: ApiEnvelope<SalesListItem[]>) => ({
+        items: response.data,
+        meta: normalizeSalesListMeta(response.meta),
+      }),
+      providesTags: ["User"],
+    }),
+    getBusinessProfile: builder.query<BusinessProfile, void>({
+      query: () => "/businesses/current",
+      transformResponse: (response: ApiEnvelope<BusinessProfile>) => response.data,
+      providesTags: ["User"],
+    }),
+    getSaleProductSuggestions: builder.query<SaleProductSuggestion[], { search?: string; limit?: number } | void>({
+      query: (params) => ({
+        url: "/sales/products",
+        params: params ?? { limit: 20 },
+      }),
+      transformResponse: (response: ApiEnvelope<SaleProductSuggestion[]>) => response.data,
+      providesTags: ["User"],
+    }),
+    createSale: builder.mutation<SalesListItem, SaleWriteInput>({
+      query: (body) => ({
+        url: "/sales",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<SalesListItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    updateSale: builder.mutation<SalesListItem, { id: string; body: SaleWriteInput }>({
+      query: ({ id, body }) => ({
+        url: `/sales/${id}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<SalesListItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    deleteSale: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/sales/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
     getCart: builder.query<CartResponse, void>({
       query: () => "/cart",
       transformResponse: (response: ApiEnvelope<CartResponse>) => response.data,
@@ -377,6 +539,13 @@ export const {
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useChangePasswordMutation,
+  useGetOwnerDashboardOverviewQuery,
+  useGetSalesQuery,
+  useGetBusinessProfileQuery,
+  useGetSaleProductSuggestionsQuery,
+  useCreateSaleMutation,
+  useUpdateSaleMutation,
+  useDeleteSaleMutation,
   useGetCartQuery,
   useAddCartItemMutation,
   useUpdateCartItemMutation,

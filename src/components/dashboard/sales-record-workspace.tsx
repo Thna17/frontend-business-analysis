@@ -21,127 +21,255 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SaleRecordRow } from "@/features/owner-dashboard/dashboard-mock";
+import {
+  type SaleWriteInput,
+  type SalesListItem,
+  useCreateSaleMutation,
+  useDeleteSaleMutation,
+  useGetSaleProductSuggestionsQuery,
+  useGetSalesQuery,
+  useUpdateSaleMutation,
+} from "@/redux/services/api";
 
-interface SalesRecordWorkspaceProps {
-  initialRows: SaleRecordRow[];
-}
-
-type DateFilter = "all" | "today" | "thisWeek" | "thisMonth";
 type SortFilter = "newest" | "oldest" | "totalHigh" | "totalLow";
 
+interface SalesRecordWorkspaceProps {
+  currency?: string;
+}
+
 interface RecordForm {
-  product: string;
+  productName: string;
   category: string;
   quantity: string;
   price: string;
-  date: string;
-  status: "Completed" | "Pending";
+  soldAt: string;
 }
 
-const defaultAvatar =
-  "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=64&q=60";
+const pageSize = 8;
 
-const pageSize = 3;
-
-function toTotal(row: SaleRecordRow) {
-  return row.quantity * row.price;
-}
-
-function parseDate(input: string) {
+function formatDate(input: string) {
   const date = new Date(input);
-  return Number.isNaN(date.getTime()) ? new Date() : date;
-}
-
-function formatDate(input: Date) {
-  return input.toLocaleDateString("en-US", {
+  if (Number.isNaN(date.getTime())) return input;
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "2-digit",
     year: "numeric",
   });
 }
 
-function formatDateInputDisplay(input: string) {
-  if (!input) return formatDate(new Date());
-  const date = new Date(input);
-  return Number.isNaN(date.getTime()) ? formatDate(new Date()) : formatDate(date);
+function formatMoney(value: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(value);
 }
 
-export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps) {
-  const [rows, setRows] = useState<SaleRecordRow[]>(initialRows);
+function toDateInput(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  return date.toISOString().slice(0, 10);
+}
+
+function serializePayload(form: RecordForm): SaleWriteInput | null {
+  const price = Number(form.price);
+  const quantity = Number(form.quantity);
+  const soldAtDate = new Date(form.soldAt);
+
+  if (
+    !form.productName.trim()
+    || !form.category.trim()
+    || Number.isNaN(price)
+    || Number.isNaN(quantity)
+    || Number.isNaN(soldAtDate.getTime())
+  ) {
+    return null;
+  }
+
+  return {
+    productName: form.productName.trim(),
+    category: form.category.trim(),
+    price,
+    quantity,
+    soldAt: soldAtDate.toISOString(),
+  };
+}
+
+export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceProps) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [sortBy, setSortBy] = useState<SortFilter>("newest");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSale, setEditingSale] = useState<SalesListItem | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [customProductName, setCustomProductName] = useState("");
   const [form, setForm] = useState<RecordForm>({
-    product: "",
-    category: "Digital",
+    productName: "",
+    category: "",
     quantity: "1",
-    price: "10",
-    date: new Date().toISOString().slice(0, 10),
-    status: "Completed",
+    price: "0",
+    soldAt: new Date().toISOString().slice(0, 10),
   });
 
-  const categories = useMemo(
-    () => ["all", ...new Set(rows.map((item) => item.category.toLowerCase()))],
-    [rows],
-  );
+  const {
+    data: salesResponse,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetSalesQuery({
+    search: search || undefined,
+    category: category === "all" ? undefined : category,
+    startDate: startDate ? new Date(startDate).toISOString() : undefined,
+    endDate: endDate ? new Date(endDate).toISOString() : undefined,
+    page: currentPage,
+    limit: pageSize,
+  });
 
-  const filteredRows = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
+  const {
+    data: productSuggestions = [],
+    isFetching: isProductsFetching,
+  } = useGetSaleProductSuggestionsQuery({
+    search: form.productName || undefined,
+    limit: 30,
+  });
 
-    const filtered = rows.filter((row) => {
-      const rowDate = parseDate(row.date);
-      const searchMatch =
-        !search ||
-        row.product.toLowerCase().includes(search.toLowerCase()) ||
-        row.category.toLowerCase().includes(search.toLowerCase());
-      const categoryMatch = category === "all" || row.category.toLowerCase() === category;
-      const dateMatch =
-        dateFilter === "all" ||
-        (dateFilter === "today" && rowDate >= startOfToday) ||
-        (dateFilter === "thisWeek" && rowDate >= startOfWeek) ||
-        (dateFilter === "thisMonth" && rowDate >= startOfMonth);
-      return searchMatch && categoryMatch && dateMatch;
+  const [createSale, { isLoading: isCreating }] = useCreateSaleMutation();
+  const [updateSale, { isLoading: isUpdating }] = useUpdateSaleMutation();
+  const [deleteSale, { isLoading: isDeleting }] = useDeleteSaleMutation();
+
+  const categories = useMemo(() => {
+    const set = new Set((salesResponse?.items ?? []).map((item) => item.category));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [salesResponse?.items]);
+
+  const sortedRows = useMemo(() => {
+    const rows = [...(salesResponse?.items ?? [])];
+
+    return rows.sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime();
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.soldAt).getTime() - new Date(b.soldAt).getTime();
+      }
+      const totalA = a.price * a.quantity;
+      const totalB = b.price * b.quantity;
+      return sortBy === "totalHigh" ? totalB - totalA : totalA - totalB;
+    });
+  }, [salesResponse?.items, sortBy]);
+
+  const productOptions = useMemo(() => {
+    const map = new Map<string, { name: string; category: string; price: number }>();
+    for (const suggestion of productSuggestions) {
+      map.set(suggestion.name, {
+        name: suggestion.name,
+        category: suggestion.category,
+        price: suggestion.price,
+      });
+    }
+    if (editingSale && !map.has(editingSale.productName)) {
+      map.set(editingSale.productName, {
+        name: editingSale.productName,
+        category: editingSale.category,
+        price: editingSale.price,
+      });
+    }
+    return Array.from(map.values());
+  }, [productSuggestions, editingSale]);
+
+  const openCreateModal = () => {
+    setEditingSale(null);
+    setCustomProductName("");
+    setFormError(null);
+    setForm({
+      productName: "",
+      category: "",
+      quantity: "1",
+      price: "0",
+      soldAt: new Date().toISOString().slice(0, 10),
+    });
+    setOpen(true);
+  };
+
+  const openEditModal = (item: SalesListItem) => {
+    setEditingSale(item);
+    setCustomProductName("");
+    setFormError(null);
+    setForm({
+      productName: item.productName,
+      category: item.category,
+      quantity: String(item.quantity),
+      price: String(item.price),
+      soldAt: toDateInput(item.soldAt),
+    });
+    setOpen(true);
+  };
+
+  const handleProductSelect = (value: string) => {
+    if (value === "__custom") {
+      setForm((prev) => ({ ...prev, productName: "" }));
+      return;
+    }
+
+    const selected = productOptions.find((item) => item.name === value);
+    if (!selected) return;
+
+    setForm((prev) => ({
+      ...prev,
+      productName: selected.name,
+      category: selected.category,
+      price: String(selected.price),
+    }));
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    const effectiveName = customProductName.trim() || form.productName;
+    const payload = serializePayload({
+      ...form,
+      productName: effectiveName,
     });
 
-    return filtered.sort((a, b) => {
-      if (sortBy === "newest") return parseDate(b.date).getTime() - parseDate(a.date).getTime();
-      if (sortBy === "oldest") return parseDate(a.date).getTime() - parseDate(b.date).getTime();
-      if (sortBy === "totalHigh") return toTotal(b) - toTotal(a);
-      return toTotal(a) - toTotal(b);
-    });
-  }, [rows, search, category, dateFilter, sortBy]);
+    if (!payload) {
+      setFormError("Please complete all fields correctly before saving.");
+      return;
+    }
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
+    try {
+      if (editingSale) {
+        await updateSale({ id: editingSale.id, body: payload }).unwrap();
+      } else {
+        await createSale(payload).unwrap();
+      }
+      setOpen(false);
+      void refetch();
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setFormError(message || "Unable to save sales record.");
+    }
+  };
 
-  const paginatedRows = useMemo(() => {
-    const start = (safePage - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, safePage]);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSale(id).unwrap();
+      void refetch();
+    } catch {
+      // Keep UI silent for now; table refetch preserves consistency.
+    }
+  };
 
   const exportCsv = () => {
-    const header = ["Product", "Category", "Quantity", "Price", "Total", "Date", "Status"];
-    const lines = filteredRows.map((row) => [
-      row.product,
+    const header = ["Product", "Category", "Quantity", "Price", "Total", "Date"];
+    const lines = sortedRows.map((row) => [
+      row.productName,
       row.category,
       row.quantity,
       row.price.toFixed(2),
-      toTotal(row).toFixed(2),
-      row.date,
-      row.status,
+      (row.price * row.quantity).toFixed(2),
+      formatDate(row.soldAt),
     ]);
     const csv = [header, ...lines].map((line) => line.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -151,74 +279,6 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
     link.download = "sales-records.csv";
     link.click();
     URL.revokeObjectURL(url);
-  };
-
-  const onOpenCreate = () => {
-    setEditingId(null);
-    setForm({
-      product: "",
-      category: "Digital",
-      quantity: "1",
-      price: "10",
-      date: new Date().toISOString().slice(0, 10),
-      status: "Completed",
-    });
-    setOpen(true);
-  };
-
-  const onOpenEdit = (row: SaleRecordRow) => {
-    setEditingId(row.id);
-    setForm({
-      product: row.product,
-      category: row.category,
-      quantity: row.quantity.toString(),
-      price: row.price.toString(),
-      date: new Date(row.date).toISOString().slice(0, 10),
-      status: row.status,
-    });
-    setOpen(true);
-  };
-
-  const onSave = () => {
-    const quantity = Number(form.quantity);
-    const price = Number(form.price);
-    if (!form.product || !form.category || Number.isNaN(quantity) || Number.isNaN(price)) return;
-
-    if (editingId) {
-      setRows((prev) =>
-        prev.map((row) =>
-          row.id === editingId
-            ? {
-                ...row,
-                product: form.product,
-                category: form.category,
-                quantity,
-                price,
-                date: formatDateInputDisplay(form.date),
-                status: form.status,
-              }
-            : row,
-        ),
-      );
-    } else {
-      const created: SaleRecordRow = {
-        id: `sr-${Date.now()}`,
-        product: form.product,
-        category: form.category,
-        quantity,
-        price,
-        date: formatDateInputDisplay(form.date),
-        status: form.status,
-        customerAvatar: defaultAvatar,
-      };
-      setRows((prev) => [created, ...prev]);
-      setCurrentPage(1);
-    }
-    setOpen(false);
-  };
-
-  const onDelete = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.id !== id));
   };
 
   return (
@@ -250,32 +310,39 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Category: All</SelectItem>
                 {categories.map((item) => (
                   <SelectItem key={item} value={item}>
-                    {item === "all" ? "Category: All" : item}
+                    {item}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select
-              value={dateFilter}
-              onValueChange={(value) => {
-                setDateFilter(value as DateFilter);
-                setCurrentPage(1);
-              }}
-            >
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
-                <CalendarDays className="size-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Filter Date</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="thisWeek">This week</SelectItem>
-                <SelectItem value="thisMonth">This month</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 rounded-xl border border-[#dfe3e8] bg-[#f6f7f9] px-3">
+              <CalendarDays className="size-4 text-[#98a2b3]" />
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => {
+                  setStartDate(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-[#dfe3e8] bg-[#f6f7f9] px-3">
+              <CalendarDays className="size-4 text-[#98a2b3]" />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => {
+                  setEndDate(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+              />
+            </div>
 
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortFilter)}>
               <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
@@ -296,13 +363,14 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
               variant="outline"
               className="h-11 rounded-xl border-[#dfe3e8] bg-white px-4 text-[15px] text-[#344054]"
               onClick={exportCsv}
+              disabled={isLoading || sortedRows.length === 0}
             >
               <Download className="size-4" />
               Export
             </Button>
             <Button
               className="h-11 rounded-xl bg-[#0f172a] px-5 text-[15px] text-white hover:bg-[#111d3a]"
-              onClick={onOpenCreate}
+              onClick={openCreateModal}
             >
               <Plus className="size-4" />
               Add Sales Record
@@ -326,40 +394,34 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
             </tr>
           </thead>
           <tbody className="divide-y divide-[#eef1f4] bg-white">
-            {paginatedRows.map((row) => (
+            {sortedRows.map((row) => (
               <tr key={row.id}>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="size-11 rounded-full bg-cover bg-center"
-                      style={{ backgroundImage: `url('${row.customerAvatar}')` }}
-                    />
-                    <p className="text-base font-semibold text-[#101828]">{row.product}</p>
-                  </div>
-                </td>
+                <td className="px-6 py-4 text-base font-semibold text-[#101828]">{row.productName}</td>
                 <td className="px-5 py-4 text-base text-[#667085]">{row.category}</td>
                 <td className="px-5 py-4 text-base text-[#667085]">{row.quantity}</td>
-                <td className="px-5 py-4 text-base text-[#667085]">${row.price.toFixed(2)}</td>
-                <td className="px-5 py-4 text-base font-semibold text-[#101828]">${toTotal(row).toFixed(2)}</td>
-                <td className="px-5 py-4 text-base text-[#667085]">{row.date}</td>
+                <td className="px-5 py-4 text-base text-[#667085]">{formatMoney(row.price, currency)}</td>
+                <td className="px-5 py-4 text-base font-semibold text-[#101828]">
+                  {formatMoney(row.price * row.quantity, currency)}
+                </td>
+                <td className="px-5 py-4 text-base text-[#667085]">{formatDate(row.soldAt)}</td>
                 <td className="px-5 py-4">
                   <span className="inline-flex rounded-full bg-[#d7f2e3] px-3 py-1 text-base font-medium text-[#067647]">
-                    {row.status}
+                    Completed
                   </span>
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3 text-[#98a2b3]">
-                    <button type="button" onClick={() => onOpenEdit(row)}>
+                    <button type="button" onClick={() => openEditModal(row)} disabled={isDeleting}>
                       <Pencil className="size-5" />
                     </button>
-                    <button type="button" onClick={() => onDelete(row.id)}>
+                    <button type="button" onClick={() => void handleDelete(row.id)} disabled={isDeleting}>
                       <Trash2 className="size-5" />
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
-            {paginatedRows.length === 0 ? (
+            {!isLoading && sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-9 text-center text-sm text-[#667085]">
                   No sale records found.
@@ -372,22 +434,22 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
 
       <div className="flex flex-col gap-4 border-t border-[#edf1f5] px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
         <p className="text-[15px] text-[#667085]">
-          Showing {paginatedRows.length === 0 ? 0 : (safePage - 1) * pageSize + 1} to{" "}
-          {Math.min(safePage * pageSize, filteredRows.length)} of {filteredRows.length} entries
+          Showing {salesResponse?.meta.total ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
+          {Math.min(currentPage * pageSize, salesResponse?.meta.total ?? 0)} of {salesResponse?.meta.total ?? 0} entries
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-[15px] text-[#667085]"
-            disabled={safePage <= 1}
+            disabled={currentPage <= 1 || isFetching}
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           >
             Previous
           </Button>
           <Button
             className="h-10 rounded-xl bg-[#0f172a] px-5 text-[15px] text-white hover:bg-[#111d3a]"
-            disabled={safePage >= totalPages}
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={!salesResponse?.meta.hasNextPage || isFetching}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
           >
             Next
           </Button>
@@ -398,7 +460,7 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
         <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-[#e4e7ec] p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
           <DialogHeader className="flex-row items-center justify-between border-b border-[#eceff3] bg-[#f9fafb] px-6 py-4 text-left">
             <DialogTitle className="text-2xl font-semibold tracking-tight text-[#101828]">
-              {editingId ? "Update Sales Record" : "Add New Sales Record"}
+              {editingSale ? "Update Sales Record" : "Add New Sales Record"}
             </DialogTitle>
             <button
               type="button"
@@ -411,16 +473,33 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
 
           <div className="grid gap-4.5 px-6 py-6">
             <div className="grid gap-2.5">
-              <label className="text-sm font-semibold text-[#344054]" htmlFor="product">
+              <label className="text-sm font-semibold text-[#344054]" htmlFor="product-select">
                 Product Name
               </label>
-              <Input
-                id="product"
-                value={form.product}
-                onChange={(event) => setForm((prev) => ({ ...prev, product: event.target.value }))}
-                placeholder="e.g. Enterprise License"
-                className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054] placeholder:text-[#98a2b3]"
-              />
+              <Select value={form.productName || "__custom"} onValueChange={handleProductSelect}>
+                <SelectTrigger
+                  id="product-select"
+                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                >
+                  <SelectValue placeholder={isProductsFetching ? "Loading products..." : "Select product"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {productOptions.map((item) => (
+                    <SelectItem key={item.name} value={item.name}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__custom">Custom product...</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.productName === "" ? (
+                <Input
+                  value={customProductName}
+                  onChange={(event) => setCustomProductName(event.target.value)}
+                  placeholder="Type custom product name"
+                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054] placeholder:text-[#98a2b3]"
+                />
+              ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -428,23 +507,12 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
                 <label className="text-sm font-semibold text-[#344054]" htmlFor="category">
                   Category
                 </label>
-                <Select
+                <Input
+                  id="category"
                   value={form.category}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger
-                    id="category"
-                    className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Digital">Digital</SelectItem>
-                    <SelectItem value="Service">Service</SelectItem>
-                    <SelectItem value="Subscription">Subscription</SelectItem>
-                    <SelectItem value="Coffee">Coffee</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
+                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                />
               </div>
               <div className="grid gap-2.5">
                 <label className="text-sm font-semibold text-[#344054]" htmlFor="quantity">
@@ -464,7 +532,7 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="grid gap-2.5">
                 <label className="text-sm font-semibold text-[#344054]" htmlFor="price">
-                  Price ($)
+                  Price
                 </label>
                 <Input
                   id="price"
@@ -484,12 +552,18 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
                 <Input
                   id="date"
                   type="date"
-                  value={form.date}
-                  onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                  value={form.soldAt}
+                  onChange={(event) => setForm((prev) => ({ ...prev, soldAt: event.target.value }))}
                   className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
                 />
               </div>
             </div>
+
+            {formError ? (
+              <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">
+                {formError}
+              </p>
+            ) : null}
 
             <div className="mt-3 flex justify-end gap-3">
               <Button
@@ -501,9 +575,10 @@ export function SalesRecordWorkspace({ initialRows }: SalesRecordWorkspaceProps)
               </Button>
               <Button
                 className="h-11 rounded-xl bg-[#0f172a] px-7 text-base text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] hover:bg-[#111d3a]"
-                onClick={onSave}
+                onClick={() => void handleSave()}
+                disabled={isCreating || isUpdating}
               >
-                {editingId ? "Save Record" : "Save Record"}
+                {isCreating || isUpdating ? "Saving..." : "Save Record"}
               </Button>
             </div>
           </div>

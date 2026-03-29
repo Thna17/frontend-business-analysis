@@ -1,13 +1,26 @@
+"use client";
+
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { SalesRecordWorkspace } from "@/components/dashboard/sales-record-workspace";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
+import { Skeleton } from "@/components/ui/skeleton";
+import { mapOverviewToMetrics } from "@/features/owner-dashboard/owner-dashboard-mappers";
+import { topNavItems } from "@/features/owner-dashboard/dashboard-mock";
 import {
-  saleRecordMetrics,
-  saleRecordRows,
-  topNavItems,
-} from "@/features/owner-dashboard/dashboard-mock";
+  useGetBusinessProfileQuery,
+  useGetOwnerDashboardOverviewQuery,
+} from "@/redux/services/api";
 
 export default function SaleRecordPage() {
+  const { data: business } = useGetBusinessProfileQuery();
+  const { data: overview, isLoading: isOverviewLoading } = useGetOwnerDashboardOverviewQuery({
+    range: "6m",
+  });
+
+  const metrics = overview
+    ? mapOverviewToMetrics(overview, business?.currency || "USD")
+    : [];
+
   return (
     <div className="dashboard-shell pb-14">
       <TopNavigation items={topNavItems} />
@@ -19,12 +32,18 @@ export default function SaleRecordPage() {
         </section>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {saleRecordMetrics.map((item) => (
-            <KpiCard key={item.title} item={item} />
-          ))}
+          {isOverviewLoading
+            ? Array.from({ length: 4 }).map((_, index) => (
+              <div key={`sale-metric-skeleton-${index}`} className="dashboard-kpi-card border-[#e7e9ee]">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="mt-7 h-10 w-36" />
+                <Skeleton className="mt-4 h-4 w-24" />
+              </div>
+            ))
+            : metrics.map((item) => <KpiCard key={item.title} item={item} />)}
         </section>
 
-        <SalesRecordWorkspace initialRows={saleRecordRows} />
+        <SalesRecordWorkspace currency={business?.currency || "USD"} />
 
         <footer className="pt-16 text-center text-sm text-[#98a2b3]">
           © 2026 Syntrix. All rights reserved.
