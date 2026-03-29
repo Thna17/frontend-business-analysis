@@ -141,6 +141,74 @@ export interface SaleWriteInput {
   soldAt: string;
 }
 
+export interface OwnerProductItem {
+  id: string;
+  name: string;
+  category: string;
+  unitPrice: number;
+  stock: number;
+  isActive: boolean;
+  quantitySold: number;
+  revenue: number;
+  lastSoldAt: string | null;
+  updatedAt: string | null;
+  createdAt: string | null;
+}
+
+export interface OwnerProductListMeta {
+  count: number;
+  total: number;
+  page: number;
+  limit: number;
+  hasNextPage: boolean;
+}
+
+export interface OwnerProductListResponse {
+  items: OwnerProductItem[];
+  meta: OwnerProductListMeta;
+}
+
+export interface OwnerProductListQuery {
+  search?: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
+  sortBy?:
+    | "updatedDesc"
+    | "nameAsc"
+    | "nameDesc"
+    | "salesHigh"
+    | "revenueHigh"
+    | "stockLow"
+    | "stockHigh";
+  page?: number;
+  limit?: number;
+}
+
+export interface OwnerProductWriteInput {
+  name: string;
+  category: string;
+  unitPrice: number;
+  stock: number;
+  isActive?: boolean;
+}
+
+export interface OwnerProductsOverviewResponse {
+  kpi: {
+    totalProducts: number;
+    bestSeller: string | null;
+    productRevenue: number;
+    lowStockCount: number;
+    revenueGrowthPercentage: number;
+  };
+  ranking: Array<{
+    name: string;
+    revenue: number;
+    quantitySold: number;
+    percent: number;
+  }>;
+}
+
 interface AuthSessionResponse {
   accessToken: string;
   user: AuthUser;
@@ -215,6 +283,17 @@ function transformAuthSession(
 }
 
 function normalizeSalesListMeta(meta: unknown): SalesListMeta {
+  const safeMeta = asRecord(meta);
+  return {
+    count: Number(safeMeta.count ?? 0),
+    total: Number(safeMeta.total ?? 0),
+    page: Number(safeMeta.page ?? 1),
+    limit: Number(safeMeta.limit ?? 10),
+    hasNextPage: Boolean(safeMeta.hasNextPage),
+  };
+}
+
+function normalizeOwnerProductListMeta(meta: unknown): OwnerProductListMeta {
   const safeMeta = asRecord(meta);
   return {
     count: Number(safeMeta.count ?? 0),
@@ -466,6 +545,56 @@ export const api = createApi({
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
       invalidatesTags: ["User"],
     }),
+    getOwnerProductsOverview: builder.query<OwnerProductsOverviewResponse, void>({
+      query: () => "/owner-products/overview",
+      transformResponse: (response: ApiEnvelope<OwnerProductsOverviewResponse>) => response.data,
+      providesTags: ["User"],
+    }),
+    getOwnerProducts: builder.query<OwnerProductListResponse, OwnerProductListQuery | void>({
+      query: (params) => ({
+        url: "/owner-products",
+        params: params ?? { page: 1, limit: 10, sortBy: "updatedDesc" },
+      }),
+      transformResponse: (response: ApiEnvelope<OwnerProductItem[]>) => ({
+        items: response.data,
+        meta: normalizeOwnerProductListMeta(response.meta),
+      }),
+      providesTags: ["User"],
+    }),
+    getOwnerProductCategories: builder.query<string[], { search?: string; limit?: number } | void>({
+      query: (params) => ({
+        url: "/owner-products/categories",
+        params: params ?? { limit: 50 },
+      }),
+      transformResponse: (response: ApiEnvelope<string[]>) => response.data,
+      providesTags: ["User"],
+    }),
+    createOwnerProduct: builder.mutation<OwnerProductItem, OwnerProductWriteInput>({
+      query: (body) => ({
+        url: "/owner-products",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<OwnerProductItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    updateOwnerProduct: builder.mutation<OwnerProductItem, { id: string; body: OwnerProductWriteInput }>({
+      query: ({ id, body }) => ({
+        url: `/owner-products/${id}`,
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<OwnerProductItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    deleteOwnerProduct: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/owner-products/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
     getCart: builder.query<CartResponse, void>({
       query: () => "/cart",
       transformResponse: (response: ApiEnvelope<CartResponse>) => response.data,
@@ -546,6 +675,12 @@ export const {
   useCreateSaleMutation,
   useUpdateSaleMutation,
   useDeleteSaleMutation,
+  useGetOwnerProductsOverviewQuery,
+  useGetOwnerProductsQuery,
+  useGetOwnerProductCategoriesQuery,
+  useCreateOwnerProductMutation,
+  useUpdateOwnerProductMutation,
+  useDeleteOwnerProductMutation,
   useGetCartQuery,
   useAddCartItemMutation,
   useUpdateCartItemMutation,
