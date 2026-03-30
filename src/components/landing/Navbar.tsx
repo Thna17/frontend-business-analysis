@@ -24,10 +24,10 @@ export default function Navbar() {
 
         {/* ACTIONS */}
         <div className="nav-actions">
-          <a href="#" className="signin-link">
+          <a href="/login" className="signin-link">
             Sign In
           </a>
-          <a href="#" className="header-btn">
+          <a href="/signup" className="header-btn">
             Get Started
           </a>
         </div>
