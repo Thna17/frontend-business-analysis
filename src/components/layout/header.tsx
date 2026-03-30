@@ -8,9 +8,9 @@ import { ShoppingBag, Search, X, User, Heart, ChevronDown } from "lucide-react";
 import { NAVIGATION_ITEMS } from "@/constants";
 import { useCart } from "@/contexts/cart-context";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/redux/store";
+import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
-import { loadUserFromStorage } from "@/redux/features/auth/authSlice";
+import { loadUserFromStorage } from "@/store/slices/authSlice";
 
 export default function Header() {
     const dispatch = useDispatch();

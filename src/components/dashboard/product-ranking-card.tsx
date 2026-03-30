@@ -28,6 +28,9 @@ export function ProductRankingCard({ items }: ProductRankingCardProps) {
             </div>
           </div>
         ))}
+        {items.length === 0 ? (
+          <p className="text-sm text-[#98a2b3]">No product ranking data yet.</p>
+        ) : null}
       </CardContent>
     </Card>
   );

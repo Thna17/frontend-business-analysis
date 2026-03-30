@@ -12,9 +12,9 @@ import {
   isPathAllowedForRole,
   sanitizeNextPath,
 } from "@/features/auth/access-control";
-import { setCredentials } from "@/redux/features/auth/authSlice";
-import { type AppDispatch } from "@/redux/store";
-import { useResendVerificationOtpMutation, useVerifyEmailOtpMutation } from "@/redux/services/api";
+import { setCredentials } from "@/store/slices/authSlice";
+import { type AppDispatch } from "@/store";
+import { useResendVerificationOtpMutation, useVerifyEmailOtpMutation } from "@/store/api";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as { data?: { message?: string } };

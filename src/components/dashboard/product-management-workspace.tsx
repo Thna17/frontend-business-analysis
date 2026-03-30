@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
-  CloudUpload,
   Download,
   Pencil,
   Plus,
@@ -22,120 +21,196 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProductRow, RankingItem } from "@/features/owner-dashboard/dashboard-mock";
+import {
+  useCreateOwnerProductMutation,
+  useDeleteOwnerProductMutation,
+  useGetOwnerProductCategoriesQuery,
+  useGetOwnerProductsOverviewQuery,
+  useGetOwnerProductsQuery,
+  useUpdateOwnerProductMutation,
+  type OwnerProductItem,
+} from "@/store/api";
 
 type DateFilter = "all" | "today" | "thisWeek" | "thisMonth";
-type SortFilter = "nameAsc" | "salesHigh" | "stockLow" | "revenueHigh";
+type SortFilter =
+  | "updatedDesc"
+  | "nameAsc"
+  | "nameDesc"
+  | "salesHigh"
+  | "revenueHigh"
+  | "stockLow"
+  | "stockHigh";
 
-interface ProductForm {
-  product: string;
+interface ProductFormState {
+  name: string;
   category: string;
-  price: string;
-  sales: string;
+  newCategory: string;
+  categoryMode: "existing" | "new";
+  unitPrice: string;
   stock: string;
-  lastUpdated: string;
+  isActive: boolean;
 }
 
-interface ProductManagementWorkspaceProps {
-  initialRows: ProductRow[];
-  rankingItems: RankingItem[];
-}
-
-const defaultAvatar =
-  "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&w=64&q=60";
-
-const pageSize = 3;
+const pageSize = 6;
 
 function formatMoney(value: number) {
-  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
-function parseDate(input: string) {
-  const date = new Date(input);
-  return Number.isNaN(date.getTime()) ? new Date() : date;
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
 }
 
-export function ProductManagementWorkspace({
-  initialRows,
-  rankingItems,
-}: ProductManagementWorkspaceProps) {
-  const [rows, setRows] = useState<ProductRow[]>(initialRows);
+function dateBoundsByPreset(preset: DateFilter): { startDate?: string; endDate?: string } {
+  if (preset === "all") return {};
+
+  const now = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(now);
+
+  if (preset === "today") {
+    start.setHours(0, 0, 0, 0);
+  } else if (preset === "thisWeek") {
+    const day = start.getDay();
+    start.setDate(start.getDate() - day);
+    start.setHours(0, 0, 0, 0);
+  } else {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+  }
+
+  return {
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  };
+}
+
+function normalizeError(error: unknown) {
+  const payload = error as { data?: { message?: string } };
+  return payload?.data?.message ?? "Something went wrong. Please try again.";
+}
+
+const formDefaults: ProductFormState = {
+  name: "",
+  category: "",
+  newCategory: "",
+  categoryMode: "existing",
+  unitPrice: "",
+  stock: "",
+  isActive: true,
+};
+
+export function ProductManagementWorkspace() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const [sortBy, setSortBy] = useState<SortFilter>("salesHigh");
+  const [sortBy, setSortBy] = useState<SortFilter>("updatedDesc");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ProductForm>({
-    product: "",
-    category: "Coffee",
-    price: "4.5",
-    sales: "100",
-    stock: "20",
-    lastUpdated: new Date().toISOString().slice(0, 10),
+  const [editingProduct, setEditingProduct] = useState<OwnerProductItem | null>(null);
+  const [form, setForm] = useState<ProductFormState>(formDefaults);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const { startDate, endDate } = useMemo(() => dateBoundsByPreset(dateFilter), [dateFilter]);
+
+  const {
+    data: productsResponse,
+    isFetching,
+    refetch: refetchProducts,
+  } = useGetOwnerProductsQuery({
+    page: currentPage,
+    limit: pageSize,
+    search: search || undefined,
+    category: category === "all" ? undefined : category,
+    sortBy,
+    startDate,
+    endDate,
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: overview } = useGetOwnerProductsOverviewQuery();
 
-  const categories = useMemo(
-    () => ["all", ...new Set(rows.map((item) => item.category.toLowerCase()))],
-    [rows],
-  );
+  const { data: categoriesData = [] } = useGetOwnerProductCategoriesQuery({
+    limit: 100,
+  });
 
-  const filteredRows = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
+  const [createProduct, { isLoading: isCreating }] = useCreateOwnerProductMutation();
+  const [updateProduct, { isLoading: isUpdating }] = useUpdateOwnerProductMutation();
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteOwnerProductMutation();
 
-    const filtered = rows.filter((row) => {
-      const rowDate = parseDate(row.lastUpdated);
-      const searchMatch =
-        !search ||
-        row.product.toLowerCase().includes(search.toLowerCase()) ||
-        row.category.toLowerCase().includes(search.toLowerCase());
-      const categoryMatch = category === "all" || row.category.toLowerCase() === category;
-      const dateMatch =
-        dateFilter === "all" ||
-        (dateFilter === "today" && rowDate >= startOfToday) ||
-        (dateFilter === "thisWeek" && rowDate >= startOfWeek) ||
-        (dateFilter === "thisMonth" && rowDate >= startOfMonth);
+  const isSaving = isCreating || isUpdating;
 
-      return searchMatch && categoryMatch && dateMatch;
+  const categoryOptions = useMemo(() => {
+    const fromRows = (productsResponse?.items ?? []).map((item) => item.category);
+    const set = new Set([...categoriesData, ...fromRows]);
+    if (editingProduct?.category) {
+      set.add(editingProduct.category);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [categoriesData, productsResponse?.items, editingProduct]);
+
+  const rankingItems = overview?.ranking ?? [];
+
+  const onOpenCreate = useCallback(() => {
+    setEditingProduct(null);
+    setFormError(null);
+    setOpen(true);
+    setForm({
+      ...formDefaults,
+      category: categoryOptions[0] ?? "General",
+      categoryMode: categoryOptions.length > 0 ? "existing" : "new",
     });
+  }, [categoryOptions]);
 
-    return filtered.sort((a, b) => {
-      if (sortBy === "nameAsc") return a.product.localeCompare(b.product);
-      if (sortBy === "stockLow") return a.stock - b.stock;
-      if (sortBy === "revenueHigh") return b.revenue - a.revenue;
-      return b.sales - a.sales;
+  const onOpenEdit = (row: OwnerProductItem) => {
+    setEditingProduct(row);
+    setFormError(null);
+    setOpen(true);
+    setForm({
+      name: row.name,
+      category: row.category,
+      newCategory: "",
+      categoryMode: "existing",
+      unitPrice: String(row.unitPrice),
+      stock: String(row.stock),
+      isActive: row.isActive,
     });
-  }, [rows, search, category, dateFilter, sortBy]);
+  };
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const safePage = Math.min(currentPage, totalPages);
+  const onCloseModal = () => {
+    if (isSaving) return;
+    setOpen(false);
+    setEditingProduct(null);
+    setForm(formDefaults);
+    setFormError(null);
+  };
 
-  const paginatedRows = useMemo(() => {
-    const start = (safePage - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, safePage]);
-
-  const exportCsv = () => {
-    const header = ["Product", "Category", "Price", "Sales", "Revenue", "Stock", "LastUpdated"];
-    const lines = filteredRows.map((row) => [
-      row.product,
+  const exportCsv = useCallback(() => {
+    const rows = productsResponse?.items ?? [];
+    const header = ["Product", "Category", "Unit Price", "Sales", "Revenue", "Stock", "Last Sold", "Status"];
+    const lines = rows.map((row) => [
+      row.name,
       row.category,
-      row.price.toString(),
-      row.sales.toString(),
+      row.unitPrice.toString(),
+      row.quantitySold.toString(),
       row.revenue.toString(),
       row.stock.toString(),
-      row.lastUpdated,
+      row.lastSoldAt ?? "",
+      row.isActive ? "Active" : "Archived",
     ]);
     const csv = [header, ...lines].map((line) => line.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -145,221 +220,165 @@ export function ProductManagementWorkspace({
     link.download = "product-list.csv";
     link.click();
     URL.revokeObjectURL(url);
-  };
-
-  const onOpenCreate = () => {
-    setEditingId(null);
-    setForm({
-      product: "",
-      category: "Coffee",
-      price: "4.5",
-      sales: "100",
-      stock: "20",
-      lastUpdated: new Date().toISOString().slice(0, 10),
-    });
-    setOpen(true);
-  };
-
-  const onOpenEdit = (row: ProductRow) => {
-    setEditingId(row.id);
-    setForm({
-      product: row.product,
-      category: row.category,
-      price: row.price.toString(),
-      sales: row.sales.toString(),
-      stock: row.stock.toString(),
-      lastUpdated: row.lastUpdated,
-    });
-    setOpen(true);
-  };
-
-  const onSave = () => {
-    const price = Number(form.price);
-    const sales = Number(form.sales);
-    const stock = Number(form.stock);
-
-    if (!form.product || !form.category || Number.isNaN(price) || Number.isNaN(sales) || Number.isNaN(stock)) {
-      return;
-    }
-
-    const revenue = Number((price * Math.max(sales / 10, 1)).toFixed(2));
-
-    if (editingId) {
-      setRows((prev) =>
-        prev.map((row) =>
-          row.id === editingId
-            ? {
-                ...row,
-                product: form.product,
-                category: form.category,
-                price,
-                sales,
-                stock,
-                revenue,
-                lastUpdated: form.lastUpdated,
-              }
-            : row,
-        ),
-      );
-    } else {
-      const created: ProductRow = {
-        id: `pr-${Date.now()}`,
-        product: form.product,
-        category: form.category,
-        price,
-        sales,
-        stock,
-        revenue,
-        lastUpdated: form.lastUpdated,
-        avatar: defaultAvatar,
-      };
-      setRows((prev) => [created, ...prev]);
-      setCurrentPage(1);
-    }
-
-    setOpen(false);
-  };
-
-  const onDelete = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.id !== id));
-  };
-
-  const onImportCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-    if (lines.length <= 1) return;
-
-    const imported = lines.slice(1).map((line, index) => {
-      const [product, category, price, sales, revenue, stock, lastUpdated] = line.split(",");
-      return {
-        id: `import-${Date.now()}-${index}`,
-        product: product || "Imported Product",
-        category: category || "General",
-        price: Number(price) || 0,
-        sales: Number(sales) || 0,
-        revenue: Number(revenue) || 0,
-        stock: Number(stock) || 0,
-        lastUpdated: lastUpdated || new Date().toISOString().slice(0, 10),
-        avatar: defaultAvatar,
-      } as ProductRow;
-    });
-
-    setRows((prev) => [...imported, ...prev]);
-    setCurrentPage(1);
-    event.target.value = "";
-  };
-
-  const lowStockCount = rows.filter((row) => row.stock <= 12).length;
+  }, [productsResponse?.items]);
 
   useEffect(() => {
-    const handleAdd = () => {
-      setEditingId(null);
-      setForm({
-        product: "",
-        category: "Coffee",
-        price: "4.5",
-        sales: "100",
-        stock: "20",
-        lastUpdated: new Date().toISOString().slice(0, 10),
-      });
-      setOpen(true);
-    };
-    const handleExport = () => {
-      const header = ["Product", "Category", "Price", "Sales", "Revenue", "Stock", "LastUpdated"];
-      const lines = filteredRows.map((row) => [
-        row.product,
-        row.category,
-        row.price.toString(),
-        row.sales.toString(),
-        row.revenue.toString(),
-        row.stock.toString(),
-        row.lastUpdated,
-      ]);
-      const csv = [header, ...lines].map((line) => line.join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "product-list.csv";
-      link.click();
-      URL.revokeObjectURL(url);
-    };
+    const handleAdd = () => onOpenCreate();
+    const handleExport = () => exportCsv();
 
     window.addEventListener("product:add", handleAdd);
     window.addEventListener("product:export", handleExport);
-
     return () => {
       window.removeEventListener("product:add", handleAdd);
       window.removeEventListener("product:export", handleExport);
     };
-  }, [filteredRows]);
+  }, [onOpenCreate, exportCsv]);
+
+  const submit = async () => {
+    const resolvedCategory = form.categoryMode === "new" ? form.newCategory.trim() : form.category.trim();
+    const unitPrice = Number(form.unitPrice);
+    const stock = Number(form.stock);
+
+    if (!form.name.trim()) {
+      setFormError("Product name is required.");
+      return;
+    }
+    if (!resolvedCategory) {
+      setFormError("Category is required.");
+      return;
+    }
+    if (Number.isNaN(unitPrice) || unitPrice < 0) {
+      setFormError("Unit price must be a valid number.");
+      return;
+    }
+    if (Number.isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
+      setFormError("Stock must be a non-negative whole number.");
+      return;
+    }
+
+    try {
+      if (editingProduct) {
+        await updateProduct({
+          id: editingProduct.id,
+          body: {
+            name: form.name.trim(),
+            category: resolvedCategory,
+            unitPrice,
+            stock,
+            isActive: form.isActive,
+          },
+        }).unwrap();
+      } else {
+        await createProduct({
+          name: form.name.trim(),
+          category: resolvedCategory,
+          unitPrice,
+          stock,
+          isActive: true,
+        }).unwrap();
+      }
+
+      setFormError(null);
+      onCloseModal();
+    } catch (error) {
+      setFormError(normalizeError(error));
+    }
+  };
+
+  const onDelete = async (id: string) => {
+    setActionError(null);
+    try {
+      await deleteProduct(id).unwrap();
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  };
+
+  const total = productsResponse?.meta.total ?? 0;
+  const limit = productsResponse?.meta.limit ?? pageSize;
+  const page = productsResponse?.meta.page ?? currentPage;
+  const from = total === 0 ? 0 : (page - 1) * limit + 1;
+  const to = Math.min(page * limit, total);
+  const hasNext = Boolean(productsResponse?.meta.hasNextPage);
 
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
       <section className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
         <div className="border-b border-[#edf1f5] px-6 py-5 md:px-7">
-          <div className="flex flex-col gap-3">
-            <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
-                <Input
-                  className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] pl-10 text-[15px]"
-                  placeholder="Search records..."
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-
-              <Select
-                value={category}
-                onValueChange={(value) => {
-                  setCategory(value);
+          <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Input
+                className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] pl-10 text-sm"
+                placeholder="Search records..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
                   setCurrentPage(1);
                 }}
-              >
-                <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item === "all" ? "Category: All" : item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
-                <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
-                  <CalendarDays className="size-4" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Filter Date</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="thisWeek">This week</SelectItem>
-                  <SelectItem value="thisMonth">This month</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortFilter)}>
-                <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
-                  <SelectValue />
-                  <ChevronDown className="size-4" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="salesHigh">Sort by: Sales</SelectItem>
-                  <SelectItem value="revenueHigh">Sort by: Revenue</SelectItem>
-                  <SelectItem value="stockLow">Sort by: Stock Low</SelectItem>
-                  <SelectItem value="nameAsc">Sort by: Name</SelectItem>
-                </SelectContent>
-              </Select>
+              />
             </div>
+
+            <Select
+              value={category}
+              onValueChange={(value) => {
+                setCategory(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Category: All</SelectItem>
+                {categoryOptions.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {item}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={dateFilter}
+              onValueChange={(value) => {
+                setDateFilter(value as DateFilter);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+                <CalendarDays className="size-4" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Filter Date</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="thisWeek">This week</SelectItem>
+                <SelectItem value="thisMonth">This month</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={sortBy}
+              onValueChange={(value) => {
+                setSortBy(value as SortFilter);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+                <SelectValue />
+                <ChevronDown className="size-4" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="updatedDesc">Sort by: Latest</SelectItem>
+                <SelectItem value="salesHigh">Sort by: Sales</SelectItem>
+                <SelectItem value="revenueHigh">Sort by: Revenue</SelectItem>
+                <SelectItem value="stockLow">Sort by: Stock Low</SelectItem>
+                <SelectItem value="stockHigh">Sort by: Stock High</SelectItem>
+                <SelectItem value="nameAsc">Sort by: Name A-Z</SelectItem>
+                <SelectItem value="nameDesc">Sort by: Name Z-A</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -373,38 +392,40 @@ export function ProductManagementWorkspace({
                 <th className="px-5 py-4">Sales</th>
                 <th className="px-5 py-4">Revenue</th>
                 <th className="px-5 py-4">Stock</th>
+                <th className="px-5 py-4">Last Sold</th>
                 <th className="px-5 py-4">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eef1f4] bg-white">
-              {paginatedRows.map((row) => (
+              {(productsResponse?.items ?? []).map((row) => (
                 <tr key={row.id}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="size-11 rounded-full bg-cover bg-center" style={{ backgroundImage: `url('${row.avatar}')` }} />
-                      <p className="text-base font-semibold text-[#101828]">{row.product}</p>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-base text-[#667085]">{row.category}</td>
-                  <td className="px-5 py-4 text-base text-[#667085]">${row.price.toFixed(1)}</td>
-                  <td className="px-5 py-4 text-base text-[#667085]">{row.sales}</td>
-                  <td className="px-5 py-4 text-base font-semibold text-[#101828]">{formatMoney(row.revenue)}</td>
-                  <td className="px-5 py-4 text-base text-[#667085]">{row.stock}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-[#101828]">{row.name}</td>
+                  <td className="px-5 py-4 text-sm text-[#667085]">{row.category}</td>
+                  <td className="px-5 py-4 text-sm text-[#667085]">{formatMoney(row.unitPrice)}</td>
+                  <td className="px-5 py-4 text-sm text-[#667085]">{row.quantitySold}</td>
+                  <td className="px-5 py-4 text-sm font-semibold text-[#101828]">{formatMoney(row.revenue)}</td>
+                  <td className="px-5 py-4 text-sm text-[#667085]">{row.stock}</td>
+                  <td className="px-5 py-4 text-sm text-[#667085]">{formatDate(row.lastSoldAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3 text-[#98a2b3]">
-                      <button type="button" onClick={() => onOpenEdit(row)}>
-                        <Pencil className="size-5" />
+                      <button type="button" onClick={() => onOpenEdit(row)} aria-label={`Edit ${row.name}`}>
+                        <Pencil className="size-4" />
                       </button>
-                      <button type="button" onClick={() => onDelete(row.id)}>
-                        <Trash2 className="size-5" />
+                      <button
+                        type="button"
+                        onClick={() => onDelete(row.id)}
+                        aria-label={`Delete ${row.name}`}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="size-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {paginatedRows.length === 0 ? (
+              {!isFetching && (productsResponse?.items ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-9 text-center text-sm text-[#667085]">
+                  <td colSpan={8} className="px-6 py-9 text-center text-sm text-[#667085]">
                     No products found.
                   </td>
                 </tr>
@@ -414,23 +435,22 @@ export function ProductManagementWorkspace({
         </div>
 
         <div className="flex flex-col gap-4 border-t border-[#edf1f5] px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
-          <p className="text-[15px] text-[#667085]">
-            Showing {paginatedRows.length === 0 ? 0 : (safePage - 1) * pageSize + 1} to{" "}
-            {Math.min(safePage * pageSize, filteredRows.length)} of {filteredRows.length} entries
+          <p className="text-sm text-[#667085]">
+            Showing {from} to {to} of {total} entries
           </p>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-[15px] text-[#667085]"
-              disabled={safePage <= 1}
+              className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-sm text-[#667085]"
+              disabled={page <= 1 || isFetching}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             >
               Previous
             </Button>
             <Button
-              className="h-10 rounded-xl bg-[#0f172a] px-5 text-[15px] text-white hover:bg-[#111d3a]"
-              disabled={safePage >= totalPages}
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              className="h-10 rounded-xl bg-[#0f172a] px-5 text-sm text-white hover:bg-[#111d3a]"
+              disabled={!hasNext || isFetching}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
             >
               Next
             </Button>
@@ -442,31 +462,35 @@ export function ProductManagementWorkspace({
         <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
           <div className="mt-6 space-y-6">
-            {rankingItems.map((item, index) => (
-              <div key={item.name}>
-                <div className="mb-2 flex items-center justify-between text-lg">
-                  <span className="font-medium text-[#344054]">{item.name}</span>
-                  <span className="font-medium text-[#d4af35]">${item.value.toLocaleString()}</span>
+            {rankingItems.length > 0 ? (
+              rankingItems.map((item, index) => (
+                <div key={item.name}>
+                  <div className="mb-2 flex items-center justify-between text-base">
+                    <span className="font-medium text-[#344054]">{item.name}</span>
+                    <span className="font-medium text-[#d4af35]">{formatMoney(item.revenue)}</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-[#eceff3]">
+                    <div
+                      className="h-full rounded-full bg-[#d4af35]"
+                      style={{ width: `${item.percent}%`, opacity: 1 - index * 0.17 }}
+                    />
+                  </div>
                 </div>
-                <div className="h-4 rounded-full bg-[#eceff3]">
-                  <div
-                    className="h-full rounded-full bg-[#d4af35]"
-                    style={{ width: `${item.width}%`, opacity: 1 - index * 0.17 }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-[#98a2b3]">No ranking data yet.</p>
+            )}
           </div>
         </section>
 
         <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Quick Actions</h3>
-          <p className="mt-2 text-sm text-[#667085]">Low stock: {lowStockCount} items</p>
+          <p className="mt-2 text-sm text-[#667085]">Low stock: {overview?.kpi.lowStockCount ?? 0} items</p>
           <div className="mt-5 space-y-3">
             <button
               type="button"
               onClick={onOpenCreate}
-              className="flex w-full items-center gap-3 rounded-full border border-[#ead9a2] bg-[#fffaf0] px-4 py-3 text-left text-base font-medium text-[#7a5e0b]"
+              className="flex w-full items-center gap-3 rounded-full border border-[#ead9a2] bg-[#fffaf0] px-4 py-3 text-left text-sm font-medium text-[#7a5e0b]"
             >
               <Plus className="size-4" />
               Add New Product
@@ -474,139 +498,160 @@ export function ProductManagementWorkspace({
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-base font-medium text-[#344054]"
-            >
-              <CloudUpload className="size-4" />
-              Import CSV
-            </button>
-
-            <button
-              type="button"
               onClick={exportCsv}
-              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-base font-medium text-[#344054]"
+              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-sm font-medium text-[#344054]"
             >
               <Download className="size-4" />
               Export Product List
             </button>
+
+            <button
+              type="button"
+              onClick={() => refetchProducts()}
+              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-sm font-medium text-[#344054]"
+            >
+              <Search className="size-4" />
+              Refresh Data
+            </button>
           </div>
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={onImportCsv} />
+          {actionError ? <p className="mt-4 text-sm text-rose-600">{actionError}</p> : null}
         </section>
       </aside>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : onCloseModal())}>
         <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-[#e4e7ec] p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
           <DialogHeader className="flex-row items-center justify-between border-b border-[#eceff3] bg-[#f9fafb] px-6 py-4 text-left">
-            <DialogTitle className="text-2xl font-semibold tracking-tight text-[#101828]">
-              {editingId ? "Update Product" : "Add New Product"}
+            <DialogTitle className="text-[1.625rem] font-semibold tracking-tight text-[#101828]">
+              {editingProduct ? "Update Product" : "Add New Product"}
             </DialogTitle>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={onCloseModal}
               className="rounded-md p-1.5 text-[#98a2b3] transition-colors hover:bg-white hover:text-[#475467]"
+              disabled={isSaving}
             >
-              <X className="size-6" />
+              <X className="size-5" />
             </button>
           </DialogHeader>
 
-          <div className="grid gap-4.5 px-6 py-6">
-            <div className="grid gap-2.5">
-              <label className="text-sm font-semibold text-[#344054]" htmlFor="product">
+          <div className="grid gap-4 px-6 py-6">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-[#344054]" htmlFor="product-name">
                 Product Name
               </label>
               <Input
-                id="product"
-                value={form.product}
-                onChange={(event) => setForm((prev) => ({ ...prev, product: event.target.value }))}
-                placeholder="e.g. Premium Dashboard UI"
-                className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054] placeholder:text-[#98a2b3]"
+                id="product-name"
+                value={form.name}
+                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="e.g. Enterprise License"
+                className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054] placeholder:text-[#98a2b3]"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="category">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-[#344054]" htmlFor="category-mode">
                   Category
                 </label>
-                <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}>
-                  <SelectTrigger id="category" className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]">
+                <Select
+                  value={form.categoryMode}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, categoryMode: value as "existing" | "new" }))}
+                >
+                  <SelectTrigger id="category-mode" className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Coffee">Coffee</SelectItem>
-                    <SelectItem value="Tea">Tea</SelectItem>
-                    <SelectItem value="Digital">Digital</SelectItem>
-                    <SelectItem value="Service">Service</SelectItem>
+                    <SelectItem value="existing">Select Existing Category</SelectItem>
+                    <SelectItem value="new">Add New Category</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="price">
+
+              {form.categoryMode === "existing" ? (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-[#344054]" htmlFor="category-select">
+                    Existing Category
+                  </label>
+                  <Select
+                    value={form.category}
+                    onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger id="category-select" className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-[#344054]" htmlFor="new-category">
+                    New Category Name
+                  </label>
+                  <Input
+                    id="new-category"
+                    value={form.newCategory}
+                    onChange={(event) => setForm((prev) => ({ ...prev, newCategory: event.target.value }))}
+                    placeholder="e.g. Bakery"
+                    className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-[#344054]" htmlFor="unit-price">
                   Price ($)
                 </label>
                 <Input
-                  id="price"
+                  id="unit-price"
                   type="number"
                   min={0}
-                  step="0.1"
-                  value={form.price}
-                  onChange={(event) => setForm((prev) => ({ ...prev, price: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  step="0.01"
+                  value={form.unitPrice}
+                  onChange={(event) => setForm((prev) => ({ ...prev, unitPrice: event.target.value }))}
+                  className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="sales">
-                  Sales
-                </label>
-                <Input
-                  id="sales"
-                  type="number"
-                  min={0}
-                  value={form.sales}
-                  onChange={(event) => setForm((prev) => ({ ...prev, sales: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
-                />
-              </div>
-              <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="stock">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-[#344054]" htmlFor="stock">
                   Stock
                 </label>
                 <Input
                   id="stock"
                   type="number"
                   min={0}
+                  step="1"
                   value={form.stock}
                   onChange={(event) => setForm((prev) => ({ ...prev, stock: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
-                />
-              </div>
-              <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="lastUpdated">
-                  Date
-                </label>
-                <Input
-                  id="lastUpdated"
-                  type="date"
-                  value={form.lastUpdated}
-                  onChange={(event) => setForm((prev) => ({ ...prev, lastUpdated: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
                 />
               </div>
             </div>
 
-            <div className="mt-3 flex justify-end gap-3">
+            {formError ? <p className="text-sm text-rose-600">{formError}</p> : null}
+
+            <div className="mt-2 flex justify-end gap-3">
               <Button
                 variant="outline"
-                onClick={() => setOpen(false)}
-                className="h-11 rounded-xl border-[#dfe3e8] bg-white px-6 text-base text-[#475467]"
+                onClick={onCloseModal}
+                className="h-10 rounded-xl border-[#dfe3e8] bg-white px-6 text-sm text-[#475467]"
+                disabled={isSaving}
               >
                 Cancel
               </Button>
-              <Button className="h-11 rounded-xl bg-[#0f172a] px-7 text-base text-white hover:bg-[#111d3a]" onClick={onSave}>
-                {editingId ? "Save Product" : "Add Product"}
+              <Button
+                className="h-10 rounded-xl bg-[#0f172a] px-7 text-sm text-white hover:bg-[#111d3a]"
+                onClick={submit}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : editingProduct ? "Save Product" : "Add Product"}
               </Button>
             </div>
           </div>

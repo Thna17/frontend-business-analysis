@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import {
-  analyticsCategoryShare,
-  analyticsCustomerSeries,
-  analyticsHeatmap,
-  analyticsMetrics,
-  analyticsRevenueSeries,
-  AnalyticsSeriesPoint,
-  RankingItem,
-} from "@/features/owner-dashboard/dashboard-mock";
+import { useGetOwnerAnalyticsDashboardQuery } from "@/store/api";
 
-type PeriodKey = "3m" | "6m" | "12m";
+type PeriodKey = "6m" | "12m";
 
-interface AnalyticsWorkspaceProps {
-  rankingItems: RankingItem[];
+interface AnalyticsSeriesPoint {
+  label: string;
+  value: number;
 }
 
 function metricToneClass(tone: "green" | "amber" | "slate") {
@@ -52,25 +45,92 @@ function buildPath(points: AnalyticsSeriesPoint[], width: number, height: number
   return d;
 }
 
-export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function shortMoney(value: number) {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(1)}`;
+}
+
+function formatDelta(value: number) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
+}
+
+function deltaTone(value: number): "green" | "amber" | "slate" {
+  if (value > 0) return "green";
+  if (value < 0) return "amber";
+  return "slate";
+}
+
+export function AnalyticsWorkspace() {
   const [period, setPeriod] = useState<PeriodKey>("6m");
   const periodOptions: Array<{ key: PeriodKey; label: string }> = [
-    { key: "3m", label: "Last 3 months" },
     { key: "6m", label: "Last 6 months" },
     { key: "12m", label: "Last 12 months" },
   ];
 
-  const revenueData = analyticsRevenueSeries[period];
+  const { data, isFetching } = useGetOwnerAnalyticsDashboardQuery({ range: period });
+
+  const revenueData = useMemo(
+    () => (data?.revenue.series ?? []).map((item) => ({ label: item.label, value: item.amount })),
+    [data?.revenue.series],
+  );
   const revenueLinePath = useMemo(() => buildPath(revenueData, 960, 270), [revenueData]);
   const revenueAreaPath = `${revenueLinePath} L 960 280 L 0 280 Z`;
-  const customerPath = useMemo(() => buildPath(analyticsCustomerSeries, 620, 180), []);
+
+  const customerData = useMemo(
+    () => (data?.customerActivity ?? []).map((item) => ({ label: item.label, value: item.value })),
+    [data?.customerActivity],
+  );
+  const customerPath = useMemo(() => buildPath(customerData, 620, 180), [customerData]);
   const customerAreaPath = `${customerPath} L 620 200 L 0 200 Z`;
 
-  const donutCircumference = 2 * Math.PI * 70;
-  const coffeePercent = analyticsCategoryShare[0].value / 100;
-  const coffeeLength = donutCircumference * coffeePercent;
+  const categoryShare = data?.categoryShare ?? [];
+  const topProducts = data?.topProducts ?? [];
+  const heatmap = data?.heatmap ?? [[], [], [], []];
 
-  const exportAnalytics = () => {
+  const totalCategoryRevenue = categoryShare.reduce((sum, item) => sum + item.revenue, 0);
+  const donutCircumference = 2 * Math.PI * 70;
+  const firstCategoryPercent = categoryShare.length > 0 ? categoryShare[0].value / 100 : 0;
+  const firstCategoryLength = donutCircumference * firstCategoryPercent;
+
+  const metrics = [
+    {
+      label: "Revenue Growth",
+      value: formatDelta(data?.kpis.revenueGrowth ?? 0),
+      delta: `~${Math.abs(data?.kpis.revenueGrowth ?? 0).toFixed(1)}%`,
+      tone: deltaTone(data?.kpis.revenueGrowth ?? 0),
+    },
+    {
+      label: "Average Order Value",
+      value: formatMoney(data?.kpis.averageOrderValue ?? 0),
+      delta: `~${formatMoney(data?.kpis.averageOrderValue ?? 0)}`,
+      tone: "green" as const,
+    },
+    {
+      label: "Customer Growth",
+      value: formatDelta(data?.kpis.customerGrowth ?? 0),
+      delta: `~${Math.abs(data?.kpis.customerGrowth ?? 0).toFixed(1)}%`,
+      tone: deltaTone(data?.kpis.customerGrowth ?? 0),
+    },
+    {
+      label: "Conversion Rate",
+      value: `${(data?.kpis.conversionRate ?? 0).toFixed(1)}%`,
+      delta: `${formatDelta(data?.kpis.conversionRate ?? 0)}`,
+      tone: deltaTone(data?.kpis.conversionRate ?? 0),
+    },
+  ];
+
+  const exportAnalytics = useCallback(() => {
     const header = ["Month", "Revenue"];
     const rows = revenueData.map((row) => [row.label, row.value.toString()]);
     const csv = [header, ...rows].map((line) => line.join(",")).join("\n");
@@ -81,14 +141,13 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
     link.download = `analytics-${period}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [period, revenueData]);
 
-  const downloadReport = () => {
+  const downloadReport = useCallback(() => {
     const payload = {
       period,
       exportedAt: new Date().toISOString(),
-      metrics: analyticsMetrics,
-      revenueSeries: revenueData,
+      analytics: data ?? null,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -97,7 +156,7 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
     link.download = `analytics-report-${period}.json`;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [data, period]);
 
   useEffect(() => {
     window.addEventListener("analytics:export", exportAnalytics);
@@ -106,7 +165,7 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
       window.removeEventListener("analytics:export", exportAnalytics);
       window.removeEventListener("analytics:download", downloadReport);
     };
-  });
+  }, [downloadReport, exportAnalytics]);
 
   return (
     <div className="space-y-5">
@@ -162,14 +221,15 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
             </g>
           </svg>
         </div>
+        {isFetching ? <p className="mt-2 text-sm text-[#98a2b3]">Refreshing analytics...</p> : null}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {analyticsMetrics.map((metric) => (
+        {metrics.map((metric) => (
           <article key={metric.label} className="dashboard-surface border-[#e7e9ee] p-4 shadow-none">
             <p className="text-sm text-[#667085]">{metric.label}</p>
             <div className="mt-1 flex items-center justify-between">
-              <p className="text-[2rem] font-semibold tracking-tight text-[#101828]">{metric.value}</p>
+              <p className="text-[1.95rem] font-semibold tracking-tight text-[#101828]">{metric.value}</p>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${metricToneClass(metric.tone)}`}>
                 {metric.delta}
               </span>
@@ -192,42 +252,50 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
                 stroke="#d4af35"
                 strokeWidth="14"
                 strokeLinecap="round"
-                strokeDasharray={`${coffeeLength} ${donutCircumference}`}
+                strokeDasharray={`${firstCategoryLength} ${donutCircumference}`}
                 transform="rotate(-90 110 110)"
               />
               <circle cx="110" cy="110" r="48" fill="white" />
-              <text x="110" y="112" textAnchor="middle" className="fill-[#101828]" style={{ fontSize: 42, fontWeight: 700 }}>
-                $12.5
+              <text x="110" y="112" textAnchor="middle" className="fill-[#101828]" style={{ fontSize: 26, fontWeight: 700 }}>
+                {shortMoney(totalCategoryRevenue)}
               </text>
-              <text x="110" y="136" textAnchor="middle" className="fill-[#98a2b3]" style={{ fontSize: 14 }}>
+              <text x="110" y="136" textAnchor="middle" className="fill-[#98a2b3]" style={{ fontSize: 13 }}>
                 Total Sales
               </text>
             </svg>
           </div>
           <div className="mt-2 grid gap-2 text-sm text-[#667085]">
-            {analyticsCategoryShare.map((item) => (
-              <p key={item.label} className="flex items-center gap-2">
-                <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                {item.label} ({item.value}%)
-              </p>
-            ))}
+            {categoryShare.length > 0 ? (
+              categoryShare.map((item) => (
+                <p key={item.label} className="flex items-center gap-2">
+                  <span className="inline-block size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                  {item.label} ({item.value.toFixed(1)}%)
+                </p>
+              ))
+            ) : (
+              <p className="text-[#98a2b3]">No category data yet.</p>
+            )}
           </div>
         </article>
 
         <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
           <div className="mt-6 space-y-6">
-            {rankingItems.map((item, index) => (
-              <div key={item.name}>
-                <div className="mb-2 flex items-center justify-between text-lg">
-                  <span className="font-medium text-[#344054]">{item.name}</span>
-                  <span className="font-medium text-[#d4af35]">${item.value.toLocaleString()}</span>
+            {topProducts.length > 0 ? (
+              topProducts.map((item, index) => (
+                <div key={item.name}>
+                  <div className="mb-2 flex items-center justify-between text-lg">
+                    <span className="font-medium text-[#344054]">{item.name}</span>
+                    <span className="font-medium text-[#d4af35]">{formatMoney(item.revenue)}</span>
+                  </div>
+                  <div className="h-4 rounded-full bg-[#eceff3]">
+                    <div className="h-full rounded-full bg-[#d4af35]" style={{ width: `${item.percent}%`, opacity: 1 - index * 0.17 }} />
+                  </div>
                 </div>
-                <div className="h-4 rounded-full bg-[#eceff3]">
-                  <div className="h-full rounded-full bg-[#d4af35]" style={{ width: `${item.width}%`, opacity: 1 - index * 0.17 }} />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-[#98a2b3]">No product ranking data yet.</p>
+            )}
           </div>
         </article>
       </section>
@@ -249,9 +317,9 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
               <path d={customerAreaPath} fill="url(#customerArea)" />
               <path d={customerPath} fill="none" stroke="#cca42d" strokeWidth="3" strokeLinecap="round" />
               <g fill="#98a2b3" fontSize="12">
-                {analyticsCustomerSeries.map((item, index) => (
-                  <text key={item.label} x={(index / Math.max(analyticsCustomerSeries.length - 1, 1)) * 596 + 12} y="214">
-                    {item.label.toUpperCase()}
+                {customerData.map((item, index) => (
+                  <text key={item.label} x={(index / Math.max(customerData.length - 1, 1)) * 596 + 12} y="214">
+                    {item.label}
                   </text>
                 ))}
               </g>
@@ -278,7 +346,7 @@ export function AnalyticsWorkspace({ rankingItems }: AnalyticsWorkspaceProps) {
           </div>
 
           <div className="grid grid-cols-7 gap-2">
-            {analyticsHeatmap.flat().map((cell, index) => (
+            {heatmap.flat().map((cell, index) => (
               <div
                 key={`${cell.day}-${index}`}
                 className="aspect-square rounded-sm"

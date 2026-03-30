@@ -8,7 +8,7 @@ import {
     useRemoveCartItemMutation,
     type CartResponse,
     type CartItemResponse,
-} from "@/redux/services/api";
+} from "@/store/api";
 import { Product, Size, Color } from "@/types";
 
 interface CartContextType {

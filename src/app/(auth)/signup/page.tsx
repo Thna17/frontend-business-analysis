@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import { Building2, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRegisterMutation } from "@/redux/services/api";
+import { logout as clearAuthState } from "@/store/slices/authSlice";
+import { type AppDispatch } from "@/store";
+import { useRegisterMutation } from "@/store/api";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as { data?: { message?: string } };
@@ -24,6 +27,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function SignupPage() {
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -58,6 +62,8 @@ export default function SignupPage() {
     }
 
     try {
+      dispatch(clearAuthState());
+
       await register({
         fullName: businessName ? `${fullName} (${businessName})` : fullName,
         email,

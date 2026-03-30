@@ -11,7 +11,7 @@ import {
 import {
   selectAuthStatus,
   selectCurrentUser,
-} from "@/redux/features/auth/authSlice";
+} from "@/store/slices/authSlice";
 
 interface RouteGuardProps {
   children: React.ReactNode;

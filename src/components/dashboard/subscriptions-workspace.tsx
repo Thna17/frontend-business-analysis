@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -21,14 +21,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  BillingHistoryItem,
-  SubscriptionPlanTier,
-  SubscriptionUsageMetric,
-  subscriptionBillingHistory,
-  subscriptionCurrentPlan,
-  subscriptionPlanTiers,
-  subscriptionUsageMetrics,
-} from "@/features/owner-dashboard/dashboard-mock";
+  useCancelSubscriptionMutation,
+  useChangeSubscriptionPlanMutation,
+  useGetSubscriptionDashboardQuery,
+  useReactivateSubscriptionMutation,
+  type SubscriptionDashboardResponse,
+} from "@/store/api";
 
 interface KhqrState {
   merchantName: string;
@@ -37,98 +35,238 @@ interface KhqrState {
   city: string;
 }
 
-function usageIcon(icon: SubscriptionUsageMetric["icon"]) {
+type UsageIcon = "users" | "reports" | "queries" | "storage";
+
+interface UsageCard {
+  title: string;
+  value: string;
+  note: string;
+  progress: number;
+  icon: UsageIcon;
+}
+
+function usageIcon(icon: UsageIcon) {
   if (icon === "users") return <Users className="size-4 text-[#d4af35]" />;
   if (icon === "reports") return <FileText className="size-4 text-[#d4af35]" />;
   if (icon === "queries") return <Search className="size-4 text-[#d4af35]" />;
   return <Database className="size-4 text-[#d4af35]" />;
 }
 
-function planButtonClass(tone: SubscriptionPlanTier["tone"], active: boolean) {
+function planButtonClass(active: boolean, tone: "default" | "outline") {
   if (active) return "bg-[#d4af35] text-[#101828] hover:bg-[#c39f2f]";
   if (tone === "outline") return "border-[#d4af35] text-[#8a6b0b] hover:bg-[#fffaf0]";
   return "border-[#111827] text-[#111827] hover:bg-[#f7f8fa]";
 }
 
+function formatMoney(value: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function normalizeError(error: unknown) {
+  const payload = error as { data?: { message?: string } };
+  return payload?.data?.message ?? "Something went wrong. Please try again.";
+}
+
+function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
+  if (!data) {
+    return [
+      { title: "Active Users", value: "0 / 0", note: "No data", progress: 0, icon: "users" },
+      { title: "Reports Generated", value: "0", note: "No data", progress: 0, icon: "reports" },
+      { title: "Analytics Queries", value: "0", note: "No data", progress: 0, icon: "queries" },
+      { title: "Storage Used", value: "0 GB", note: "No data", progress: 0, icon: "storage" },
+    ];
+  }
+
+  const usersProgress = data.usage.activeUsers.limit > 0
+    ? (data.usage.activeUsers.used / data.usage.activeUsers.limit) * 100
+    : 0;
+  const reportsProgress = data.usage.reportsGenerated.limit > 0
+    ? (data.usage.reportsGenerated.used / data.usage.reportsGenerated.limit) * 100
+    : 0;
+  const queriesProgress = data.usage.analyticsQueries.limit > 0
+    ? (data.usage.analyticsQueries.used / data.usage.analyticsQueries.limit) * 100
+    : 0;
+  const storageProgress = data.usage.storage.limitGb > 0
+    ? (data.usage.storage.usedGb / data.usage.storage.limitGb) * 100
+    : 0;
+
+  return [
+    {
+      title: "Active Users",
+      value: `${data.usage.activeUsers.used} / ${data.usage.activeUsers.limit}`,
+      note: "Seats in current plan",
+      progress: Math.min(100, Math.max(0, usersProgress)),
+      icon: "users",
+    },
+    {
+      title: "Reports Generated",
+      value: String(data.usage.reportsGenerated.used),
+      note: `Limit ${data.usage.reportsGenerated.limit} reports`,
+      progress: Math.min(100, Math.max(0, reportsProgress)),
+      icon: "reports",
+    },
+    {
+      title: "Analytics Queries",
+      value: `${data.usage.analyticsQueries.used.toLocaleString()}`,
+      note: `Limit ${data.usage.analyticsQueries.limit.toLocaleString()}`,
+      progress: Math.min(100, Math.max(0, queriesProgress)),
+      icon: "queries",
+    },
+    {
+      title: "Storage Used",
+      value: `${data.usage.storage.usedGb.toFixed(2)} GB`,
+      note: `${data.usage.storage.limitGb} GB available`,
+      progress: Math.min(100, Math.max(0, storageProgress)),
+      icon: "storage",
+    },
+  ];
+}
+
+function statusBadge(status: "active" | "expired" | "canceled") {
+  if (status === "active") {
+    return "bg-[#d7f2e3] text-[#067647]";
+  }
+  if (status === "expired") {
+    return "bg-[#fef3d2] text-[#b67a08]";
+  }
+  return "bg-[#fff5f5] text-[#dc2626]";
+}
+
 export function SubscriptionsWorkspace() {
-  const [tiers] = useState(subscriptionPlanTiers);
-  const [activeTierId, setActiveTierId] = useState("pro");
-  const [usage, setUsage] = useState(subscriptionUsageMetrics);
-  const [billingHistory] = useState(subscriptionBillingHistory);
+  const [page, setPage] = useState(1);
+  const [openCardDialog, setOpenCardDialog] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [isCanceled, setIsCanceled] = useState(false);
-  const [khqr, setKhqr] = useState<KhqrState>({
-    merchantName: "Syntrix Cambodia",
-    bakongId: "syntrix@aclb",
+  const [khqrOverride, setKhqrOverride] = useState<KhqrState | null>(null);
+  const [khqrForm, setKhqrForm] = useState<KhqrState>({
+    merchantName: "",
+    bakongId: "",
+    phone: "",
+    city: "",
+  });
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const {
+    data,
+    isFetching,
+  } = useGetSubscriptionDashboardQuery({ page, limit: 3 });
+
+  const [changePlan, { isLoading: isChangingPlan }] = useChangeSubscriptionPlanMutation();
+  const [cancelSubscription, { isLoading: isCanceling }] = useCancelSubscriptionMutation();
+  const [reactivateSubscription, { isLoading: isReactivating }] = useReactivateSubscriptionMutation();
+
+  const khqr: KhqrState = khqrOverride ?? {
+    merchantName: data?.paymentMethod.merchantName || "Syntrix Cambodia",
+    bakongId: data?.paymentMethod.bakongId || "syntrix@aclb",
     phone: "+855 12 345 678",
     city: "Phnom Penh",
+  };
+
+  const activePlanId = data?.currentPlan.key ?? "free";
+  const usage = mapUsageCards(data);
+
+  const planTiers = (data?.plans ?? []).map((plan) => ({
+    ...plan,
+    tone: plan.id === "business" ? "default" : "outline",
+    priceLabel: plan.monthlyPrice === 0 ? "Free" : formatMoney(plan.monthlyPrice, data?.paymentMethod.currency ?? "USD"),
+    perLabel: plan.monthlyPrice === 0 ? "" : "/mo",
+  }));
+
+  const khqrPayload = JSON.stringify({
+    merchant: khqr.merchantName,
+    bakongId: khqr.bakongId,
+    phone: khqr.phone,
+    city: khqr.city,
+    reference: "syntrix-subscription-monthly",
   });
 
-  const [openCardDialog, setOpenCardDialog] = useState(false);
-  const [khqrForm, setKhqrForm] = useState(khqr);
+  const onSelectTier = useCallback(async (tierId: "free" | "pro" | "business") => {
+    setActionError(null);
+    try {
+      await changePlan({ plan: tierId }).unwrap();
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  }, [changePlan]);
 
-  const activeTier = useMemo(
-    () => tiers.find((tier) => tier.id === activeTierId) ?? tiers[0],
-    [tiers, activeTierId],
-  );
+  const onCancelSubscription = async () => {
+    setActionError(null);
+    try {
+      await cancelSubscription().unwrap();
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  };
+
+  const onReactivate = async () => {
+    setActionError(null);
+    try {
+      await reactivateSubscription().unwrap();
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  };
+
+  const handleUpgrade = useCallback(async () => {
+    await onSelectTier("pro");
+  }, [onSelectTier]);
 
   useEffect(() => {
-    const handleUpgrade = () => {
-      const next = tiers.find((tier) => tier.id === "pro") ?? tiers[0];
-      setActiveTierId(next.id);
-      setIsCanceled(false);
+    const listener = () => {
+      void handleUpgrade();
     };
-    window.addEventListener("subscription:upgrade", handleUpgrade);
-    return () => window.removeEventListener("subscription:upgrade", handleUpgrade);
-  }, [tiers]);
-
-  const onChangePlan = () => {
-    const ordered = tiers.map((tier) => tier.id);
-    const currentIndex = ordered.indexOf(activeTierId);
-    const nextIndex = (currentIndex + 1) % ordered.length;
-    setActiveTierId(ordered[nextIndex]);
-  };
-
-  const onSelectTier = (tierId: string) => {
-    setActiveTierId(tierId);
-    setIsCanceled(false);
-  };
+    window.addEventListener("subscription:upgrade", listener);
+    return () => window.removeEventListener("subscription:upgrade", listener);
+  }, [handleUpgrade]);
 
   const onDownloadTaxForm = () => {
     const blob = new Blob(
       [
-        "Syntrix Tax Form\nYear: 2026\nCustomer: Alex Johnston\nPlan: Enterprise\nAmount: $8,500/mo\nStatus: Active",
+        [
+          "Syntrix Tax Form",
+          `Generated: ${new Date().toISOString()}`,
+          `Plan: ${data?.currentPlan.name ?? "N/A"}`,
+          `Status: ${data?.currentPlan.status ?? "N/A"}`,
+          `Currency: ${data?.paymentMethod.currency ?? "USD"}`,
+        ].join("\n"),
       ],
       { type: "text/plain;charset=utf-8;" },
     );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "syntrix-tax-form-2026.txt";
+    link.download = "syntrix-tax-form.txt";
     link.click();
     URL.revokeObjectURL(url);
   };
 
   const onContactBilling = () => {
-    window.location.href = "mailto:billing@syntrix.local?subject=Billing%20Support%20Request";
+    window.location.href = "mailto:billing@syntrix.io?subject=Billing%20Support%20Request";
   };
 
-  const onCancelSubscription = () => {
-    setIsCanceled(true);
-    setUsage((prev) =>
-      prev.map((metric) =>
-        metric.title === "Active Users" ? { ...metric, note: "Subscription canceled" } : metric,
-      ),
-    );
-  };
-
-  const onDownloadInvoice = (row: BillingHistoryItem) => {
+  const onDownloadInvoice = (row: SubscriptionDashboardResponse["billingHistory"][number]) => {
     const content = [
       `Invoice: #${row.id}`,
       `Plan: ${row.plan}`,
-      `Amount: $${row.amount.toFixed(2)}`,
-      `Date: ${row.date}`,
+      `Amount: ${formatMoney(row.amount, row.currency)}`,
+      `Date: ${formatDate(row.date)}`,
       `Status: ${row.status}`,
+      `Provider: ${row.provider}`,
     ].join("\n");
     const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -139,18 +277,6 @@ export function SubscriptionsWorkspace() {
     URL.revokeObjectURL(url);
   };
 
-  const khqrPayload = useMemo(
-    () =>
-      JSON.stringify({
-        merchant: khqr.merchantName,
-        bakongId: khqr.bakongId,
-        phone: khqr.phone,
-        city: khqr.city,
-        reference: "syntrix-subscription-monthly",
-      }),
-    [khqr],
-  );
-
   const openUpdateCard = () => {
     setKhqrForm(khqr);
     setOpenCardDialog(true);
@@ -158,7 +284,7 @@ export function SubscriptionsWorkspace() {
 
   const saveCard = () => {
     if (!khqrForm.merchantName || !khqrForm.bakongId || !khqrForm.phone) return;
-    setKhqr(khqrForm);
+    setKhqrOverride(khqrForm);
     setOpenCardDialog(false);
   };
 
@@ -173,28 +299,40 @@ export function SubscriptionsWorkspace() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-2xl font-semibold text-[#101828]">{activeTier.name} Plan</h3>
-                  <span className="rounded-full bg-[#f7e8b6] px-2 py-1 text-xs font-semibold text-[#8a6b0b]">
-                    {isCanceled ? "CANCELED" : subscriptionCurrentPlan.status}
+                  <h3 className="text-2xl font-semibold text-[#101828]">{data?.currentPlan.name ?? "Subscription"} Plan</h3>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(data?.currentPlan.status ?? "active")}`}>
+                    {(data?.currentPlan.status ?? "active").toUpperCase()}
                   </span>
                 </div>
-                <p className="mt-2 max-w-2xl text-sm text-[#475467]">{subscriptionCurrentPlan.description}</p>
+                <p className="mt-2 max-w-2xl text-sm text-[#475467]">{data?.currentPlan.description ?? "Loading plan..."}</p>
                 <p className="mt-2 text-3xl font-semibold text-[#d4af35]">
-                  {activeTier.priceLabel}
-                  <span className="ml-2 text-sm font-medium text-[#667085]">
-                    {activeTier.perLabel || "custom pricing"}
-                  </span>
+                  {formatMoney(data?.currentPlan.monthlyPrice ?? 0, data?.paymentMethod.currency ?? "USD")}
+                  <span className="ml-2 text-sm font-medium text-[#667085]">/ month</span>
                 </p>
                 <p className="mt-2 flex items-center gap-1 text-sm text-[#667085]">
                   <CalendarDays className="size-4" />
-                  Next billing date: <span className="font-semibold">{subscriptionCurrentPlan.nextBillingDate}</span>
+                  Next billing date:{" "}
+                  <span className="font-semibold">{formatDate(data?.currentPlan.nextBillingDate ?? null)}</span>
                 </p>
               </div>
             </div>
-            <Button variant="outline" className="h-11 rounded-full border-[#d4af35] px-5 text-sm text-[#9d7a10] hover:bg-[#fffaf0]" onClick={onChangePlan}>
+            <Button
+              variant="outline"
+              className="h-11 rounded-full border-[#d4af35] px-5 text-sm text-[#9d7a10] hover:bg-[#fffaf0]"
+              onClick={() => {
+                const next: Record<string, "free" | "pro" | "business"> = {
+                  free: "pro",
+                  pro: "business",
+                  business: "free",
+                };
+                void onSelectTier(next[activePlanId]);
+              }}
+              disabled={isChangingPlan}
+            >
               Change Plan
             </Button>
           </div>
+          {actionError ? <p className="mt-3 text-sm text-rose-600">{actionError}</p> : null}
         </article>
 
         <section>
@@ -219,8 +357,8 @@ export function SubscriptionsWorkspace() {
         <section>
           <h3 className="mb-4 dashboard-section-title">Subscription Plans</h3>
           <div className="grid gap-4 xl:grid-cols-3">
-            {tiers.map((tier) => {
-              const active = tier.id === activeTierId;
+            {planTiers.map((tier) => {
+              const active = tier.id === activePlanId;
               return (
                 <article
                   key={tier.id}
@@ -242,8 +380,8 @@ export function SubscriptionsWorkspace() {
                   </p>
 
                   <ul className="mt-5 space-y-2">
-                    {tier.features.map((feature, index) => (
-                      <li key={`${tier.id}-${index}`} className="flex items-center gap-2 text-sm text-[#344054]">
+                    {tier.features.map((feature) => (
+                      <li key={`${tier.id}-${feature}`} className="flex items-center gap-2 text-sm text-[#344054]">
                         <CheckCircle2 className="size-4 text-[#9d7a10]" />
                         {feature}
                       </li>
@@ -252,10 +390,13 @@ export function SubscriptionsWorkspace() {
 
                   <Button
                     variant={active ? "default" : "outline"}
-                    className={`mt-6 h-11 w-full rounded-xl text-sm ${planButtonClass(tier.tone, active)}`}
-                    onClick={() => onSelectTier(tier.id)}
+                    className={`mt-6 h-11 w-full rounded-xl text-sm ${planButtonClass(active, tier.tone)}`}
+                    onClick={() => {
+                      void onSelectTier(tier.id);
+                    }}
+                    disabled={isChangingPlan}
                   >
-                    {active ? "In Use" : tier.cta}
+                    {active ? "In Use" : "Switch Plan"}
                   </Button>
                 </article>
               );
@@ -266,8 +407,13 @@ export function SubscriptionsWorkspace() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="dashboard-section-title">Billing History</h3>
-            <button type="button" className="text-sm font-medium text-[#d4af35]">
-              View all →
+            <button
+              type="button"
+              className="text-sm font-medium text-[#d4af35]"
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={isFetching}
+            >
+              View more →
             </button>
           </div>
           <article className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
@@ -284,12 +430,12 @@ export function SubscriptionsWorkspace() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#eef1f4] bg-white">
-                  {billingHistory.map((row) => (
+                  {(data?.billingHistory ?? []).map((row) => (
                     <tr key={row.id}>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">#{row.id}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">#{row.id.slice(0, 8)}</td>
                       <td className="px-4 py-4 text-sm text-[#475467]">{row.plan}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">${row.amount.toFixed(2)}</td>
-                      <td className="px-4 py-4 text-sm text-[#475467]">{row.date}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">{formatMoney(row.amount, row.currency)}</td>
+                      <td className="px-4 py-4 text-sm text-[#475467]">{formatDate(row.date)}</td>
                       <td className="px-4 py-4">
                         <span className="inline-flex rounded-full bg-[#d7f2e3] px-3 py-1 text-sm font-semibold text-[#067647]">
                           {row.status}
@@ -302,6 +448,13 @@ export function SubscriptionsWorkspace() {
                       </td>
                     </tr>
                   ))}
+                  {(data?.billingHistory ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-[#667085]">
+                        No billing transactions yet.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
@@ -398,17 +551,37 @@ export function SubscriptionsWorkspace() {
               <span className="text-sm text-[#667085]">{emailNotifications ? "ON" : "OFF"}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={onCancelSubscription}
-              className="flex w-full items-center justify-between rounded-full border border-[#f7c7c7] bg-[#fff5f5] px-4 py-3 text-left text-base font-medium text-[#dc2626]"
-            >
-              <span className="inline-flex items-center gap-2">
-                <XCircle className="size-4" />
-                Cancel Subscription
-              </span>
-              <ChevronRight className="size-4 text-[#f87171]" />
-            </button>
+            {(data?.currentPlan.status ?? "active") === "canceled" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void onReactivate();
+                }}
+                disabled={isReactivating}
+                className="flex w-full items-center justify-between rounded-full border border-[#d4af35] bg-[#fffaf0] px-4 py-3 text-left text-base font-medium text-[#8a6b0b]"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="size-4" />
+                  Reactivate Subscription
+                </span>
+                <ChevronRight className="size-4 text-[#d4af35]" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  void onCancelSubscription();
+                }}
+                disabled={isCanceling}
+                className="flex w-full items-center justify-between rounded-full border border-[#f7c7c7] bg-[#fff5f5] px-4 py-3 text-left text-base font-medium text-[#dc2626]"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <XCircle className="size-4" />
+                  Cancel Subscription
+                </span>
+                <ChevronRight className="size-4 text-[#f87171]" />
+              </button>
+            )}
           </div>
         </article>
 
@@ -421,6 +594,7 @@ export function SubscriptionsWorkspace() {
           <button type="button" className="mt-4 text-base font-semibold text-[#b98a05] underline">
             Visit Help Center
           </button>
+          {isFetching ? <p className="mt-3 text-xs text-[#98a2b3]">Refreshing subscription data...</p> : null}
         </article>
       </aside>
 

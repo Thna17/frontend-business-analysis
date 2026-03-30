@@ -2,14 +2,14 @@
 
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { api } from "@/redux/services/api";
+import { api } from "@/store/api";
 import {
   loadUserFromStorage,
   logout,
   setAuthStatus,
   setCredentials,
-} from "@/redux/features/auth/authSlice";
-import type { AppDispatch } from "@/redux/store";
+} from "@/store/slices/authSlice";
+import type { AppDispatch } from "@/store";
 
 export function AuthBootstrap() {
   const dispatch = useDispatch<AppDispatch>();
@@ -20,28 +20,6 @@ export function AuthBootstrap() {
     const bootstrapAuth = async () => {
       dispatch(loadUserFromStorage());
       dispatch(setAuthStatus("checking"));
-
-      try {
-        const currentUser = await dispatch(
-          api.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
-        ).unwrap();
-
-        if (!alive) return;
-
-        const existingToken =
-          typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        if (existingToken) {
-          dispatch(
-            setCredentials({
-              token: existingToken,
-              user: currentUser,
-            }),
-          );
-          return;
-        }
-      } catch {
-        // Continue to refresh fallback below.
-      }
 
       try {
         const refreshed = await dispatch(
@@ -56,6 +34,10 @@ export function AuthBootstrap() {
             user: refreshed.user,
           }),
         );
+
+        await dispatch(
+          api.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
+        ).unwrap();
       } catch {
         if (!alive) return;
         dispatch(logout());

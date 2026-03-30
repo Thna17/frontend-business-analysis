@@ -1,4 +1,4 @@
-import type { AuthUser } from "@/redux/features/auth/authSlice";
+import type { AuthUser } from "@/store/slices/authSlice";
 
 export type AppRole = AuthUser["role"];
 

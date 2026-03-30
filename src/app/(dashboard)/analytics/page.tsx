@@ -1,7 +1,7 @@
 import { AnalyticsPageActions } from "@/components/dashboard/analytics-page-actions";
 import { AnalyticsWorkspace } from "@/components/dashboard/analytics-workspace";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
-import { productRankingItems, topNavItems } from "@/features/owner-dashboard/dashboard-mock";
+import { topNavItems } from "@/features/owner-dashboard/dashboard-mock";
 
 export default function AnalyticsPage() {
   return (
@@ -19,7 +19,7 @@ export default function AnalyticsPage() {
           <AnalyticsPageActions />
         </section>
 
-        <AnalyticsWorkspace rankingItems={productRankingItems} />
+        <AnalyticsWorkspace />
 
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">© 2026 Syntrix Analytics. All rights reserved.</footer>
       </div>

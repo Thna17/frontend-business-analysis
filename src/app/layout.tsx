@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { ReduxProvider } from "@/redux/provider";
+import { ReduxProvider } from "@/store/provider";
 import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 
 const manrope = Manrope({

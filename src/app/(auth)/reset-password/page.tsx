@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useResetPasswordMutation } from "@/redux/services/api";
+import { useResetPasswordMutation } from "@/store/api";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as { data?: { message?: string } };

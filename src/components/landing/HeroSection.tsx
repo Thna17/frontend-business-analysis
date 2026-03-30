@@ -3,7 +3,7 @@ export default function HeroSection() {
     <section className="hero-section">
       <div className="container hero-grid">
         <div className="hero-content fade-up">
-          <div className="eyebrow-pill">● SYNTRIX V4.0 ACTIVE</div>
+          <div className="eyebrow-pill">● SYNTRIX ACTIVE</div>
 
           <h1 className="hero-title">
             Strategic

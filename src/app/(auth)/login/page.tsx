@@ -13,9 +13,9 @@ import {
   isPathAllowedForRole,
   sanitizeNextPath,
 } from "@/features/auth/access-control";
-import { setCredentials } from "@/redux/features/auth/authSlice";
-import { type AppDispatch } from "@/redux/store";
-import { useLoginMutation } from "@/redux/services/api";
+import { setCredentials } from "@/store/slices/authSlice";
+import { type AppDispatch } from "@/store";
+import { useLoginMutation } from "@/store/api";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as { data?: { message?: string } };
@@ -34,10 +34,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
-  const [email, setEmail] = useState("owner@smartanalytics.local");
-  const [password, setPassword] = useState("Owner12345");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [login, { isLoading }] = useLoginMutation();
@@ -54,10 +53,6 @@ export default function LoginPage() {
           token: result.accessToken,
         }),
       );
-
-      if (!rememberMe) {
-        sessionStorage.setItem("token", result.accessToken);
-      }
 
       const requestedNext = sanitizeNextPath(searchParams.get("next"));
       if (requestedNext && isPathAllowedForRole(requestedNext, result.user.role)) {
@@ -123,16 +118,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between py-1">
-          <label className="inline-flex items-center gap-2 text-sm text-[#475467]">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(event) => setRememberMe(event.target.checked)}
-              className="size-4 rounded border-[#d0d5dd] accent-[#d4af35]"
-            />
-            Remember me
-          </label>
+        <div className="flex items-center justify-end py-1">
           <Link href="/forgot-password" className="text-sm font-medium text-[#8a6b0b] hover:text-[#6e5504]">
             Forgot password?
           </Link>
