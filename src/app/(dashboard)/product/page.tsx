@@ -8,7 +8,7 @@ import {
   type MetricItem,
   topNavItems,
 } from "@/features/owner-dashboard/dashboard-mock";
-import { useGetOwnerProductsOverviewQuery } from "@/redux/services/api";
+import { useGetOwnerProductsOverviewQuery } from "@/store/api";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {

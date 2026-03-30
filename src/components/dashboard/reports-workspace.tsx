@@ -16,7 +16,7 @@ import {
   useDeleteReportMutation,
   useGenerateReportMutation,
   useGetReportsDashboardQuery,
-} from "@/redux/services/api";
+} from "@/store/api";
 
 type ReportType = "Sales" | "Revenue" | "Product" | "Customer";
 type ExportFormat = "PDF" | "CSV" | "Excel";

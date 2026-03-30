@@ -26,7 +26,7 @@ import {
   useGetSubscriptionDashboardQuery,
   useReactivateSubscriptionMutation,
   type SubscriptionDashboardResponse,
-} from "@/redux/services/api";
+} from "@/store/api";
 
 interface KhqrState {
   merchantName: string;

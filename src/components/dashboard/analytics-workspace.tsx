@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { useGetOwnerAnalyticsDashboardQuery } from "@/redux/services/api";
+import { useGetOwnerAnalyticsDashboardQuery } from "@/store/api";
 
 type PeriodKey = "6m" | "12m";
 

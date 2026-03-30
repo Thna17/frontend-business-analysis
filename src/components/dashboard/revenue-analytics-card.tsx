@@ -1,7 +1,52 @@
 import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-export function RevenueAnalyticsCard() {
+interface RevenuePoint {
+  label: string;
+  amount: number;
+}
+
+interface RevenueAnalyticsCardProps {
+  points: RevenuePoint[];
+  range: "6m" | "12m";
+  onRangeChange: (range: "6m" | "12m") => void;
+  isLoading?: boolean;
+}
+
+function buildLinePath(points: RevenuePoint[]): string {
+  if (points.length === 0) return "";
+
+  const maxValue = Math.max(...points.map((point) => point.amount), 1);
+  const minValue = Math.min(...points.map((point) => point.amount), 0);
+  const height = 250;
+  const width = 932;
+
+  const getX = (index: number) => (index / Math.max(points.length - 1, 1)) * width;
+  const getY = (value: number) => {
+    const ratio = (value - minValue) / Math.max(maxValue - minValue, 1);
+    return 20 + (1 - ratio) * (height - 40);
+  };
+
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"}${getX(index)},${getY(point.amount)}`)
+    .join(" ");
+}
+
+function buildAreaPath(linePath: string): string {
+  if (!linePath) return "";
+  return `${linePath} L932,318 L0,318 Z`;
+}
+
+export function RevenueAnalyticsCard({
+  points,
+  range,
+  onRangeChange,
+  isLoading = false,
+}: RevenueAnalyticsCardProps) {
+  const linePath = buildLinePath(points);
+  const areaPath = buildAreaPath(linePath);
+
   return (
     <Card className="dashboard-surface border-[#e7e9ee] shadow-none">
       <CardHeader className="flex flex-row items-start justify-between px-7 pt-7 pb-0">
@@ -11,13 +56,29 @@ export function RevenueAnalyticsCard() {
           </CardTitle>
           <p className="mt-1 text-[15px] text-[#667085]">Monthly revenue trends for the current year</p>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-xl border border-[#eaecf0] bg-[#f7f8fa] px-4 py-2 text-[15px] text-[#344054]"
-        >
-          Last 6 months
-          <ChevronDown className="size-4" />
-        </button>
+        <div className="inline-flex items-center gap-2 rounded-xl border border-[#eaecf0] bg-[#f7f8fa] p-1">
+          <button
+            type="button"
+            onClick={() => onRangeChange("6m")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium",
+              range === "6m" ? "bg-white text-[#101828] shadow-sm" : "text-[#667085]",
+            )}
+          >
+            Last 6 months
+          </button>
+          <button
+            type="button"
+            onClick={() => onRangeChange("12m")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium",
+              range === "12m" ? "bg-white text-[#101828] shadow-sm" : "text-[#667085]",
+            )}
+          >
+            Last 12 months
+          </button>
+          <ChevronDown className="size-4 text-[#98a2b3]" />
+        </div>
       </CardHeader>
 
       <CardContent className="px-6 pb-7">
@@ -34,27 +95,33 @@ export function RevenueAnalyticsCard() {
             <line x1="0" y1="162" x2="1000" y2="162" stroke="#edf0f5" strokeDasharray="6 6" />
             <line x1="0" y1="242" x2="1000" y2="242" stroke="#edf0f5" strokeDasharray="6 6" />
 
-            <path
-              d="M0,288 C74,250 120,260 170,278 C220,296 255,244 320,154 C375,74 436,98 500,162 C562,224 634,192 706,135 C792,68 862,54 932,24 L932,318 L0,318 Z"
-              fill="url(#rev-gradient)"
-            />
-            <path
-              d="M0,288 C74,250 120,260 170,278 C220,296 255,244 320,154 C375,74 436,98 500,162 C562,224 634,192 706,135 C792,68 862,54 932,24"
-              fill="none"
-              stroke="#cba52b"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
+            {areaPath ? <path d={areaPath} fill="url(#rev-gradient)" /> : null}
+            {linePath ? (
+              <path
+                d={linePath}
+                fill="none"
+                stroke="#cba52b"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ) : null}
 
-            <g fill="#98a2b3" fontSize="18">
-              <text x="12" y="340">Jan</text>
-              <text x="198" y="340">Feb</text>
-              <text x="382" y="340">Mar</text>
-              <text x="568" y="340">Apr</text>
-              <text x="753" y="340">May</text>
-              <text x="934" y="340">Jun</text>
+            <g fill="#98a2b3" fontSize="16">
+              {points.map((point, index) => {
+                const x = 12 + (index / Math.max(points.length - 1, 1)) * 920;
+                return (
+                  <text key={`${point.label}-${index}`} x={x} y="340">
+                    {point.label}
+                  </text>
+                );
+              })}
             </g>
           </svg>
+
+          {isLoading ? (
+            <p className="mt-2 text-sm text-[#98a2b3]">Loading chart...</p>
+          ) : null}
         </div>
       </CardContent>
     </Card>

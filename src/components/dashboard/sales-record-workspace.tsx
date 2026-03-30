@@ -29,7 +29,7 @@ import {
   useGetSaleProductSuggestionsQuery,
   useGetSalesQuery,
   useUpdateSaleMutation,
-} from "@/redux/services/api";
+} from "@/store/api";
 
 type SortFilter = "newest" | "oldest" | "totalHigh" | "totalLow";
 

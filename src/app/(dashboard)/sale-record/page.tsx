@@ -9,7 +9,7 @@ import { topNavItems } from "@/features/owner-dashboard/dashboard-mock";
 import {
   useGetBusinessProfileQuery,
   useGetOwnerDashboardOverviewQuery,
-} from "@/redux/services/api";
+} from "@/store/api";
 
 export default function SaleRecordPage() {
   const { data: business } = useGetBusinessProfileQuery();

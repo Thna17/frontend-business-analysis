@@ -29,7 +29,7 @@ import {
   useGetOwnerProductsQuery,
   useUpdateOwnerProductMutation,
   type OwnerProductItem,
-} from "@/redux/services/api";
+} from "@/store/api";
 
 type DateFilter = "all" | "today" | "thisWeek" | "thisMonth";
 type SortFilter =
