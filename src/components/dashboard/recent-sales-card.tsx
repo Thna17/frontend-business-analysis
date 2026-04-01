@@ -125,16 +125,7 @@ export function RecentSalesCard({
             {rows.map((row) => (
               <tr key={row.id}>
                 <td className="px-7 py-5">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="size-11 rounded-full bg-cover bg-center"
-                      style={{ backgroundImage: `url('${row.avatar}')` }}
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-[#101828]">{row.product}</p>
-                      <p className="text-xs text-[#98a2b3]">{row.customer}</p>
-                    </div>
-                  </div>
+                  <p className="text-sm font-semibold text-[#101828]">{row.product}</p>
                 </td>
                 <td className="px-5 py-5 text-sm text-[#667085]">{row.category}</td>
                 <td className="px-5 py-5 text-sm font-semibold text-[#101828]">{row.total}</td>

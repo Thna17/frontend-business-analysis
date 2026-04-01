@@ -15,10 +15,10 @@ export default function Navbar() {
 
         {/* NAV */}
         <nav className="desktop-nav">
-          <a href="#" className="active">
+          <a href="#platform" className="active">
             Platform
           </a>
-          <a href="#">Solutions</a>
+          <a href="#solutions">Solutions</a>
           <a href="#pricing">Pricing</a>
         </nav>
 

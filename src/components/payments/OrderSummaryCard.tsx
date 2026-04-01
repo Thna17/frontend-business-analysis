@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Lock } from "lucide-react";
 import { orderSummary } from "@/data/payment";
 
 export default function OrderSummaryCard() {
@@ -31,12 +33,14 @@ export default function OrderSummaryCard() {
         </div>
       </div>
 
-      <button className="subscribe-btn">{orderSummary.buttonText}</button>
+      <Link href="/payments/success" className="subscribe-btn">
+        {orderSummary.buttonText}
+      </Link>
 
       <p className="summary-note">{orderSummary.note}</p>
 
       <div className="summary-security">
-        <span>🔒</span>
+        <Lock className="size-3.5" />
         {orderSummary.securityText}
       </div>
     </div>
