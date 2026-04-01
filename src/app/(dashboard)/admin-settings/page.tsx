@@ -8,7 +8,13 @@ import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
 export default function AdminSettingsPage() {
   return (
     <div className="dashboard-shell pb-14">
-      <TopNavigation items={adminTopNavItems} settingsHref="/admin-settings" />
+      <TopNavigation
+        items={adminTopNavItems}
+        settingsHref="/admin-settings"
+        profileHref="/admin/profile"
+        notificationHref="/admin/notification"
+        notificationCount={1}
+      />
 
       <div className="dashboard-container mt-10 space-y-7">
         <section className="flex items-center justify-end">

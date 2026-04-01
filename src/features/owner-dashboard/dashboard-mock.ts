@@ -147,6 +147,7 @@ export interface AdminSegmentItem {
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
+  { label: "Telegram", href: "/telegram-records" },
   { label: "Product", href: "/product" },
   { label: "Analytics", href: "/analytics" },
   { label: "Subscriptions", href: "/subscriptions" },
@@ -156,9 +157,7 @@ export const topNavItems: DashboardNavItem[] = [
 export const adminTopNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/admin" },
   { label: "Analytics", href: "/admin-analytics" },
-  { label: "Product", href: "/product" },
-  { label: "Subscriptions", href: "/subscriptions" },
-  { label: "Report", href: "/report" },
+  { label: "Subscriptions", href: "/admin/subscriptions" },
 ];
 
 export const metricItems: MetricItem[] = [

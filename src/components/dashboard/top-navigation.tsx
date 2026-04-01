@@ -1,19 +1,65 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Bell, CircleUserRound, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardNavItem } from "@/features/owner-dashboard/dashboard-mock";
 import { cn } from "@/lib/utils";
+import { useGetNotificationsQuery } from "@/store/api";
 
 interface TopNavigationProps {
   items: DashboardNavItem[];
   settingsHref?: string;
+  profileHref?: string;
+  notificationHref?: string;
+  notificationCount?: number;
 }
 
-export function TopNavigation({ items, settingsHref = "/settings" }: TopNavigationProps) {
+export function TopNavigation({
+  items,
+  settingsHref = "/settings",
+  profileHref,
+  notificationHref = "/notification",
+  notificationCount = 0,
+}: TopNavigationProps) {
   const pathname = usePathname();
+  const resolvedProfileHref = profileHref ?? "/profile";
+  const isNotificationActive = Boolean(
+    notificationHref && pathname.startsWith(notificationHref),
+  );
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { data: notificationsData } = useGetNotificationsQuery(
+    { page: 1, limit: 1, archived: false },
+    { skip: !notificationHref },
+  );
+  const resolvedNotificationCount =
+    notificationsData?.meta.unreadCount ?? notificationCount;
+
+  useEffect(() => {
+    const useAdminProfile = resolvedProfileHref.startsWith("/admin");
+
+    const loadProfileImage = () => {
+      const saved = useAdminProfile
+        ? localStorage.getItem("adminProfileImage") ||
+          localStorage.getItem("profileImage")
+        : localStorage.getItem("profileImage") ||
+          localStorage.getItem("adminProfileImage");
+      setProfileImage(saved);
+    };
+
+    loadProfileImage();
+    window.addEventListener("storage", loadProfileImage);
+    window.addEventListener("admin-profile-updated", loadProfileImage);
+    window.addEventListener("owner-profile-updated", loadProfileImage);
+
+    return () => {
+      window.removeEventListener("storage", loadProfileImage);
+      window.removeEventListener("admin-profile-updated", loadProfileImage);
+      window.removeEventListener("owner-profile-updated", loadProfileImage);
+    };
+  }, [resolvedProfileHref]);
 
   return (
     <header className="dashboard-container pt-6">
@@ -28,7 +74,7 @@ export function TopNavigation({ items, settingsHref = "/settings" }: TopNavigati
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <nav className="rounded-full bg-white px-2 py-1.5 shadow-sm">
+          <nav className="rounded-full bg-white px-2 py-3">
             <ul className="flex items-center gap-1">
               {items.map((item) => (
                 <li key={item.label}>
@@ -61,11 +107,52 @@ export function TopNavigation({ items, settingsHref = "/settings" }: TopNavigati
               Setting
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" className="size-12 rounded-full bg-white text-slate-900">
-            <Bell className="size-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="size-12 rounded-full bg-white text-slate-900">
-            <CircleUserRound className="size-5" />
+          {notificationHref ? (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "relative size-12 rounded-full bg-white text-slate-900",
+                isNotificationActive &&
+                  "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
+              )}
+            >
+              <Link href={notificationHref} aria-label="Notifications">
+                <Bell className="size-5" />
+                {resolvedNotificationCount > 0 && (
+                  <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#f0c533] px-1 text-[10px] font-bold text-slate-900">
+                    {resolvedNotificationCount}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-12 rounded-full bg-white text-slate-900"
+            >
+              <Bell className="size-5" />
+            </Button>
+          )}
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="size-12 rounded-full bg-white text-slate-900"
+          >
+            <Link href={resolvedProfileHref} aria-label="Profile">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="size-10 rounded-full object-cover"
+                />
+              ) : (
+                <CircleUserRound className="size-5" />
+              )}
+            </Link>
           </Button>
         </div>
       </div>

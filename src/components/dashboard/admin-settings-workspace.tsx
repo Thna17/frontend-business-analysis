@@ -6,14 +6,24 @@ import {
   ChartNoAxesCombined,
   CloudUpload,
   EllipsisVertical,
+  Loader2,
   Shield,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import {
+  useGetAdminSettingsQuery,
+  useUpdateAdminBrandingMutation,
+  useUpdateAdminMaintenanceMutation,
+  useUpdateAdminRolesMutation,
+  useUpdateAdminSecurityMutation,
+} from "@/store/api";
+import type { AdminRoleAccess } from "@/store/api";
 
-type AccessTone = "full" | "limited" | "tickets";
+type AccessTone = AdminRoleAccess;
 
 interface RoleRow {
   id: string;
@@ -64,26 +74,27 @@ function Toggle({
 }
 
 export function AdminSettingsWorkspace() {
-  const [brandName, setBrandName] = useState("Syntrix");
-  const [accentColor, setAccentColor] = useState("#D4AF37");
+  const { data, isLoading, refetch } = useGetAdminSettingsQuery();
+  const [updateBranding, { isLoading: isSavingBranding }] = useUpdateAdminBrandingMutation();
+  const [updateSecurity, { isLoading: isSavingSecurity }] = useUpdateAdminSecurityMutation();
+  const [updateMaintenance, { isLoading: isSavingOperations }] = useUpdateAdminMaintenanceMutation();
+  const [updateRoles, { isLoading: isSavingRoles }] = useUpdateAdminRolesMutation();
+
+  const [brandNameDraft, setBrandNameDraft] = useState<string | null>(null);
+  const [accentColorDraft, setAccentColorDraft] = useState<string | null>(null);
   const [uploadedLogo, setUploadedLogo] = useState("No file uploaded");
-  const [mfaEnabled, setMfaEnabled] = useState(true);
+  const [mfaDraft, setMfaDraft] = useState<boolean | null>(null);
   const [telemetryAt, setTelemetryAt] = useState<string | null>(null);
   const [cachePurgedAt, setCachePurgedAt] = useState<string | null>(null);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceDraft, setMaintenanceDraft] = useState<boolean | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [rolesDraft, setRolesDraft] = useState<RoleRow[] | null>(null);
 
-  const [roles, setRoles] = useState<RoleRow[]>([
-    { id: "role-super", role: "Super Admin", members: 3, access: "full" },
-    { id: "role-editor", role: "Editor", members: 12, access: "limited" },
-    { id: "role-support", role: "Support", members: 45, access: "tickets" },
-  ]);
-
-  const [health, setHealth] = useState({
-    apiServices: "99.98%",
-    mainDatabase: "42ms Latency",
-    serverLoad: "14% Utilization",
-  });
+  const brandName = brandNameDraft ?? data?.branding.brandName ?? "Syntrix";
+  const accentColor = accentColorDraft ?? data?.branding.accentColor ?? "#D4AF37";
+  const mfaEnabled = mfaDraft ?? data?.security.mfaEnforced ?? true;
+  const maintenanceMode = maintenanceDraft ?? data?.operations.maintenanceMode ?? false;
+  const roles = useMemo(() => rolesDraft ?? data?.roles ?? [], [data?.roles, rolesDraft]);
 
   const roleTotal = useMemo(
     () => roles.reduce((total, role) => total + role.members, 0),
@@ -91,14 +102,15 @@ export function AdminSettingsWorkspace() {
   );
 
   const rotateRoleAccess = (id: string) => {
-    setRoles((prev) =>
-      prev.map((role) => {
+    setRolesDraft((prev) => {
+      const source = prev ?? data?.roles ?? [];
+      return source.map((role) => {
         if (role.id !== id) return role;
         const currentIndex = accessOrder.indexOf(role.access);
         const nextAccess = accessOrder[(currentIndex + 1) % accessOrder.length];
         return { ...role, access: nextAccess };
-      }),
-    );
+      });
+    });
   };
 
   const exportAuditLogs = () => {
@@ -118,12 +130,7 @@ export function AdminSettingsWorkspace() {
   };
 
   const refreshTelemetry = () => {
-    setHealth({
-      apiServices: `${(99.8 + Math.random() * 0.19).toFixed(2)}%`,
-      mainDatabase: `${Math.round(30 + Math.random() * 18)}ms Latency`,
-      serverLoad: `${Math.round(10 + Math.random() * 10)}% Utilization`,
-    });
-
+    void refetch();
     setTelemetryAt(
       new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
@@ -142,7 +149,19 @@ export function AdminSettingsWorkspace() {
   };
 
   useEffect(() => {
-    const onSave = () => {
+    const onSave = async () => {
+      await Promise.all([
+        updateBranding({ brandName, accentColor }).unwrap(),
+        updateSecurity({ mfaEnforced: mfaEnabled }).unwrap(),
+        updateMaintenance({ maintenanceMode }).unwrap(),
+        updateRoles({
+          roles: roles.map((role) => ({
+            id: role.id as "role-admin" | "role-owner" | "role-support",
+            access: role.access,
+          })),
+        }).unwrap(),
+      ]);
+
       setSavedAt(
         new Date().toLocaleTimeString("en-US", {
           hour: "2-digit",
@@ -151,15 +170,40 @@ export function AdminSettingsWorkspace() {
       );
     };
 
-    window.addEventListener("admin-settings:save", onSave);
-    return () => window.removeEventListener("admin-settings:save", onSave);
-  }, []);
+    const listener = () => {
+      void onSave();
+    };
+
+    window.addEventListener("admin-settings:save", listener);
+    return () => window.removeEventListener("admin-settings:save", listener);
+  }, [accentColor, brandName, maintenanceMode, mfaEnabled, roles, updateBranding, updateMaintenance, updateRoles, updateSecurity]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-64" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  const saving = isSavingBranding || isSavingSecurity || isSavingOperations || isSavingRoles;
 
   return (
     <div className="space-y-6">
       {savedAt ? (
         <div className="rounded-xl border border-[#d7f2e3] bg-[#ecfbf2] px-4 py-2 text-sm font-medium text-[#067647]">
           Admin settings saved at {savedAt}.
+        </div>
+      ) : null}
+
+      {saving ? (
+        <div className="rounded-xl border border-[#f0e5c2] bg-[#fffaf0] px-4 py-2 text-sm font-medium text-[#8a6b0b]">
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="size-4 animate-spin" />
+            Saving settings...
+          </span>
         </div>
       ) : null}
 
@@ -192,7 +236,7 @@ export function AdminSettingsWorkspace() {
                 </p>
                 <Input
                   value={brandName}
-                  onChange={(event) => setBrandName(event.target.value)}
+                  onChange={(event) => setBrandNameDraft(event.target.value)}
                   className="h-12 border-[#d7dce3] bg-[#f3f5f8] text-sm font-medium"
                 />
               </div>
@@ -206,12 +250,12 @@ export function AdminSettingsWorkspace() {
                     type="color"
                     aria-label="Primary accent color"
                     value={accentColor}
-                    onChange={(event) => setAccentColor(event.target.value.toUpperCase())}
+                    onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
                     className="h-8 w-8 cursor-pointer rounded-full border-none bg-transparent p-0"
                   />
                   <Input
                     value={accentColor}
-                    onChange={(event) => setAccentColor(event.target.value.toUpperCase())}
+                    onChange={(event) => setAccentColorDraft(event.target.value.toUpperCase())}
                     className="h-9 border-none bg-transparent px-0 text-sm font-medium shadow-none focus-visible:ring-0"
                   />
                 </div>
@@ -246,9 +290,9 @@ export function AdminSettingsWorkspace() {
 
           <div className="mt-5 space-y-4">
             {[
-              ["API Services", health.apiServices],
-              ["Main Database", health.mainDatabase],
-              ["Server Load", health.serverLoad],
+              ["API Services", data?.health.apiServices ?? "99.99%"],
+              ["Main Database", data?.health.mainDatabase ?? "-"],
+              ["Server Load", data?.health.serverLoad ?? "-"],
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -295,7 +339,7 @@ export function AdminSettingsWorkspace() {
                   <p className="text-base font-semibold text-[#101828]">Multi-Factor Auth (MFA)</p>
                   <p className="text-sm text-[#667085]">Enforce 2FA for all administrative roles</p>
                 </div>
-                <Toggle checked={mfaEnabled} onChange={setMfaEnabled} />
+                <Toggle checked={mfaEnabled} onChange={setMfaDraft} />
               </div>
             </div>
 
@@ -391,7 +435,7 @@ export function AdminSettingsWorkspace() {
                 ? "border-[#d92d20] bg-[#d92d20] text-white hover:bg-[#b42318]"
                 : "border-[#d92d20] bg-transparent text-[#d92d20] hover:bg-[#ffecec]",
             )}
-            onClick={() => setMaintenanceMode((prev) => !prev)}
+            onClick={() => setMaintenanceDraft(!maintenanceMode)}
           >
             {maintenanceMode ? "Disable" : "Enable"}
           </Button>
