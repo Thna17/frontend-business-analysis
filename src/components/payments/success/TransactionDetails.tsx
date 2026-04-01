@@ -28,7 +28,10 @@ export default function TransactionDetails() {
 
       <div className="transaction-row">
         <span>Status</span>
-        <span className="paid-badge">● {transactionDetails.status}</span>
+        <span className="paid-badge">
+          <span className="paid-badge-dot" />
+          {transactionDetails.status}
+        </span>
       </div>
     </div>
   );

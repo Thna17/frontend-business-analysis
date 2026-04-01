@@ -21,7 +21,7 @@ const competencies = [
 
 export default function CompetencySection() {
   return (
-    <section className="competencies-section">
+    <section id="solutions" className="competencies-section">
       <div className="container">
         <div className="section-heading center">
           <p className="section-label">CORE COMPETENCIES</p>

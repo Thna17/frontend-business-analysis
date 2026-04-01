@@ -1,26 +1,26 @@
 export const paymentSuccessInfo = {
-  title: "Success!",
+  title: "Payment Successful",
   description:
-    "Your account has been successfully upgraded to the Pro Plan. You now have full access to all advanced analytics tools.",
-  primaryButtonText: "Go to Dashboard",
-  primaryButtonHref: "/admin/subscriptions",
+    "Your account has been upgraded to Pro. You now have access to advanced analytics, faster exports, and priority support.",
+  primaryButtonText: "Go to Subscriptions",
+  primaryButtonHref: "/subscriptions",
   secondaryButtonText: "Download Receipt",
   helpText: "Need help?",
   helpLinkText: "Contact Support",
-  helpLinkHref: "#",
+  helpLinkHref: "/notification",
 };
 
 export const transactionDetails = {
   label: "TRANSACTION DETAILS",
   plan: "Pro Plan (Annual)",
   amount: "$199.00",
-  date: "November 14, 2024",
+  date: "March 30, 2026",
   status: "Paid",
 };
 
 export const paymentSuccessFooter = {
   brand: "Syntrix",
-  copyright: "© 2024 Syntrix Analysis Group. All rights reserved.",
+  copyright: "(c) 2026 Syntrix Analysis Group. All rights reserved.",
   links: [
     { label: "Privacy Policy", href: "#" },
     { label: "Terms of Service", href: "#" },

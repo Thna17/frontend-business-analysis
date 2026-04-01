@@ -15,6 +15,10 @@ html {
   scroll-behavior: smooth;
 }
 
+[id] {
+  scroll-margin-top: 90px;
+}
+
 body {
   background: #f3f3f1;
   color: #181a1d;

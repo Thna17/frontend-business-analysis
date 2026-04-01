@@ -1,9 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ArrowUpRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SubscriptionsPageActions() {
+  const router = useRouter();
+
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -16,7 +19,7 @@ export function SubscriptionsPageActions() {
       </Button>
       <Button
         className="h-11 rounded-full bg-[#d4af35] px-6 text-sm font-medium text-[#101828] hover:bg-[#c39f2f]"
-        onClick={() => window.dispatchEvent(new Event("subscription:upgrade"))}
+        onClick={() => router.push("/payments")}
       >
         <ArrowUpRight className="size-4" />
         Upgrade Plan

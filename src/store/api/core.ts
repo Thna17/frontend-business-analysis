@@ -10,7 +10,7 @@ import type { ApiEnvelope } from "@/store/api/types";
 import { extractRouteFromArgs, shouldSkipAutoRefresh, transformAuthSession } from "@/store/api/utils";
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as { auth?: { token?: string | null } };
     const token = state.auth?.token;
@@ -67,6 +67,6 @@ const baseQueryWithReauth: BaseQueryFn<
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Product", "User", "Cart"],
+  tagTypes: ["Product", "User", "Cart", "Admin"],
   endpoints: () => ({}),
 });

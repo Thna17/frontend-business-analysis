@@ -10,9 +10,7 @@ export default function PaymentFooter() {
         <a href="#">Contact Support</a>
       </div>
 
-      <div className="payment-footer-copy">
-        © 2024 Syntrix Gold Business Systems. All rights reserved.
-      </div>
+      <div className="payment-footer-copy">(c) 2026 Syntrix Gold Business Systems. All rights reserved.</div>
     </footer>
   );
 }

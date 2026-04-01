@@ -156,9 +156,7 @@ export const topNavItems: DashboardNavItem[] = [
 export const adminTopNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/admin" },
   { label: "Analytics", href: "/admin-analytics" },
-  { label: "Product", href: "/product" },
-  { label: "Subscriptions", href: "/subscriptions" },
-  { label: "Report", href: "/report" },
+  { label: "Subscriptions", href: "/admin/subscriptions" },
 ];
 
 export const metricItems: MetricItem[] = [

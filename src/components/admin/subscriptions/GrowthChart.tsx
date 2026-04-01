@@ -1,6 +1,35 @@
-import { subscriptionChartData } from "@/data/subscription";
+"use client";
+
+import { useEffect, useState } from "react";
+
+type GrowthItem = {
+  month: string;
+  value: number;
+};
+
+const API_URL = "http://localhost:5000";
 
 export default function GrowthChart() {
+  const [data, setData] = useState<GrowthItem[]>([]);
+
+  useEffect(() => {
+    async function loadGrowth() {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/subscriptions/growth`, {
+          cache: "no-store",
+        });
+        const result = await res.json();
+        setData(result);
+      } catch (error) {
+        console.error("Failed to load growth chart:", error);
+      }
+    }
+
+    loadGrowth();
+  }, []);
+
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+
   return (
     <section className="growth-chart-card">
       <div className="growth-chart-header">
@@ -18,17 +47,21 @@ export default function GrowthChart() {
 
       <div className="growth-chart-area">
         <div className="growth-bars">
-          {subscriptionChartData.map((item, index) => (
-            <div className="growth-bar-item" key={item.month}>
-              <div
-                className={`growth-bar ${
-                  index === subscriptionChartData.length - 1 ? "is-active" : ""
-                }`}
-                style={{ height: `${item.value}%` }}
-              />
-              <span>{item.month}</span>
-            </div>
-          ))}
+          {data.map((item, index) => {
+            const barHeight = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
+
+            return (
+              <div className="growth-bar-item" key={item.month}>
+                <div
+                  className={`growth-bar ${
+                    index === data.length - 1 ? "is-active" : ""
+                  }`}
+                  style={{ height: `${barHeight}%` }}
+                />
+                <span>{item.month}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
