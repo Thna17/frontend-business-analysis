@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import {
@@ -31,6 +31,7 @@ export function ProtectedRouteGuard({ children }: RouteGuardProps) {
   const searchParams = useSearchParams();
   const status = useSelector(selectAuthStatus);
   const user = useSelector(selectCurrentUser);
+  const [isMounted, setIsMounted] = useState(false);
 
   const currentPathWithQuery = useMemo(() => {
     const query = searchParams.toString();
@@ -38,6 +39,11 @@ export function ProtectedRouteGuard({ children }: RouteGuardProps) {
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     if (status === "idle" || status === "checking") return;
 
     if (!user || status === "unauthenticated") {
@@ -49,9 +55,9 @@ export function ProtectedRouteGuard({ children }: RouteGuardProps) {
     if (!isPathAllowedForRole(pathname, user.role)) {
       router.replace(getHomeRouteByRole(user.role));
     }
-  }, [status, user, pathname, currentPathWithQuery, router]);
+  }, [status, user, pathname, currentPathWithQuery, router, isMounted]);
 
-  if (status === "idle" || status === "checking") {
+  if (!isMounted || status === "idle" || status === "checking") {
     return <GuardFallback />;
   }
 
@@ -66,8 +72,14 @@ export function AuthPageGuard({ children }: RouteGuardProps) {
   const status = useSelector(selectAuthStatus);
   const user = useSelector(selectCurrentUser);
   const searchParams = useSearchParams();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     if (status === "idle" || status === "checking") return;
     if (!user || status !== "authenticated") return;
 
@@ -78,9 +90,9 @@ export function AuthPageGuard({ children }: RouteGuardProps) {
     }
 
     router.replace(getHomeRouteByRole(user.role));
-  }, [status, user, searchParams, router]);
+  }, [status, user, searchParams, router, isMounted]);
 
-  if (status === "idle" || status === "checking") {
+  if (!isMounted || status === "idle" || status === "checking") {
     return <GuardFallback />;
   }
 

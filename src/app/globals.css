@@ -54,6 +54,48 @@
   --ring: #d4af35;
 }
 
+.dark {
+  --background: #0b1220;
+  --foreground: #ffffff;
+  --card: #111a2d;
+  --card-foreground: #ffffff;
+  --popover: #0f172a;
+  --popover-foreground: #ffffff;
+  --primary: #86b7ff;
+  --primary-foreground: #ffffff;
+  --secondary: #17233a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a2740;
+  --muted-foreground: #ffffff;
+  --accent: #213252;
+  --accent-foreground: #ffffff;
+  --destructive: #f26d7d;
+  --border: #253552;
+  --input: #2b3b5d;
+  --ring: #86b7ff;
+}
+
+.ocean {
+  --background: #eaf4ff;
+  --foreground: #123a64;
+  --card: #ffffff;
+  --card-foreground: #123a64;
+  --popover: #ffffff;
+  --popover-foreground: #123a64;
+  --primary: #4f9fff;
+  --primary-foreground: #08203d;
+  --secondary: #dcecff;
+  --secondary-foreground: #24507d;
+  --muted: #e2eeff;
+  --muted-foreground: #567ca6;
+  --accent: #cfe5ff;
+  --accent-foreground: #0f365f;
+  --destructive: #d35d70;
+  --border: #bfd9fb;
+  --input: #afcff6;
+  --ring: #4da3ff;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -67,11 +109,69 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body), sans-serif;
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+  }
+
+  /* Hide native password reveal/clear controls to avoid duplicate eye icons */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
   }
 
   .font-heading {
     font-family: var(--font-heading), sans-serif;
   }
+
+  .dark :is(h1, h2, h3, h4, h5, h6, p, span, a, li, label, th, td, button, strong, small, div) {
+    color: #ffffff !important;
+  }
+
+  .dark :is(input, textarea, select) {
+    color: #ffffff !important;
+  }
+
+  .dark * {
+    color: #ffffff !important;
+  }
+
+  .dark :is(input, textarea)::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  /* Dashboard-wide dark mode compatibility for legacy hardcoded light styles */
+  .dark .dashboard-shell [class*="bg-white"],
+  .dark .dashboard-shell [class*="bg-[#f"],
+  .dark .dashboard-shell [class*="bg-slate-"] {
+    background-color: #111a2d !important;
+    background-image: none !important;
+  }
+
+  .dark .dashboard-shell [class*="border-[#e"],
+  .dark .dashboard-shell [class*="border-[#d"],
+  .dark .dashboard-shell [class*="border-[#f"] {
+    border-color: #2a3b5f !important;
+  }
+
+  .dark .dashboard-shell [class*="text-[#"] {
+    color: #ffffff !important;
+  }
+
+  .dark .dashboard-shell :is(.dashboard-surface, .dashboard-kpi-card) {
+    background: #111a2d !important;
+    border-color: #2a3b5f !important;
+  }
+
+.dark .dashboard-shell svg text {
+  fill: #ffffff !important;
+}
+
+/* Keep text readable on white active pills inside top navigation in dark mode */
+.dark .top-navigation-shell .bg-foreground,
+.dark .top-navigation-shell .bg-foreground * {
+  color: #0b1220 !important;
+}
 }
 
 @layer components {
@@ -242,19 +342,12 @@
 }
 
 .subscriptions-hero h1 {
-  font-size: clamp(34px, 5vw, 50px);
-  line-height: 1;
-  letter-spacing: -0.06em;
-  color: #1a1a1a;
-  font-weight: 800;
+  margin: 0;
 }
 
 .subscriptions-hero p {
   margin-top: 10px;
   max-width: 470px;
-  color: #72706b;
-  font-size: 18px;
-  line-height: 1.45;
 }
 
 .subscriptions-hero-actions {
@@ -376,15 +469,16 @@
 }
 
 .growth-chart-header h2 {
-  font-size: 16px;
-  font-weight: 800;
-  color: #1d1d1d;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #101828;
 }
 
 .growth-chart-header p {
   margin-top: 4px;
-  font-size: 12px;
-  color: #6c6a66;
+  font-size: 14px;
+  color: #667085;
 }
 
 .chart-range-tabs {
@@ -460,9 +554,10 @@
 }
 
 .plan-tier-header h2 {
-  font-size: 16px;
-  font-weight: 800;
-  color: #1b1b1b;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #101828;
 }
 
 .plan-tier-grid {
@@ -627,20 +722,21 @@
 .billing-events-header {
   padding: 22px 26px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
 }
 
 .billing-events-header h2 {
-  font-size: 16px;
-  font-weight: 800;
-  color: #1b1b1b;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #101828;
 }
 
 .billing-events-header a {
   color: #8a6f04;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -2063,4 +2159,102 @@
     right: 0;
     width: 240px;
   }
+}
+
+/* =========================
+   ADMIN SUBSCRIPTIONS DARK MODE
+========================= */
+.dark .subscriptions-hero h1,
+.dark .subscriptions-hero p,
+.dark .subscriptions-hero .sub-btn,
+.dark .plan-tier-header h2,
+.dark .billing-events-header h2,
+.dark .billing-events-header a,
+.dark .billing-load-more,
+.dark .subscriber-name,
+.dark .subscriber-email,
+.dark .billing-amount,
+.dark .billing-date,
+.dark .status-pill,
+.dark .growth-bar-item span {
+  color: #ffffff !important;
+}
+
+.dark .subscription-stat-card,
+.dark .growth-chart-card,
+.dark .plan-tier-card,
+.dark .billing-events-card,
+.dark .sub-btn-light {
+  background: #111a2d !important;
+  border-color: #2a3b5f !important;
+  box-shadow: none !important;
+}
+
+.dark .subscription-stat-head p,
+.dark .subscription-stat-foot .stat-note,
+.dark .growth-chart-header p,
+.dark .plan-tier-subtitle,
+.dark .subscriber-email {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .subscription-stat-card h3,
+.dark .growth-chart-header h2,
+.dark .plan-tier-card h3,
+.dark .plan-tier-price,
+.dark .plan-tier-suffix,
+.dark .plan-tier-features li,
+.dark .plan-tier-users,
+.dark .billing-table th,
+.dark .billing-table td {
+  color: #ffffff !important;
+}
+
+.dark .chart-range-tabs button {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark .chart-range-tabs button.active {
+  background: #243a5f !important;
+}
+
+.dark .growth-bar {
+  background: #2f4368 !important;
+}
+
+.dark .growth-bar.is-active {
+  background: #4da3ff !important;
+}
+
+.dark .billing-table thead tr {
+  background: #162845 !important;
+}
+
+.dark .billing-table td {
+  border-top-color: #2a3b5f !important;
+}
+
+.dark .subscriber-avatar {
+  background: #243a5f !important;
+  color: #ffffff !important;
+}
+
+.dark .plan-plus,
+.dark .plan-pro,
+.dark .plan-free,
+.dark .plan-tier-card:not(.highlighted) .plan-tier-users {
+  background: #22385a !important;
+  border-color: #35517e !important;
+  color: #ffffff !important;
+}
+
+.dark .plan-tier-manage-btn.light {
+  background: #22385a !important;
+  color: #ffffff !important;
+}
+
+.dark .plan-tier-manage-btn.gold,
+.dark .sub-btn-gold {
+  background: #4da3ff !important;
+  color: #06162f !important;
 }

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import {
   Select,
   SelectContent,
@@ -30,34 +31,6 @@ import {
   useUpdateSettingsPreferencesMutation,
   useUpdateSettingsSecurityMutation,
 } from "@/store/api";
-
-function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative h-7 w-14 rounded-full transition-colors ${
-        checked ? "bg-[#d4af35]" : "bg-[#d0d5dd]"
-      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
-      aria-pressed={checked}
-      disabled={disabled}
-    >
-      <span
-        className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-8" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
 
 function normalizeError(error: unknown) {
   const payload = error as { data?: { message?: string } };
@@ -491,7 +464,7 @@ export function SettingsWorkspace() {
                   <p className="text-sm font-semibold text-[#111827]">Two-Factor Authentication</p>
                   <p className="text-xs text-[#667085]">Secure your account with 2FA codes.</p>
                 </div>
-                <Toggle
+                <ToggleSwitch
                   checked={twoFactorEnabled}
                   onChange={(next) => setSecurity((p) => ({ ...p, twoFactorEnabled: next }))}
                   disabled={isBusy}
@@ -522,7 +495,7 @@ export function SettingsWorkspace() {
             ].map(([label, value, setter]) => (
               <div key={label as string} className="flex items-center justify-between px-4 py-3">
                 <p className="text-sm font-medium text-[#344054]">{label as string}</p>
-                <Toggle checked={value as boolean} onChange={setter as (next: boolean) => void} disabled={isBusy} />
+                <ToggleSwitch checked={value as boolean} onChange={setter as (next: boolean) => void} disabled={isBusy} />
               </div>
             ))}
           </div>

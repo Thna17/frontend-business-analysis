@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { SalesRecordWorkspace } from "@/components/dashboard/sales-record-workspace";
@@ -26,15 +26,20 @@ export default function SaleRecordPage() {
       <TopNavigation items={topNavItems} />
 
       <div className="dashboard-container mt-10 space-y-7">
-        <section>
+        <section className="rounded-3xl border border-border bg-card/80 p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+          <p className="mb-2 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-semibold tracking-wide text-accent-foreground">
+            Sales Center
+          </p>
           <h1 className="dashboard-title">Sales Records</h1>
-          <p className="dashboard-subtitle mt-2">Manage and track your business sales transactions</p>
+          <p className="dashboard-subtitle mt-2">
+            Manage and track your business sales transactions
+          </p>
         </section>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {isOverviewLoading
             ? Array.from({ length: 4 }).map((_, index) => (
-              <div key={`sale-metric-skeleton-${index}`} className="dashboard-kpi-card border-[#e7e9ee]">
+              <div key={`sale-metric-skeleton-${index}`} className="dashboard-kpi-card">
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="mt-7 h-10 w-36" />
                 <Skeleton className="mt-4 h-4 w-24" />
@@ -45,8 +50,8 @@ export default function SaleRecordPage() {
 
         <SalesRecordWorkspace currency={business?.currency || "USD"} />
 
-        <footer className="pt-16 text-center text-sm text-[#98a2b3]">
-          © 2026 Syntrix. All rights reserved.
+        <footer className="pt-16 text-center text-sm text-muted-foreground">
+          (c) 2026 Syntrix. All rights reserved.
         </footer>
       </div>
     </div>

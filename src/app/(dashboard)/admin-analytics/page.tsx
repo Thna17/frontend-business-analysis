@@ -1,4 +1,4 @@
-import { AdminAnalyticsWorkspace } from "@/components/dashboard/admin-analytics-workspace";
+﻿import { AdminAnalyticsWorkspace } from "@/components/dashboard/admin-analytics-workspace";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
 import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
 
@@ -17,7 +17,7 @@ export default function AdminAnalyticsPage() {
         <AdminAnalyticsWorkspace />
 
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">
-          © 2026 Syntrix Analytics. All rights reserved.
+          (c) 2026 Syntrix Analytics. All rights reserved.
         </footer>
       </div>
     </div>

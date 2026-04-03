@@ -114,7 +114,7 @@ export default function Footer() {
                             <div className="hidden lg:flex justify-end">
                                 <div className="h-14 w-14 rounded-full border border-black/70 flex items-center justify-center">
                                     <Image
-                                        src="/logo.png"
+                                        src="/logo-ui.png"
                                         alt={`${SITE_CONFIG.name} logo`}
                                         width={36}
                                         height={36}
@@ -157,7 +157,7 @@ export default function Footer() {
                     <div className="md:hidden flex justify-start">
                         <div className="h-12 w-12 rounded-full border border-black/70 flex items-center justify-center">
                             <Image
-                                src="/logo.png"
+                                src="/logo-ui.png"
                                 alt={`${SITE_CONFIG.name} logo`}
                                 width={32}
                                 height={32}
@@ -170,4 +170,6 @@ export default function Footer() {
         </footer>
     );
 }
+
+
 

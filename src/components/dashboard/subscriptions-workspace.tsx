@@ -3,16 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   CalendarDays,
+  Circle,
   CheckCircle2,
   ChevronRight,
   CircleHelp,
+  Crown,
   CreditCard,
   Database,
   Download,
   FileSpreadsheet,
   FileText,
+  Gem,
   Mail,
+  Rocket,
   Search,
+  ShieldCheck,
   Users,
   XCircle,
 } from "lucide-react";
@@ -45,6 +50,22 @@ interface UsageCard {
   icon: UsageIcon;
 }
 
+type SwitchablePlanId = "free" | "pro" | "business";
+
+type OwnerPlanTier = {
+  id: string;
+  name: string;
+  subtitle: string;
+  monthlyPrice: number;
+  features: Array<{ text: string; disabled: boolean }>;
+  users: number;
+  priceLabel: string;
+  perLabel: string;
+  highlighted: boolean;
+  badge: string;
+  rank: number;
+};
+
 function usageIcon(icon: UsageIcon) {
   if (icon === "users") return <Users className="size-4 text-[#d4af35]" />;
   if (icon === "reports") return <FileText className="size-4 text-[#d4af35]" />;
@@ -52,10 +73,20 @@ function usageIcon(icon: UsageIcon) {
   return <Database className="size-4 text-[#d4af35]" />;
 }
 
-function planButtonClass(active: boolean, tone: "default" | "outline") {
-  if (active) return "bg-[#d4af35] text-[#101828] hover:bg-[#c39f2f]";
-  if (tone === "outline") return "border-[#d4af35] text-[#8a6b0b] hover:bg-[#fffaf0]";
-  return "border-[#111827] text-[#111827] hover:bg-[#f7f8fa]";
+function isSwitchablePlanId(value: string): value is SwitchablePlanId {
+  return value === "free" || value === "pro" || value === "business";
+}
+
+function planIcon(planId: string) {
+  if (planId === "free") return <ShieldCheck className="size-8" />;
+  if (planId === "pro") return <Rocket className="size-8" />;
+  if (planId === "business") return <Crown className="size-8" />;
+  return <Gem className="size-8" />;
+}
+
+function extractNumberFromPrice(raw: string): number {
+  const numeric = Number(raw.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
 }
 
 function formatMoney(value: number, currency = "USD") {
@@ -180,12 +211,48 @@ export function SubscriptionsWorkspace() {
   const activePlanId = data?.currentPlan.key ?? "free";
   const usage = mapUsageCards(data);
 
-  const planTiers = (data?.plans ?? []).map((plan) => ({
-    ...plan,
-    tone: plan.id === "business" ? "default" : "outline",
-    priceLabel: plan.monthlyPrice === 0 ? "Free" : formatMoney(plan.monthlyPrice, data?.paymentMethod.currency ?? "USD"),
-    perLabel: plan.monthlyPrice === 0 ? "" : "/mo",
-  }));
+  const planTiers: OwnerPlanTier[] = ((data as unknown as { plans?: Array<Record<string, unknown>> })?.plans ?? [])
+    .map((plan, index) => {
+      const id = String(plan.id ?? plan.planKey ?? `custom-${index + 1}`);
+      const monthlyPriceRaw =
+        typeof plan.monthlyPrice === "number"
+          ? plan.monthlyPrice
+          : extractNumberFromPrice(String(plan.price ?? "0"));
+      const suffix = String(plan.suffix ?? "/mo");
+      const normalizedFeatures = Array.isArray(plan.features)
+        ? plan.features
+            .map((feature): { text: string; disabled: boolean } | null => {
+              if (typeof feature === "string") return { text: feature, disabled: false };
+              if (feature && typeof feature === "object" && "text" in feature) {
+                const f = feature as { text?: unknown; disabled?: unknown };
+                if (typeof f.text !== "string" || f.text.trim().length === 0) return null;
+                return { text: f.text, disabled: Boolean(f.disabled) };
+              }
+              return null;
+            })
+            .filter((feature): feature is { text: string; disabled: boolean } => Boolean(feature))
+        : [];
+
+      return {
+        id,
+        name: String(plan.name ?? "Plan"),
+        subtitle: String(plan.subtitle ?? ""),
+        monthlyPrice: monthlyPriceRaw,
+        features: normalizedFeatures,
+        users: Number(plan.activeUsers ?? 0),
+        priceLabel:
+          monthlyPriceRaw === 0
+            ? "Free"
+            : formatMoney(monthlyPriceRaw, data?.paymentMethod.currency ?? "USD"),
+        perLabel: monthlyPriceRaw === 0 ? "" : suffix,
+        highlighted: Boolean(plan.highlighted),
+        badge: String(plan.badge ?? ""),
+        rank: Number(plan.rank ?? index),
+      };
+    })
+    .sort((a, b) => a.rank - b.rank);
+
+  const activePlanMeta = planTiers.find((plan) => plan.id === activePlanId);
 
   const khqrPayload = JSON.stringify({
     merchant: khqr.merchantName,
@@ -195,7 +262,7 @@ export function SubscriptionsWorkspace() {
     reference: "syntrix-subscription-monthly",
   });
 
-  const onSelectTier = useCallback(async (tierId: "free" | "pro" | "business") => {
+  const onSelectTier = useCallback(async (tierId: SwitchablePlanId) => {
     setActionError(null);
     try {
       await changePlan({ plan: tierId }).unwrap();
@@ -295,7 +362,7 @@ export function SubscriptionsWorkspace() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-24 w-36 items-center justify-center rounded-2xl bg-[#d4af35] text-white">
-                <CircleHelp className="size-8" />
+                {planIcon(activePlanMeta?.id ?? activePlanId)}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -354,50 +421,61 @@ export function SubscriptionsWorkspace() {
           </div>
         </section>
 
-        <section>
-          <h3 className="mb-4 dashboard-section-title">Subscription Plans</h3>
-          <div className="grid gap-4 xl:grid-cols-3">
+        <section className="plan-tier-section">
+          <div className="plan-tier-header">
+            <h2>Subscription Plans</h2>
+          </div>
+
+          <div className="plan-tier-grid">
             {planTiers.map((tier) => {
               const active = tier.id === activePlanId;
+              const showBadge = active ? "CURRENT PLAN" : tier.badge;
+
               return (
                 <article
                   key={tier.id}
-                  className={`dashboard-surface relative border p-5 shadow-none ${
-                    active ? "border-[#d4af35]" : "border-[#e7e9ee]"
-                  }`}
+                  className={`plan-tier-card ${active || tier.highlighted ? "highlighted" : ""}`}
                 >
-                  {active ? (
-                    <span className="absolute right-4 top-0 -translate-y-1/2 rounded-md bg-[#d4af35] px-3 py-1 text-xs font-semibold text-white">
-                      CURRENT PLAN
-                    </span>
-                  ) : null}
-                  <p className="text-sm font-semibold tracking-[0.08em] text-[#667085] uppercase">{tier.tier}</p>
-                  <h4 className="mt-2 text-3xl font-semibold text-[#101828]">{tier.name}</h4>
-                  <p className="mt-1 text-sm text-[#667085]">{tier.subtitle}</p>
-                  <p className="mt-3 text-4xl font-semibold text-[#101828]">
-                    {tier.priceLabel}
-                    <span className="ml-1 text-base font-medium text-[#667085]">{tier.perLabel}</span>
-                  </p>
+                  {showBadge ? <div className="plan-tier-badge">{showBadge}</div> : null}
 
-                  <ul className="mt-5 space-y-2">
+                  <h3>{tier.name}</h3>
+                  <p className="plan-tier-subtitle">{tier.subtitle}</p>
+
+                  <div className="plan-tier-price-row">
+                    <span className="plan-tier-price">{tier.priceLabel}</span>
+                    <span className="plan-tier-suffix">{tier.perLabel}</span>
+                  </div>
+
+                  <div className="plan-tier-users">
+                    <span>Active Users</span>
+                    <strong>{tier.users}</strong>
+                  </div>
+
+                  <ul className="plan-tier-features">
                     {tier.features.map((feature) => (
-                      <li key={`${tier.id}-${feature}`} className="flex items-center gap-2 text-sm text-[#344054]">
-                        <CheckCircle2 className="size-4 text-[#9d7a10]" />
-                        {feature}
+                      <li
+                        key={`${tier.id}-${feature.text}`}
+                        className={feature.disabled ? "disabled" : ""}
+                      >
+                        <span className="feature-dot" aria-hidden="true">
+                          <Circle size={10} fill="currentColor" strokeWidth={1.8} />
+                        </span>
+                        {feature.text}
                       </li>
                     ))}
                   </ul>
 
-                  <Button
-                    variant={active ? "default" : "outline"}
-                    className={`mt-6 h-11 w-full rounded-xl text-sm ${planButtonClass(active, tier.tone)}`}
+                  <button
+                    type="button"
+                    className={`plan-tier-manage-btn ${active || tier.highlighted ? "gold" : "light"}`}
                     onClick={() => {
+                      if (!isSwitchablePlanId(tier.id)) return;
                       void onSelectTier(tier.id);
                     }}
-                    disabled={isChangingPlan}
+                    disabled={isChangingPlan || !isSwitchablePlanId(tier.id)}
                   >
-                    {active ? "In Use" : "Switch Plan"}
-                  </Button>
+                    {active ? "In Use" : isSwitchablePlanId(tier.id) ? "Switch Plan" : "Managed by Admin"}
+                  </button>
                 </article>
               );
             })}

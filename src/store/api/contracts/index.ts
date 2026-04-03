@@ -11,3 +11,5 @@ export type * from "@/store/api/contracts/cart";
 export type * from "@/store/api/contracts/admin";
 export type * from "@/store/api/contracts/telegram";
 export type * from "@/store/api/contracts/notification";
+export type * from "@/store/api/contracts/voiceSales";
+export type * from "@/store/api/contracts/telegramLink";

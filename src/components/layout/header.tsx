@@ -10,6 +10,7 @@ import { useCart } from "@/contexts/cart-context";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { loadUserFromStorage } from "@/store/slices/authSlice";
 
 export default function Header() {
@@ -85,19 +86,20 @@ export default function Header() {
                             whileHover={{ scale: 1.05 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <Image
-                                src="/logo.png"
-                                alt="Logo"
-                                width={120}
-                                height={80}
-                                className="h-12 md:h-18 w-auto"
-                                priority
-                            />
+                             <Image
+                               src="/logo.png"
+                               alt="Syntrix logo"
+                               width={180}
+                               height={88}
+                               className="h-[88px] w-auto object-contain"
+                               priority
+                             />
                         </motion.div>
                     </Link>
 
                     {/* Right Icons */}
                     <div className="flex items-center gap-4">
+                        <ThemeToggle showLabel={false} className="hidden md:inline-flex" />
                         <button className="p-2 hover:text-gray-600 transition-colors" aria-label="Search">
                             <Search className="w-5 h-5" />
                         </button>
@@ -230,3 +232,5 @@ export default function Header() {
         </header>
     );
 }
+
+

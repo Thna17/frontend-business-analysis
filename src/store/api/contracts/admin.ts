@@ -245,3 +245,16 @@ export interface UpdateAdminRolesInput {
     access: AdminRoleAccess;
   }>;
 }
+
+export interface AdminProfileResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+export interface UpdateAdminProfileInput {
+  fullName: string;
+  phone?: string | null;
+}

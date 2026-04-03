@@ -1,4 +1,4 @@
-import { AdminDashboardWorkspace } from "@/components/dashboard/admin-dashboard-workspace";
+﻿import { AdminDashboardWorkspace } from "@/components/dashboard/admin-dashboard-workspace";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
 import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
 
@@ -17,7 +17,7 @@ export default function AdminDashboardPage() {
         <AdminDashboardWorkspace />
 
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">
-          © 2026 Syntrix Admin Console. All rights reserved.
+          (c) 2026 Syntrix Admin Console. All rights reserved.
         </footer>
       </div>
     </div>

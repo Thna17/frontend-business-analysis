@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   CalendarDays,
   ChevronDown,
   Download,
+  Check,
   Pencil,
   Plus,
+  XCircle,
   Search,
   Trash2,
   X,
@@ -24,9 +27,12 @@ import {
 import {
   useCreateOwnerProductMutation,
   useDeleteOwnerProductMutation,
+  useGetOwnerProductUpdateSuggestionsQuery,
   useGetOwnerProductCategoriesQuery,
   useGetOwnerProductsOverviewQuery,
   useGetOwnerProductsQuery,
+  useApproveOwnerProductUpdateSuggestionMutation,
+  useRejectOwnerProductUpdateSuggestionMutation,
   useUpdateOwnerProductMutation,
   type OwnerProductItem,
 } from "@/store/api";
@@ -125,6 +131,7 @@ export function ProductManagementWorkspace() {
   const [form, setForm] = useState<ProductFormState>(formDefaults);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   const { startDate, endDate } = useMemo(() => dateBoundsByPreset(dateFilter), [dateFilter]);
 
@@ -143,6 +150,9 @@ export function ProductManagementWorkspace() {
   });
 
   const { data: overview } = useGetOwnerProductsOverviewQuery();
+  const { data: suggestions = [], isFetching: isSuggestionsFetching } = useGetOwnerProductUpdateSuggestionsQuery({
+    status: "pending",
+  });
 
   const { data: categoriesData = [] } = useGetOwnerProductCategoriesQuery({
     limit: 100,
@@ -151,6 +161,8 @@ export function ProductManagementWorkspace() {
   const [createProduct, { isLoading: isCreating }] = useCreateOwnerProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateOwnerProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteOwnerProductMutation();
+  const [approveSuggestion, { isLoading: isApprovingSuggestion }] = useApproveOwnerProductUpdateSuggestionMutation();
+  const [rejectSuggestion, { isLoading: isRejectingSuggestion }] = useRejectOwnerProductUpdateSuggestionMutation();
 
   const isSaving = isCreating || isUpdating;
 
@@ -164,6 +176,7 @@ export function ProductManagementWorkspace() {
   }, [categoriesData, productsResponse?.items, editingProduct]);
 
   const rankingItems = overview?.ranking ?? [];
+  const isResolvingSuggestion = isApprovingSuggestion || isRejectingSuggestion;
 
   const onOpenCreate = useCallback(() => {
     setEditingProduct(null);
@@ -291,6 +304,24 @@ export function ProductManagementWorkspace() {
       await deleteProduct(id).unwrap();
     } catch (error) {
       setActionError(normalizeError(error));
+    }
+  };
+
+  const onApproveSuggestion = async (id: string) => {
+    setSuggestionError(null);
+    try {
+      await approveSuggestion(id).unwrap();
+    } catch (error) {
+      setSuggestionError(normalizeError(error));
+    }
+  };
+
+  const onRejectSuggestion = async (id: string) => {
+    setSuggestionError(null);
+    try {
+      await rejectSuggestion(id).unwrap();
+    } catch (error) {
+      setSuggestionError(normalizeError(error));
     }
   };
 
@@ -459,6 +490,69 @@ export function ProductManagementWorkspace() {
       </section>
 
       <aside className="space-y-6">
+        <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="dashboard-section-title">Pending Product Updates</h3>
+            <span className="rounded-full bg-[#f2f4f7] px-2.5 py-1 text-xs font-semibold text-[#475467]">
+              {suggestions.length}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-[#667085]">
+            Review category and price conflicts from Sales, Voice, and Telegram.
+          </p>
+          <div className="mt-4 space-y-3">
+            {isSuggestionsFetching ? (
+              <p className="text-sm text-[#667085]">Loading suggestions...</p>
+            ) : null}
+            {!isSuggestionsFetching && suggestions.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-[#d0d5dd] bg-[#f9fafb] px-3 py-4 text-sm text-[#667085]">
+                No pending updates.
+              </p>
+            ) : null}
+            {suggestions.map((item) => (
+              <div key={item.id} className="rounded-xl border border-[#e4e7ec] bg-white p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#101828]">{item.productName}</p>
+                    <p className="mt-1 text-xs text-[#667085]">
+                      Current: {item.currentCategory} / {formatMoney(item.currentUnitPrice)}
+                    </p>
+                    <p className="text-xs text-[#667085]">
+                      Proposed: {item.proposedCategory} / {formatMoney(item.proposedUnitPrice)}
+                    </p>
+                    <p className="mt-1 text-xs text-[#98a2b3]">Source: {item.source}</p>
+                  </div>
+                  <AlertTriangle className="size-4 text-[#b54708]" />
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 rounded-lg bg-[#067647] px-3 text-xs text-white hover:bg-[#05603a]"
+                    onClick={() => void onApproveSuggestion(item.id)}
+                    disabled={isResolvingSuggestion}
+                  >
+                    <Check className="size-3.5" />
+                    Approve
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 rounded-lg border-[#fecaca] px-3 text-xs text-[#b42318]"
+                    onClick={() => void onRejectSuggestion(item.id)}
+                    disabled={isResolvingSuggestion}
+                  >
+                    <XCircle className="size-3.5" />
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {suggestionError ? <p className="mt-3 text-sm text-rose-600">{suggestionError}</p> : null}
+        </section>
+
         <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
           <div className="mt-6 space-y-6">

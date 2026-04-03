@@ -1,4 +1,4 @@
-import SubscriptionHeader from "@/components/admin/subscriptions/SubscriptionHeader";
+﻿import SubscriptionHeader from "@/components/admin/subscriptions/SubscriptionHeader";
 import SubscriptionStats from "@/components/admin/subscriptions/SubscriptionStats";
 import GrowthChart from "@/components/admin/subscriptions/GrowthChart";
 import PlanTierSection from "@/components/admin/subscriptions/PlanTierSection";
@@ -24,10 +24,9 @@ export default function SubscriptionsPage() {
         <PlanTierSection />
         <BillingTable />
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">
-          © 2026 Syntrix Admin Console. All rights reserved.
+          (c) 2026 Syntrix Admin Console. All rights reserved.
         </footer>
       </div>
     </div>
-
   );
 }

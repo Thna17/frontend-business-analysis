@@ -3,10 +3,12 @@ import type {
   ApiEnvelope,
   BusinessProfile,
   SettingsDashboardResponse,
+  SettingsProfileResponse,
   UpdateSettingsAccountInput,
   UpdateSettingsBusinessInput,
   UpdateSettingsNotificationsInput,
   UpdateSettingsPreferencesInput,
+  UpdateSettingsProfileInput,
   UpdateSettingsSecurityInput,
 } from "@/store/api/types";
 
@@ -22,6 +24,11 @@ export const settingsApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<SettingsDashboardResponse>) => response.data,
       providesTags: ["User"],
     }),
+    getSettingsProfile: builder.query<SettingsProfileResponse, void>({
+      query: () => "/settings/profile",
+      transformResponse: (response: ApiEnvelope<SettingsProfileResponse>) => response.data,
+      providesTags: ["User"],
+    }),
     updateSettingsAccount: builder.mutation<
       SettingsDashboardResponse["account"],
       UpdateSettingsAccountInput
@@ -32,6 +39,15 @@ export const settingsApi = api.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiEnvelope<SettingsDashboardResponse["account"]>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    updateSettingsProfile: builder.mutation<SettingsProfileResponse, UpdateSettingsProfileInput>({
+      query: (body) => ({
+        url: "/settings/profile",
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<SettingsProfileResponse>) => response.data,
       invalidatesTags: ["User"],
     }),
     updateSettingsBusiness: builder.mutation<
@@ -104,7 +120,9 @@ export const settingsApi = api.injectEndpoints({
 export const {
   useGetBusinessProfileQuery,
   useGetSettingsDashboardQuery,
+  useGetSettingsProfileQuery,
   useUpdateSettingsAccountMutation,
+  useUpdateSettingsProfileMutation,
   useUpdateSettingsBusinessMutation,
   useUpdateSettingsNotificationsMutation,
   useUpdateSettingsPreferencesMutation,

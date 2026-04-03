@@ -1,6 +1,7 @@
 import { api } from "@/store/api/core";
 import type {
   ApiEnvelope,
+  SaleMutationResponse,
   SaleProductSuggestion,
   SalesListItem,
   SalesListQuery,
@@ -30,22 +31,28 @@ export const salesApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<SaleProductSuggestion[]>) => response.data,
       providesTags: ["User"],
     }),
-    createSale: builder.mutation<SalesListItem, SaleWriteInput>({
+    createSale: builder.mutation<SaleMutationResponse, SaleWriteInput>({
       query: (body) => ({
         url: "/sales",
         method: "POST",
         body,
       }),
-      transformResponse: (response: ApiEnvelope<SalesListItem>) => response.data,
+      transformResponse: (response: ApiEnvelope<SalesListItem>) => ({
+        sale: response.data,
+        productSync: (response.meta as { productSync?: SaleMutationResponse["productSync"] } | undefined)?.productSync,
+      }),
       invalidatesTags: ["User"],
     }),
-    updateSale: builder.mutation<SalesListItem, { id: string; body: SaleWriteInput }>({
+    updateSale: builder.mutation<SaleMutationResponse, { id: string; body: SaleWriteInput }>({
       query: ({ id, body }) => ({
         url: `/sales/${id}`,
         method: "PUT",
         body,
       }),
-      transformResponse: (response: ApiEnvelope<SalesListItem>) => response.data,
+      transformResponse: (response: ApiEnvelope<SalesListItem>) => ({
+        sale: response.data,
+        productSync: (response.meta as { productSync?: SaleMutationResponse["productSync"] } | undefined)?.productSync,
+      }),
       invalidatesTags: ["User"],
     }),
     deleteSale: builder.mutation<{ message: string }, string>({

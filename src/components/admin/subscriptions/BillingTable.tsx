@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useGetAdminSubscriptionOverviewQuery } from "@/store/api";
 
 type BillingEvent = {
-  _id: string;
+  id: string;
   name: string;
   email: string;
-  plan: "Free" | "Pro" | "Business";
+  plan: "free" | "pro" | "business";
   amount: number;
-  status: "active" | "expired" | "pending";
+  status: "pending" | "succeeded" | "failed";
   createdAt: string;
 };
-
-const API_URL = "http://localhost:5000";
 
 function getInitials(name: string) {
   if (!name) return "NA";
@@ -23,14 +22,14 @@ function getInitials(name: string) {
   return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
 }
 
-function formatStatus(status: string) {
-  if (status === "active") return "Paid";
+function formatStatus(status: BillingEvent["status"]) {
+  if (status === "succeeded") return "Paid";
   if (status === "pending") return "Pending";
   return "Expired";
 }
 
-function formatStatusType(status: string) {
-  if (status === "active") return "success";
+function formatStatusType(status: BillingEvent["status"]) {
+  if (status === "succeeded") return "success";
   if (status === "pending") return "warning";
   return "danger";
 }
@@ -44,28 +43,29 @@ function formatDate(dateString: string) {
 }
 
 export default function BillingTable() {
-  const [billingEvents, setBillingEvents] = useState<BillingEvent[]>([]);
+  const { data: overview, isLoading, isError } = useGetAdminSubscriptionOverviewQuery();
 
-  useEffect(() => {
-    async function loadBilling() {
-      try {
-        const res = await fetch(`${API_URL}/api/admin/subscriptions/billing`, {
-          cache: "no-store",
-        });
-        const result = await res.json();
-        setBillingEvents(result);
-      } catch (error) {
-        console.error("Failed to load billing events:", error);
-      }
-    }
+  const billingEvents = useMemo<BillingEvent[]>(() => {
+    const items = overview?.recentBillingEvents ?? [];
 
-    loadBilling();
-  }, []);
+    return items.map((item) => ({
+      id: item.id,
+      name: item.subscriberName ?? "Unknown User",
+      email: item.subscriberEmail ?? "-",
+      plan: (item.plan === "business" || item.plan === "pro" ? item.plan : "free") as BillingEvent["plan"],
+      amount: item.amount,
+      status: (item.status === "succeeded" || item.status === "failed" ? item.status : "pending") as BillingEvent["status"],
+      createdAt: item.createdAt,
+    }));
+  }, [overview?.recentBillingEvents]);
 
   return (
     <section className="billing-events-card">
       <div className="billing-events-header">
-        <h2>Recent Billing Events</h2>
+        <div>
+          <h2 className="dashboard-section-title">Recent Billing Events</h2>
+          <p className="dashboard-subtitle mt-1 text-sm">Track the latest subscription payment activity.</p>
+        </div>
         <a href="#">View All Ledger</a>
       </div>
 
@@ -83,8 +83,18 @@ export default function BillingTable() {
           </thead>
 
           <tbody>
-            {billingEvents.map((event) => (
-              <tr key={`${event.name}-${event.createdAt}`}>
+            {isLoading ? (
+              <tr><td colSpan={6}>Loading billing events...</td></tr>
+            ) : null}
+            {isError ? (
+              <tr><td colSpan={6}>Unable to load billing events. Please verify admin session.</td></tr>
+            ) : null}
+            {!isLoading && !isError && billingEvents.length === 0 ? (
+              <tr><td colSpan={6}>No billing events yet.</td></tr>
+            ) : null}
+
+            {!isLoading && !isError && billingEvents.map((event) => (
+              <tr key={event.id}>
                 <td>
                   <div className="subscriber-cell">
                     <div className="subscriber-avatar">
@@ -101,7 +111,7 @@ export default function BillingTable() {
 
                 <td>
                   <span className={`plan-badge plan-${event.plan.toLowerCase()}`}>
-                    {event.plan}
+                    {event.plan[0].toUpperCase() + event.plan.slice(1)}
                   </span>
                 </td>
 
@@ -113,7 +123,7 @@ export default function BillingTable() {
 
                 <td>
                   <span className={`status-pill ${formatStatusType(event.status)}`}>
-                    <span className="status-dot">●</span>
+                    <span className="status-dot">*</span>
                     {formatStatus(event.status)}
                   </span>
                 </td>
@@ -123,7 +133,7 @@ export default function BillingTable() {
         </table>
       </div>
 
-      <div className="billing-load-more">LOAD MORE HISTORY ▼</div>
+      <div className="billing-load-more">LOAD MORE HISTORY v</div>
     </section>
   );
 }

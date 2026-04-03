@@ -1,58 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { CreditCard, TrendingUp, Users } from "lucide-react";
-
-type SubscriptionStatsData = {
-  total: number;
-  active: number;
-  revenue: number;
-};
-
-const API_URL = "http://localhost:5000";
+import { useGetAdminSubscriptionOverviewQuery } from "@/store/api";
 
 export default function SubscriptionStats() {
-  const [data, setData] = useState<SubscriptionStatsData | null>(null);
+  const { data, isError } = useGetAdminSubscriptionOverviewQuery();
 
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        const res = await fetch(`${API_URL}/api/admin/subscriptions/stats`, {
-          cache: "no-store",
-        });
-        const result = await res.json();
-        setData(result);
-      } catch (error) {
-        console.error("Failed to load subscription stats:", error);
-      }
-    }
-
-    loadStats();
-  }, []);
+  const total = data?.summary.totalSubscribers ?? 0;
+  const active = data?.summary.activeSubscribers ?? 0;
+  const revenue = data?.summary.totalRevenue ?? 0;
+  const activeRate = data?.summary.activeRate ?? 0;
 
   const stats = [
     {
       title: "Total Subscribers",
-      value: data?.total ?? 0,
-      note: "All subscription accounts",
-      change: "",
-      positive: true,
+      value: total,
+      note: isError ? "Unable to load data" : "All subscription accounts",
       icon: Users,
     },
     {
       title: "Active Subscribers",
-      value: data?.active ?? 0,
-      note: "Currently active plans",
-      change: "",
-      positive: true,
+      value: active,
+      note: isError ? "Unable to load data" : `${activeRate}% active conversion rate`,
       icon: TrendingUp,
     },
     {
       title: "Subscription Revenue",
-      value: `$${(data?.revenue ?? 0).toLocaleString()}`,
-      note: "Total recurring revenue",
-      change: "",
-      positive: true,
+      value: `$${revenue.toLocaleString()}`,
+      note: isError ? "Unable to load data" : "Succeeded payment revenue",
       icon: CreditCard,
     },
   ];
@@ -75,18 +50,6 @@ export default function SubscriptionStats() {
             <h3>{item.value}</h3>
 
             <div className="subscription-stat-foot">
-              {item.change ? (
-                <span
-                  className={
-                    item.positive
-                      ? "stat-change-positive"
-                      : "stat-change-negative"
-                  }
-                >
-                  {item.change}
-                </span>
-              ) : null}
-
               <span className="stat-note">{item.note}</span>
             </div>
           </div>

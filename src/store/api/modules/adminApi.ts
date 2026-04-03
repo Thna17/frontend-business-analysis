@@ -1,19 +1,21 @@
-﻿import { api } from "@/store/api/core";
+import { api } from "@/store/api/core";
 import type {
   AdminAnalyticsResponse,
   AdminDashboardResponse,
   AdminPaymentsListResponse,
+  AdminProfileResponse,
+  AdminSettingsResponse,
+  AdminSubscriptionOverviewResponse,
   AdminSubscriptionPlanConfig,
   AdminSubscriptionPlanConfigListResponse,
-  AdminSubscriptionOverviewResponse,
   AdminSubscriptionsListResponse,
-  AdminSettingsResponse,
   ApiEnvelope,
-  UpsertAdminSubscriptionPlanConfigInput,
   UpdateAdminBrandingInput,
   UpdateAdminMaintenanceInput,
+  UpdateAdminProfileInput,
   UpdateAdminRolesInput,
   UpdateAdminSecurityInput,
+  UpsertAdminSubscriptionPlanConfigInput,
 } from "@/store/api/types";
 
 export const adminApi = api.injectEndpoints({
@@ -43,7 +45,15 @@ export const adminApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<AdminSettingsResponse>) => response.data,
       providesTags: ["Admin"],
     }),
-    getAdminPayments: builder.query<AdminPaymentsListResponse, { page?: number; limit?: number; status?: string } | void>({
+    getAdminProfile: builder.query<AdminProfileResponse, void>({
+      query: () => "/admin/profile",
+      transformResponse: (response: ApiEnvelope<AdminProfileResponse>) => response.data,
+      providesTags: ["Admin", "User"],
+    }),
+    getAdminPayments: builder.query<
+      AdminPaymentsListResponse,
+      { page?: number; limit?: number; status?: string } | void
+    >({
       query: (params) => ({
         url: "/admin/payments",
         params: params ?? { page: 1, limit: 10 },
@@ -69,7 +79,10 @@ export const adminApi = api.injectEndpoints({
       },
       providesTags: ["Admin"],
     }),
-    getAdminSubscriptions: builder.query<AdminSubscriptionsListResponse, { page?: number; limit?: number } | void>({
+    getAdminSubscriptions: builder.query<
+      AdminSubscriptionsListResponse,
+      { page?: number; limit?: number } | void
+    >({
       query: (params) => ({
         url: "/admin/subscriptions",
         params: params ?? { page: 1, limit: 20 },
@@ -172,12 +185,22 @@ export const adminApi = api.injectEndpoints({
         response.data,
       invalidatesTags: ["Admin"],
     }),
+    updateAdminProfile: builder.mutation<AdminProfileResponse, UpdateAdminProfileInput>({
+      query: (body) => ({
+        url: "/admin/profile",
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<AdminProfileResponse>) => response.data,
+      invalidatesTags: ["Admin", "User"],
+    }),
   }),
 });
 
 export const {
   useGetAdminDashboardQuery,
   useGetAdminAnalyticsQuery,
+  useGetAdminProfileQuery,
   useGetAdminSubscriptionOverviewQuery,
   useGetAdminSubscriptionPlansQuery,
   useGetAdminSettingsQuery,
@@ -189,5 +212,6 @@ export const {
   useUpdateAdminBrandingMutation,
   useUpdateAdminSecurityMutation,
   useUpdateAdminMaintenanceMutation,
+  useUpdateAdminProfileMutation,
   useUpdateAdminRolesMutation,
 } = adminApi;

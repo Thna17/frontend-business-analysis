@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart3,
   Building2,
@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useGetAdminAnalyticsQuery } from "@/store/api";
 
 type TrendKey = "6m" | "yearly";
 
@@ -100,29 +101,8 @@ const defaultData: AnalyticsResponse = {
 
 export function AdminAnalyticsWorkspace() {
   const [trendKey, setTrendKey] = useState<TrendKey>("6m");
-  const [data, setData] = useState<AnalyticsResponse>(defaultData);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/admin/analytics");
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch analytics");
-        }
-
-        setData(result);
-      } catch (error) {
-        console.error("Failed to fetch admin analytics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAnalytics();
-  }, []);
+  const { data: analyticsData, isLoading } = useGetAdminAnalyticsQuery();
+  const data = analyticsData ?? defaultData;
 
   const trendData = useMemo(() => {
     if (trendKey === "6m") {
@@ -206,13 +186,7 @@ export function AdminAnalyticsWorkspace() {
     },
   ];
 
-  const [activeSegmentId, setActiveSegmentId] = useState(userSegments[0]?.id ?? "");
-
-  useEffect(() => {
-    if (!activeSegmentId && userSegments.length > 0) {
-      setActiveSegmentId(userSegments[0].id);
-    }
-  }, [activeSegmentId, userSegments]);
+  const [activeSegmentId, setActiveSegmentId] = useState("free-users");
 
   const analyticsMetrics = [
     {
@@ -241,7 +215,7 @@ export function AdminAnalyticsWorkspace() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <section>
