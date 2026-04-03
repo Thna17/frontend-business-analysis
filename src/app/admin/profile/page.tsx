@@ -1,79 +1,33 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Camera, Mail, Phone, ShieldUser, UserRound } from "lucide-react";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
 import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
+import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
+import { useGetAdminProfileQuery, useGetCurrentUserQuery, useUpdateAdminProfileMutation } from "@/store/api";
 
-type ProfileForm = {
-  fullName: string;
-  email: string;
-  phone: string;
-  role: string;
-  image: string;
-};
-
-const DEFAULT_PROFILE: ProfileForm = {
-  fullName: "Admin",
-  email: "admin@syntrix.com",
-  phone: "+855 78264554",
-  role: "Administrator",
-  image: "",
-};
+function humanRole(role: string) {
+  if (role === "admin") return "Administrator";
+  if (role === "business_owner") return "Business Owner";
+  return role;
+}
 
 export default function AdminProfilePage() {
-  const [form, setForm] = useState<ProfileForm>(DEFAULT_PROFILE);
-  const [sharedImage, setSharedImage] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { data, isLoading, isFetching } = useGetAdminProfileQuery();
+  const { data: currentUser } = useGetCurrentUserQuery();
+  const [updateAdminProfile, { isLoading: isSaving }] = useUpdateAdminProfileMutation();
 
-  useEffect(() => {
-    const savedImage =
-      localStorage.getItem("adminProfileImage")
-      || localStorage.getItem("profileImage")
-      || "";
+  const [fullNameDraft, setFullNameDraft] = useState<string | null>(null);
+  const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
+  const profileImageStorageKey = getProfileImageStorageKey(currentUser);
+  const [uploadedImage, setUploadedImage] = useState<string>("");
 
-    if (savedImage) {
-      setSharedImage(savedImage);
-      setForm((prev) => ({ ...prev, image: prev.image || savedImage }));
-    }
-
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch("http://localhost:5000/api/admin/profile", {
-          method: "GET",
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch profile");
-        }
-
-        const image = data.image || savedImage || "";
-
-        if (image) {
-          localStorage.setItem("adminProfileImage", image);
-          localStorage.setItem("profileImage", image);
-          setSharedImage(image);
-        }
-
-        setForm({
-          fullName: data.fullName || "Admin",
-          email: data.email || "admin@syntrix.com",
-          phone: data.phone || "+855 78264554",
-          role: data.role || "Administrator",
-          image,
-        });
-      } catch (error) {
-        console.error("Failed to fetch admin profile:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, []);
+  const loading = isLoading || isFetching;
+  const fullName = fullNameDraft ?? data?.fullName ?? "";
+  const email = data?.email ?? "";
+  const phone = phoneDraft ?? data?.phone ?? "";
+  const roleLabel = humanRole(data?.role ?? "admin");
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -84,14 +38,10 @@ export default function AdminProfilePage() {
     reader.onloadend = () => {
       const base64 = reader.result as string;
 
-      setSharedImage(base64);
-      localStorage.setItem("adminProfileImage", base64);
-      localStorage.setItem("profileImage", base64);
-
-      setForm((prev) => ({
-        ...prev,
-        image: base64,
-      }));
+      setUploadedImage(base64);
+      if (profileImageStorageKey) {
+        localStorage.setItem(profileImageStorageKey, base64);
+      }
 
       window.dispatchEvent(new Event("admin-profile-updated"));
       window.dispatchEvent(new Event("owner-profile-updated"));
@@ -100,49 +50,34 @@ export default function AdminProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleSave = async () => {
     try {
-      setSaving(true);
+      await updateAdminProfile({
+        fullName,
+        phone: phone || null,
+      }).unwrap();
 
-      const response = await fetch("http://localhost:5000/api/admin/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update profile");
+      if (uploadedImage && profileImageStorageKey) {
+        localStorage.setItem(profileImageStorageKey, uploadedImage);
       }
 
-      if (form.image) {
-        localStorage.setItem("adminProfileImage", form.image);
-        localStorage.setItem("profileImage", form.image);
-        setSharedImage(form.image);
-      }
-
-      alert("Profile updated successfully!");
       window.dispatchEvent(new Event("admin-profile-updated"));
       window.dispatchEvent(new Event("owner-profile-updated"));
-    } catch (error) {
-      console.error("Failed to save admin profile:", error);
+      alert("Profile updated successfully!");
+    } catch {
       alert("Failed to update profile.");
-    } finally {
-      setSaving(false);
     }
   };
+
+  const persistedImage = useMemo(() => {
+    if (typeof window === "undefined" || !profileImageStorageKey) return "";
+    return localStorage.getItem(profileImageStorageKey) || "";
+  }, [profileImageStorageKey]);
+
+  const avatarSrc = useMemo(
+    () => uploadedImage || persistedImage || "",
+    [persistedImage, uploadedImage],
+  );
 
   if (loading) {
     return (
@@ -187,10 +122,16 @@ export default function AdminProfilePage() {
           <div className="admin-profile-left-card">
             <div className="admin-profile-avatar-wrap">
               <div className="admin-profile-avatar">
-                <img
-                  src={form.image || sharedImage || "https://i.pravatar.cc/300?img=12"}
-                  alt="Admin profile"
-                />
+                {avatarSrc ? (
+                  <img
+                    src={avatarSrc}
+                    alt="Admin profile"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                    <UserRound className="size-10 text-[#98a2b3]" />
+                  </div>
+                )}
               </div>
 
               <label
@@ -207,8 +148,8 @@ export default function AdminProfilePage() {
               </label>
             </div>
 
-            <h2>{form.fullName}</h2>
-            <p>{form.role}</p>
+            <h2>{fullName || "Admin"}</h2>
+            <p>{roleLabel}</p>
 
             <label className="admin-profile-photo-btn">
               Change Photo
@@ -240,8 +181,8 @@ export default function AdminProfilePage() {
                 <input
                   type="text"
                   name="fullName"
-                  value={form.fullName}
-                  onChange={handleChange}
+                  value={fullName}
+                  onChange={(event) => setFullNameDraft(event.target.value)}
                   className="admin-profile-input editable"
                 />
               </div>
@@ -254,9 +195,9 @@ export default function AdminProfilePage() {
                 <input
                   type="email"
                   name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="admin-profile-input editable"
+                  value={email}
+                  readOnly
+                  className="admin-profile-input"
                 />
               </div>
 
@@ -268,8 +209,8 @@ export default function AdminProfilePage() {
                 <input
                   type="text"
                   name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
+                  value={phone}
+                  onChange={(event) => setPhoneDraft(event.target.value)}
                   className="admin-profile-input editable"
                 />
               </div>
@@ -282,9 +223,9 @@ export default function AdminProfilePage() {
                 <input
                   type="text"
                   name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                  className="admin-profile-input editable"
+                  value={roleLabel}
+                  readOnly
+                  className="admin-profile-input"
                 />
               </div>
             </div>
@@ -302,16 +243,16 @@ export default function AdminProfilePage() {
                 type="button"
                 className="admin-profile-save-btn"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={isSaving}
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
         </section>
 
         <footer className="admin-profile-footer">
-          <p>Â© 2026 Syntrix Admin Platform. All rights reserved.</p>
+          <p>(c) 2026 Syntrix Admin Platform. All rights reserved.</p>
         </footer>
       </div>
     </main>

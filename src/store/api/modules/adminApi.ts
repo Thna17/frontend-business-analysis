@@ -2,6 +2,7 @@
 import type {
   AdminAnalyticsResponse,
   AdminDashboardResponse,
+  AdminProfileResponse,
   AdminPaymentsListResponse,
   AdminSubscriptionPlanConfig,
   AdminSubscriptionPlanConfigListResponse,
@@ -12,6 +13,7 @@ import type {
   UpsertAdminSubscriptionPlanConfigInput,
   UpdateAdminBrandingInput,
   UpdateAdminMaintenanceInput,
+  UpdateAdminProfileInput,
   UpdateAdminRolesInput,
   UpdateAdminSecurityInput,
 } from "@/store/api/types";
@@ -42,6 +44,11 @@ export const adminApi = api.injectEndpoints({
       query: () => "/admin/settings",
       transformResponse: (response: ApiEnvelope<AdminSettingsResponse>) => response.data,
       providesTags: ["Admin"],
+    }),
+    getAdminProfile: builder.query<AdminProfileResponse, void>({
+      query: () => "/admin/profile",
+      transformResponse: (response: ApiEnvelope<AdminProfileResponse>) => response.data,
+      providesTags: ["Admin", "User"],
     }),
     getAdminPayments: builder.query<AdminPaymentsListResponse, { page?: number; limit?: number; status?: string } | void>({
       query: (params) => ({
@@ -172,12 +179,22 @@ export const adminApi = api.injectEndpoints({
         response.data,
       invalidatesTags: ["Admin"],
     }),
+    updateAdminProfile: builder.mutation<AdminProfileResponse, UpdateAdminProfileInput>({
+      query: (body) => ({
+        url: "/admin/profile",
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<AdminProfileResponse>) => response.data,
+      invalidatesTags: ["Admin", "User"],
+    }),
   }),
 });
 
 export const {
   useGetAdminDashboardQuery,
   useGetAdminAnalyticsQuery,
+  useGetAdminProfileQuery,
   useGetAdminSubscriptionOverviewQuery,
   useGetAdminSubscriptionPlansQuery,
   useGetAdminSettingsQuery,
@@ -189,5 +206,6 @@ export const {
   useUpdateAdminBrandingMutation,
   useUpdateAdminSecurityMutation,
   useUpdateAdminMaintenanceMutation,
+  useUpdateAdminProfileMutation,
   useUpdateAdminRolesMutation,
 } = adminApi;
