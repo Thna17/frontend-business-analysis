@@ -62,7 +62,10 @@ export default function BillingTable() {
   return (
     <section className="billing-events-card">
       <div className="billing-events-header">
-        <h2>Recent Billing Events</h2>
+        <div>
+          <h2 className="dashboard-section-title">Recent Billing Events</h2>
+          <p className="dashboard-subtitle mt-1 text-sm">Track the latest subscription payment activity.</p>
+        </div>
         <a href="#">View All Ledger</a>
       </div>
 
@@ -130,7 +133,7 @@ export default function BillingTable() {
         </table>
       </div>
 
-      <div className="billing-load-more">LOAD MORE HISTORY ▼</div>
+      <div className="billing-load-more">LOAD MORE HISTORY v</div>
     </section>
   );
 }

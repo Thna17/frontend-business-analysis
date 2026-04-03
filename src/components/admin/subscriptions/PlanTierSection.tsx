@@ -227,7 +227,7 @@ export default function PlanTierSection() {
   return (
     <section className="plan-tier-section">
       <div className="plan-tier-header">
-        <h2>Plan Tier Architecture</h2>
+        <h2 className="dashboard-section-title">Plan Tier Architecture</h2>
         <Button
           type="button"
           variant="outline"

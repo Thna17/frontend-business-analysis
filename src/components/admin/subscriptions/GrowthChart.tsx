@@ -23,8 +23,8 @@ export default function GrowthChart() {
     <section className="growth-chart-card">
       <div className="growth-chart-header">
         <div>
-          <h2>Subscriber Growth Trend</h2>
-          <p>12-month real subscription acquisition trend</p>
+          <h2 className="dashboard-section-title">Subscriber Growth Trend</h2>
+          <p className="dashboard-subtitle mt-1 text-sm">12-month real subscription acquisition trend</p>
         </div>
 
         <div className="chart-range-tabs">

@@ -4,8 +4,8 @@ export default function SubscriptionHeader() {
   return (
     <section className="subscriptions-hero">
       <div>
-        <h1>Subscription Management</h1>
-        <p>
+        <h1 className="dashboard-title">Subscription Management</h1>
+        <p className="dashboard-subtitle mt-2 max-w-xl">
           Manage your plans, track revenue growth, and improve your customers&apos; experience.
         </p>
       </div>

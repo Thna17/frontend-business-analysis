@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "@/lib/utils";
 import {
   useGetAdminSettingsQuery,
@@ -46,33 +47,6 @@ const accessBadgeClass: Record<AccessTone, string> = {
   tickets: "bg-[#eaecf0] text-[#475467]",
 };
 
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative h-7 w-14 rounded-full transition-colors",
-        checked ? "bg-[#d4af35]" : "bg-[#d0d5dd]",
-      )}
-      aria-pressed={checked}
-    >
-      <span
-        className={cn(
-          "absolute top-1 h-5 w-5 rounded-full bg-white transition-transform",
-          checked ? "translate-x-8" : "translate-x-1",
-        )}
-      />
-    </button>
-  );
-}
-
 export function AdminSettingsWorkspace() {
   const { data, isLoading, refetch } = useGetAdminSettingsQuery();
   const [updateBranding, { isLoading: isSavingBranding }] = useUpdateAdminBrandingMutation();
@@ -88,6 +62,7 @@ export function AdminSettingsWorkspace() {
   const [cachePurgedAt, setCachePurgedAt] = useState<string | null>(null);
   const [maintenanceDraft, setMaintenanceDraft] = useState<boolean | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [rolesDraft, setRolesDraft] = useState<RoleRow[] | null>(null);
 
   const brandName = brandNameDraft ?? data?.branding.brandName ?? "Syntrix";
@@ -150,24 +125,29 @@ export function AdminSettingsWorkspace() {
 
   useEffect(() => {
     const onSave = async () => {
-      await Promise.all([
-        updateBranding({ brandName, accentColor }).unwrap(),
-        updateSecurity({ mfaEnforced: mfaEnabled }).unwrap(),
-        updateMaintenance({ maintenanceMode }).unwrap(),
-        updateRoles({
-          roles: roles.map((role) => ({
-            id: role.id as "role-admin" | "role-owner" | "role-support",
-            access: role.access,
-          })),
-        }).unwrap(),
-      ]);
+      setSaveError(null);
+      try {
+        await Promise.all([
+          updateBranding({ brandName, accentColor }).unwrap(),
+          updateSecurity({ mfaEnforced: mfaEnabled }).unwrap(),
+          updateMaintenance({ maintenanceMode }).unwrap(),
+          updateRoles({
+            roles: roles.map((role) => ({
+              id: role.id as "role-admin" | "role-owner" | "role-support",
+              access: role.access,
+            })),
+          }).unwrap(),
+        ]);
 
-      setSavedAt(
-        new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      );
+        setSavedAt(
+          new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        );
+      } catch {
+        setSaveError("Unable to save admin settings right now. Please try again.");
+      }
     };
 
     const listener = () => {
@@ -204,6 +184,12 @@ export function AdminSettingsWorkspace() {
             <Loader2 className="size-4 animate-spin" />
             Saving settings...
           </span>
+        </div>
+      ) : null}
+
+      {saveError ? (
+        <div className="rounded-xl border border-[#f6c8c8] bg-[#fff5f5] px-4 py-2 text-sm font-medium text-[#b42318]">
+          {saveError}
         </div>
       ) : null}
 
@@ -339,7 +325,7 @@ export function AdminSettingsWorkspace() {
                   <p className="text-base font-semibold text-[#101828]">Multi-Factor Auth (MFA)</p>
                   <p className="text-sm text-[#667085]">Enforce 2FA for all administrative roles</p>
                 </div>
-                <Toggle checked={mfaEnabled} onChange={setMfaDraft} />
+                <ToggleSwitch checked={mfaEnabled} onChange={setMfaDraft} disabled={saving} />
               </div>
             </div>
 
