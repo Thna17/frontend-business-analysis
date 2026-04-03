@@ -15,6 +15,10 @@ html {
   scroll-behavior: smooth;
 }
 
+[id] {
+  scroll-margin-top: 90px;
+}
+
 body {
   background: #f3f3f1;
   color: #181a1d;
@@ -92,6 +96,10 @@ select {
   display: flex;
   align-items: center;
   gap: 18px;
+}
+
+.landing-theme-toggle {
+  border-radius: 10px !important;
 }
 
 .signin-link {
@@ -771,6 +779,7 @@ select {
   .nav-actions {
     width: 100%;
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 
   .hero-description,
@@ -805,4 +814,141 @@ select {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* LANDING THEME OVERRIDES */
+.dark .landing-page {
+  background: #0b1220;
+  color: #ffffff;
+}
+
+.dark .site-header {
+  background: rgba(11, 18, 32, 0.9);
+  border-bottom-color: #22314d;
+}
+
+.dark .logo,
+.dark .hero-title,
+.dark .section-heading h2,
+.dark .pricing-heading h2,
+.dark .plan-name,
+.dark .plan-price,
+.dark .footer-brand h3,
+.dark .footer-links h4 {
+  color: #ffffff;
+}
+
+.dark .desktop-nav a,
+.dark .signin-link,
+.dark .hero-description,
+.dark .pricing-text,
+.dark .competency-card p,
+.dark .footer-brand p,
+.dark .footer-links a,
+.dark .footer-bottom p {
+  color: #d9e5ff;
+}
+
+.dark .desktop-nav a:hover,
+.dark .desktop-nav a.active {
+  color: #8fc2ff;
+  border-bottom-color: #8fc2ff;
+}
+
+.dark .mockup-card,
+.dark .mockup-left,
+.dark .mockup-center,
+.dark .mockup-right,
+.dark .mockup-panel,
+.dark .chart-box,
+.dark .pricing-card,
+.dark .site-footer,
+.dark .competencies-section,
+.dark .pricing-section {
+  background: #111a2d;
+  border-color: #263955;
+}
+
+.dark .plan-tier,
+.dark .plan-suffix,
+.dark .plan-features li,
+.dark .section-label,
+.dark .competency-card h3 {
+  color: #ffffff;
+}
+
+.dark .secondary-btn,
+.dark .plan-button-outline-dark,
+.dark .plan-button-outline-gold {
+  background: #16223a;
+  border-color: #35517e;
+  color: #ffffff;
+}
+
+.dark .header-btn,
+.dark .primary-btn,
+.dark .plan-button-gold,
+.dark .cta-button {
+  background: #4da3ff;
+  color: #06162f;
+}
+
+.ocean .landing-page {
+  background: #eaf4ff;
+  color: #123a64;
+}
+
+.ocean .site-header {
+  background: rgba(234, 244, 255, 0.9);
+  border-bottom-color: #bfd9fb;
+}
+
+.ocean .logo,
+.ocean .hero-title,
+.ocean .section-heading h2,
+.ocean .pricing-heading h2,
+.ocean .plan-name,
+.ocean .plan-price,
+.ocean .footer-brand h3,
+.ocean .footer-links h4 {
+  color: #123a64;
+}
+
+.ocean .desktop-nav a,
+.ocean .signin-link,
+.ocean .hero-description,
+.ocean .pricing-text,
+.ocean .competency-card p,
+.ocean .footer-brand p,
+.ocean .footer-links a,
+.ocean .footer-bottom p {
+  color: #4f77a1;
+}
+
+.ocean .desktop-nav a:hover,
+.ocean .desktop-nav a.active {
+  color: #317dd6;
+  border-bottom-color: #317dd6;
+}
+
+.ocean .mockup-card,
+.ocean .mockup-left,
+.ocean .mockup-center,
+.ocean .mockup-right,
+.ocean .mockup-panel,
+.ocean .chart-box,
+.ocean .pricing-card,
+.ocean .site-footer,
+.ocean .competencies-section,
+.ocean .pricing-section {
+  background: #f4f9ff;
+  border-color: #c7dcf8;
+}
+
+.ocean .header-btn,
+.ocean .primary-btn,
+.ocean .plan-button-gold,
+.ocean .cta-button {
+  background: #4f9fff;
+  color: #08203d;
 }

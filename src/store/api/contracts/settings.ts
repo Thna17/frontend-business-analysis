@@ -17,6 +17,7 @@ export interface SettingsDashboardResponse {
     email: string;
     phone: string;
     role: string;
+    profileImage?: string;
   };
   business: {
     exists: boolean;
@@ -46,6 +47,20 @@ export interface SettingsDashboardResponse {
     deactivationRequestedAt: string | null;
     deletionRequestedAt: string | null;
   };
+}
+
+export interface SettingsProfileResponse {
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  profileImage: string;
+}
+
+export interface UpdateSettingsProfileInput {
+  fullName: string;
+  phone?: string | null;
+  profileImage?: string | null;
 }
 
 export interface UpdateSettingsAccountInput {

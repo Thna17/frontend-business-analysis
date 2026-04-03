@@ -26,7 +26,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${spaceGrotesk.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${manrope.variable} ${spaceGrotesk.variable}`}
+    >
       <body className="bg-background text-foreground antialiased">
         <ReduxProvider>
           <AuthBootstrap />

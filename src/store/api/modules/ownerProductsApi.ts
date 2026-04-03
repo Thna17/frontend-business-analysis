@@ -4,6 +4,8 @@ import type {
   OwnerProductItem,
   OwnerProductListQuery,
   OwnerProductListResponse,
+  ProductUpdateSuggestionItem,
+  ProductUpdateSuggestionStatus,
   OwnerProductsOverviewResponse,
   OwnerProductWriteInput,
 } from "@/store/api/types";
@@ -61,6 +63,39 @@ export const ownerProductsApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
       invalidatesTags: ["User"],
     }),
+    getOwnerProductUpdateSuggestions: builder.query<
+      ProductUpdateSuggestionItem[],
+      { status?: ProductUpdateSuggestionStatus } | void
+    >({
+      query: (params) => ({
+        url: "/owner-products/update-suggestions",
+        params: params ?? {},
+      }),
+      transformResponse: (response: ApiEnvelope<ProductUpdateSuggestionItem[]>) => response.data,
+      providesTags: ["User"],
+    }),
+    approveOwnerProductUpdateSuggestion: builder.mutation<
+      ProductUpdateSuggestionItem,
+      string
+    >({
+      query: (id) => ({
+        url: `/owner-products/update-suggestions/${id}/approve`,
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<ProductUpdateSuggestionItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
+    rejectOwnerProductUpdateSuggestion: builder.mutation<
+      ProductUpdateSuggestionItem,
+      string
+    >({
+      query: (id) => ({
+        url: `/owner-products/update-suggestions/${id}/reject`,
+        method: "POST",
+      }),
+      transformResponse: (response: ApiEnvelope<ProductUpdateSuggestionItem>) => response.data,
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -71,4 +106,7 @@ export const {
   useCreateOwnerProductMutation,
   useUpdateOwnerProductMutation,
   useDeleteOwnerProductMutation,
+  useGetOwnerProductUpdateSuggestionsQuery,
+  useApproveOwnerProductUpdateSuggestionMutation,
+  useRejectOwnerProductUpdateSuggestionMutation,
 } = ownerProductsApi;

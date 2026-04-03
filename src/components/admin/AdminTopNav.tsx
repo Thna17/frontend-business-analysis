@@ -1,45 +1,96 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Bell, CircleUserRound, Settings } from "lucide-react";
+import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
+import { useGetCurrentUserQuery } from "@/store/api";
+
 const navItems = [
-  "Dashboard",
-  "Analytics",
-  "Product",
-  "Subscriptions",
-  "Report",
+  { label: "Dashboard", href: "/admin" },
+  { label: "Analytics", href: "/admin-analytics" },
+  { label: "Subscriptions", href: "/admin/subscriptions" },
 ];
 
 export default function AdminTopNav() {
+  const pathname = usePathname();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { data: currentUser } = useGetCurrentUserQuery();
+  const profileImageStorageKey = getProfileImageStorageKey(currentUser);
+
+  useEffect(() => {
+    const loadProfileImage = () => {
+      if (!profileImageStorageKey) {
+        setProfileImage(null);
+        return;
+      }
+      setProfileImage(localStorage.getItem(profileImageStorageKey));
+    };
+
+    loadProfileImage();
+    window.addEventListener("storage", loadProfileImage);
+    window.addEventListener("admin-profile-updated", loadProfileImage);
+
+    return () => {
+      window.removeEventListener("storage", loadProfileImage);
+      window.removeEventListener("admin-profile-updated", loadProfileImage);
+    };
+  }, [profileImageStorageKey]);
+
   return (
     <header className="admin-topnav">
       <div className="admin-brand">
         <div className="admin-brand-logo">
-          <span className="admin-brand-smile">◡</span>
+          <Image
+            src="/logo-ui.png"
+            alt="Syntrix logo"
+            width={44}
+            height={44}
+            className="h-11 w-11 object-contain"
+            priority
+          />
         </div>
-        <span className="admin-brand-text">Syntrix</span>
       </div>
 
       <nav className="admin-topnav-menu">
         {navItems.map((item) => (
-          <a
-            key={item}
-            href="#"
-            className={item === "Subscriptions" ? "active" : ""}
+          <Link
+            key={item.label}
+            href={item.href}
+            className={pathname === item.href ? "active" : ""}
           >
-            {item}
-          </a>
+            {item.label}
+          </Link>
         ))}
       </nav>
 
       <div className="admin-topnav-actions">
-        <button className="admin-circle-btn with-text">
-          <span className="admin-icon">⚙</span>
+        <Link href="/admin-settings" className="admin-circle-btn with-text">
+          <Settings className="admin-icon-svg" />
           Setting
-        </button>
-        <button className="admin-circle-btn" aria-label="Notifications">
-          <span className="admin-icon">🔔</span>
-        </button>
-        <button className="admin-circle-btn" aria-label="Profile">
-          <span className="admin-icon">◌</span>
-        </button>
+        </Link>
+
+        <Link href="/admin/notification" className="admin-circle-btn" aria-label="Notifications">
+          <Bell className="admin-icon-svg" />
+        </Link>
+
+        <Link href="/admin/profile" className="admin-circle-btn" aria-label="Profile">
+          {profileImage ? (
+            <img
+              src={profileImage}
+              alt="Profile"
+              className="h-11 w-11 rounded-full object-cover"
+            />
+          ) : (
+            <CircleUserRound className="admin-icon-svg" />
+          )}
+        </Link>
       </div>
     </header>
   );
 }
+
+
+

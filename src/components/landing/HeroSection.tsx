@@ -1,6 +1,6 @@
 export default function HeroSection() {
   return (
-    <section className="hero-section">
+    <section id="platform" className="hero-section">
       <div className="container hero-grid">
         <div className="hero-content fade-up">
           <div className="eyebrow-pill">● SYNTRIX ACTIVE</div>

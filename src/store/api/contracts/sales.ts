@@ -47,3 +47,14 @@ export interface SaleWriteInput {
   quantity: number;
   soldAt: string;
 }
+
+export interface ProductSyncMeta {
+  action: "created" | "unchanged" | "suggestion_created" | "suggestion_exists";
+  productId: string;
+  suggestionId?: string;
+}
+
+export interface SaleMutationResponse {
+  sale: SalesListItem;
+  productSync?: ProductSyncMeta;
+}
