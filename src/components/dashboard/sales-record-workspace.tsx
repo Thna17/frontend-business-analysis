@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
   Download,
+  Link2,
+  Mic,
   Pencil,
   Plus,
+  RefreshCcw,
   Search,
+  Square,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,10 +29,19 @@ import {
 import {
   type SaleWriteInput,
   type SalesListItem,
+  type VoiceSaleDraftEntry,
+  type VoiceSaleJob,
+  useCancelVoiceJobMutation,
+  useConfirmVoiceJobMutation,
+  useCreateTelegramLinkCodeMutation,
+  useCreateVoiceJobMutation,
   useCreateSaleMutation,
   useDeleteSaleMutation,
+  useGetTelegramLinkStatusQuery,
   useGetSaleProductSuggestionsQuery,
   useGetSalesQuery,
+  useGetVoiceJobsQuery,
+  useRetryVoiceJobMutation,
   useUpdateSaleMutation,
 } from "@/store/api";
 
@@ -43,6 +57,16 @@ interface RecordForm {
   quantity: string;
   price: string;
   soldAt: string;
+}
+
+interface DraftEntryForm {
+  productName: string;
+  category: string;
+  quantity: string;
+  price: string;
+  soldAt: string;
+  confidence: number;
+  notes: string;
 }
 
 const pageSize = 8;
@@ -70,6 +94,18 @@ function toDateInput(value: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+function mapDraftToForm(entry: VoiceSaleDraftEntry): DraftEntryForm {
+  return {
+    productName: entry.productName,
+    category: entry.category,
+    quantity: String(entry.quantity),
+    price: String(entry.price),
+    soldAt: toDateInput(entry.soldAt),
+    confidence: entry.confidence,
+    notes: entry.notes ?? "",
+  };
+}
+
 function serializePayload(form: RecordForm): SaleWriteInput | null {
   const price = Number(form.price);
   const quantity = Number(form.quantity);
@@ -94,7 +130,27 @@ function serializePayload(form: RecordForm): SaleWriteInput | null {
   };
 }
 
+function formatRecordingDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function productSyncNotice(action?: "created" | "unchanged" | "suggestion_created" | "suggestion_exists") {
+  if (!action) return null;
+  if (action === "created") return "Product catalog updated: new product was created automatically.";
+  if (action === "suggestion_created" || action === "suggestion_exists") {
+    return "Product mismatch detected. Review pending update in Product Management.";
+  }
+  return null;
+}
+
 export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceProps) {
+  const voiceInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<BlobPart[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [sortBy, setSortBy] = useState<SortFilter>("newest");
@@ -106,6 +162,14 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
   const [editingSale, setEditingSale] = useState<SalesListItem | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [customProductName, setCustomProductName] = useState("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [voiceSuccess, setVoiceSuccess] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [draftRows, setDraftRows] = useState<DraftEntryForm[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [isRecorderSupported, setIsRecorderSupported] = useState(true);
+  const [voiceJobModalOpen, setVoiceJobModalOpen] = useState(false);
   const [form, setForm] = useState<RecordForm>({
     productName: "",
     category: "",
@@ -139,6 +203,57 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
   const [createSale, { isLoading: isCreating }] = useCreateSaleMutation();
   const [updateSale, { isLoading: isUpdating }] = useUpdateSaleMutation();
   const [deleteSale, { isLoading: isDeleting }] = useDeleteSaleMutation();
+  const [createVoiceJob, { isLoading: isCreatingVoiceJob }] = useCreateVoiceJobMutation();
+  const [confirmVoiceJob, { isLoading: isConfirmingVoiceJob }] = useConfirmVoiceJobMutation();
+  const [retryVoiceJob, { isLoading: isRetryingVoiceJob }] = useRetryVoiceJobMutation();
+  const [cancelVoiceJob, { isLoading: isCancellingVoiceJob }] = useCancelVoiceJobMutation();
+  const [createTelegramLinkCode, { isLoading: isGeneratingLinkCode }] = useCreateTelegramLinkCodeMutation();
+
+  const { data: telegramLinkStatus } = useGetTelegramLinkStatusQuery();
+  const {
+    data: voiceJobsResponse,
+    isFetching: isVoiceJobsFetching,
+  } = useGetVoiceJobsQuery(
+    { page: 1, limit: 12 },
+    {
+      pollingInterval: 5000,
+    },
+  );
+
+  const voiceJobs = voiceJobsResponse?.items ?? [];
+  const selectedVoiceJob: VoiceSaleJob | null = useMemo(() => {
+    if (!selectedJobId) {
+      return voiceJobs[0] ?? null;
+    }
+    return voiceJobs.find((job) => job.id === selectedJobId) ?? null;
+  }, [selectedJobId, voiceJobs]);
+
+  useEffect(() => {
+    const supported = typeof window !== "undefined"
+      && typeof window.MediaRecorder !== "undefined"
+      && !!navigator.mediaDevices?.getUserMedia;
+    setIsRecorderSupported(supported);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedVoiceJob) {
+      setDraftRows([]);
+      return;
+    }
+    setDraftRows(selectedVoiceJob.draftEntries.map(mapDraftToForm));
+  }, [selectedVoiceJob?.id, selectedVoiceJob?.draftEntries]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   const categories = useMemo(() => {
     const set = new Set((salesResponse?.items ?? []).map((item) => item.category));
@@ -240,9 +355,19 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
 
     try {
       if (editingSale) {
-        await updateSale({ id: editingSale.id, body: payload }).unwrap();
+        const response = await updateSale({ id: editingSale.id, body: payload }).unwrap();
+        const notice = productSyncNotice(response.productSync?.action);
+        if (notice) {
+          setVoiceSuccess(notice);
+          setVoiceError(null);
+        }
       } else {
-        await createSale(payload).unwrap();
+        const response = await createSale(payload).unwrap();
+        const notice = productSyncNotice(response.productSync?.action);
+        if (notice) {
+          setVoiceSuccess(notice);
+          setVoiceError(null);
+        }
       }
       setOpen(false);
       void refetch();
@@ -281,9 +406,309 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
     URL.revokeObjectURL(url);
   };
 
+  const stopRecordingStream = () => {
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current = null;
+  };
+
+  const uploadVoiceFile = async (file: File) => {
+    const created = await createVoiceJob({ file }).unwrap();
+    setSelectedJobId(created.id);
+    setVoiceSuccess("Voice captured. Transcription and extraction are running.");
+    setVoiceError(null);
+    setVoiceJobModalOpen(true);
+  };
+
+  const onClickVoiceUpload = () => {
+    setVoiceError(null);
+    setVoiceSuccess(null);
+    voiceInputRef.current?.click();
+  };
+
+  const onVoiceFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadVoiceFile(file);
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setVoiceError(message || "Unable to process voice input right now.");
+      setVoiceSuccess(null);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const onStartRecording = async () => {
+    if (!isRecorderSupported || isCreatingVoiceJob || isRecording) return;
+    setVoiceError(null);
+    setVoiceSuccess(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
+      recordingChunksRef.current = [];
+      setRecordingSeconds(0);
+
+      const preferredMime = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+      ].find((type) => MediaRecorder.isTypeSupported(type));
+
+      const recorder = preferredMime
+        ? new MediaRecorder(stream, { mimeType: preferredMime })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setVoiceError("Recording failed. Please try again.");
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(recordingChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+
+        stopRecordingStream();
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+
+        if (!blob.size) {
+          setVoiceError("No audio captured. Please record again.");
+          return;
+        }
+
+        const extension = recorder.mimeType.includes("mp4") ? "m4a" : "webm";
+        const file = new File([blob], `voice-record-${Date.now()}.${extension}`, {
+          type: recorder.mimeType || "audio/webm",
+        });
+
+        try {
+          await uploadVoiceFile(file);
+        } catch (error) {
+          const message = (error as { data?: { message?: string } })?.data?.message;
+          setVoiceError(message || "Unable to process recorded voice.");
+          setVoiceSuccess(null);
+        }
+      };
+
+      recorder.start(300);
+      setIsRecording(true);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Microphone permission denied.";
+      setVoiceError(message);
+      setVoiceSuccess(null);
+      stopRecordingStream();
+      setIsRecording(false);
+    }
+  };
+
+  const onStopRecording = () => {
+    if (!isRecording) return;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      return;
+    }
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    stopRecordingStream();
+  };
+
+  const onGenerateTelegramCode = async () => {
+    try {
+      const result = await createTelegramLinkCode().unwrap();
+      window.open(result.deepLinkUrl, "_blank", "noopener,noreferrer");
+      setVoiceSuccess(
+        `Connecting Telegram... if Telegram didn't open, use /link ${result.code} (expires ${formatDate(result.expiresAt)}).`,
+      );
+      setVoiceError(null);
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setVoiceError(message || "Unable to generate Telegram link code.");
+      setVoiceSuccess(null);
+    }
+  };
+
+  const onDraftChange = (index: number, field: keyof DraftEntryForm, value: string | number) => {
+    setDraftRows((prev) =>
+      prev.map((row, rowIndex) =>
+        rowIndex === index
+          ? {
+            ...row,
+            [field]: value,
+          }
+          : row,
+      ),
+    );
+  };
+
+  const onConfirmDrafts = async () => {
+    if (!selectedVoiceJob) return;
+
+    const entries = draftRows.map((row) => ({
+      productName: row.productName.trim(),
+      category: row.category.trim(),
+      quantity: Number(row.quantity),
+      price: Number(row.price),
+      soldAt: new Date(row.soldAt).toISOString(),
+      confidence: Number(row.confidence),
+      notes: row.notes.trim() || null,
+    }));
+
+    try {
+      const result = await confirmVoiceJob({
+        id: selectedVoiceJob.id,
+        body: {
+          entries,
+        },
+      }).unwrap();
+      const hasSuggestions = (result.productSync?.suggestionCreated ?? 0) + (result.productSync?.suggestionExists ?? 0) > 0;
+      const hasCreated = (result.productSync?.created ?? 0) > 0;
+      if (hasSuggestions) {
+        setVoiceSuccess("Draft sales saved. Some product updates need review in Product Management.");
+      } else if (hasCreated) {
+        setVoiceSuccess("Draft sales saved. New products were added to Product Management.");
+      } else {
+        setVoiceSuccess("Draft sales confirmed and added to your records.");
+      }
+      setVoiceError(null);
+      void refetch();
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setVoiceError(message || "Unable to confirm draft entries.");
+      setVoiceSuccess(null);
+    }
+  };
+
+  const onRetryVoiceJob = async () => {
+    if (!selectedVoiceJob) return;
+    try {
+      await retryVoiceJob(selectedVoiceJob.id).unwrap();
+      setVoiceSuccess("Retry started. Please wait for extraction.");
+      setVoiceError(null);
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setVoiceError(message || "Unable to retry extraction.");
+      setVoiceSuccess(null);
+    }
+  };
+
+  const onCancelVoiceJob = async () => {
+    if (!selectedVoiceJob) return;
+    try {
+      await cancelVoiceJob(selectedVoiceJob.id).unwrap();
+      setVoiceSuccess("Voice job cancelled.");
+      setVoiceError(null);
+    } catch (error) {
+      const message = (error as { data?: { message?: string } })?.data?.message;
+      setVoiceError(message || "Unable to cancel voice job.");
+      setVoiceSuccess(null);
+    }
+  };
+
   return (
-    <section className="dashboard-surface overflow-hidden border-border/80 bg-card/90 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
-      <div className="border-b border-border/80 bg-gradient-to-r from-accent/35 via-transparent to-accent/15 px-6 py-5 md:px-7">
+    <section className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
+      <input
+        ref={voiceInputRef}
+        type="file"
+        accept="audio/*,video/*"
+        className="hidden"
+        onChange={(event) => {
+          void onVoiceFileSelected(event);
+        }}
+      />
+
+      <div className="border-b border-[#edf1f5] bg-[#fbfcfd] px-6 py-4 md:px-7">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[#344054]">Voice to Sales Assistant</p>
+            <p className="mt-1 text-sm text-[#667085]">
+              Record your sale in real time or link Telegram via <code>/link &lt;code&gt;</code> to generate drafts automatically.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-xl border-[#dfe3e8] px-4 text-sm text-[#344054]"
+              onClick={onGenerateTelegramCode}
+              disabled={isGeneratingLinkCode}
+            >
+              <Link2 className="size-4" />
+              {telegramLinkStatus?.linked ? "Reconnect Telegram" : "Connect Telegram"}
+            </Button>
+            <Button
+              type="button"
+              className={`h-10 rounded-xl px-4 text-sm text-white ${
+                isRecording
+                  ? "bg-[#b42318] hover:bg-[#912018]"
+                  : "bg-[#0f172a] hover:bg-[#111d3a]"
+              }`}
+              onClick={isRecording ? onStopRecording : () => void onStartRecording()}
+              disabled={isCreatingVoiceJob || (!isRecording && !isRecorderSupported)}
+            >
+              {isRecording ? <Square className="size-4" /> : <Mic className="size-4" />}
+              {isRecording
+                ? `Stop (${formatRecordingDuration(recordingSeconds)})`
+                : isCreatingVoiceJob
+                  ? "Processing..."
+                  : "Start Recording"}
+            </Button>
+            {!isRecorderSupported ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-sm text-[#344054]"
+                onClick={onClickVoiceUpload}
+                disabled={isCreatingVoiceJob}
+              >
+                <Upload className="size-4" />
+                Upload Audio File
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        {telegramLinkStatus ? (
+          <p className="mt-3 text-sm text-[#667085]">
+            Telegram Status:{" "}
+            <span className={telegramLinkStatus.linked ? "font-semibold text-[#067647]" : "font-semibold text-[#b54708]"}>
+              {telegramLinkStatus.linked ? `Linked (${telegramLinkStatus.chatId ?? "unknown"})` : "Not linked"}
+            </span>
+          </p>
+        ) : null}
+        {voiceError ? (
+          <p className="mt-3 rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">
+            {voiceError}
+          </p>
+        ) : null}
+        {voiceSuccess ? (
+          <p className="mt-3 rounded-lg border border-[#d1fadf] bg-[#ecfdf3] px-3 py-2 text-sm text-[#067647]">
+            {voiceSuccess}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="border-b border-[#edf1f5] px-6 py-5 md:px-7">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
             <div className="relative">
@@ -465,6 +890,175 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
           </Button>
         </div>
       </div>
+
+      <div className="border-t border-[#edf1f5] bg-[#fbfcfd] px-6 py-6 md:px-7">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <h3 className="text-lg font-semibold text-[#101828]">Voice Conversion Job</h3>
+          {isVoiceJobsFetching ? <p className="text-sm text-[#667085]">Updating...</p> : null}
+        </div>
+        {selectedVoiceJob ? (
+          <div className="rounded-xl border border-[#e4e7ec] bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[#101828]">
+                  {selectedVoiceJob.sourceType === "telegram" ? "Telegram Voice/File" : "Web Voice Recording"}
+                </p>
+                <p className="mt-1 text-xs text-[#667085]">
+                  {selectedVoiceJob.createdAt ? formatDate(selectedVoiceJob.createdAt) : "Unknown date"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-[#f2f4f7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em] text-[#475467]">
+                  {selectedVoiceJob.status}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 rounded-lg border-[#dfe3e8] px-3 text-xs"
+                  onClick={() => setVoiceJobModalOpen(true)}
+                >
+                  Open Job
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="rounded-xl border border-dashed border-[#d0d5dd] bg-white px-4 py-6 text-sm text-[#667085]">
+            No voice jobs yet. Record your first sale note or send voice in Telegram after linking your chat.
+          </p>
+        )}
+      </div>
+
+      <Dialog open={voiceJobModalOpen} onOpenChange={setVoiceJobModalOpen}>
+        <DialogContent className="max-h-[92vh] max-w-[920px] overflow-auto rounded-2xl border border-[#e4e7ec] p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+          <DialogHeader className="flex-row items-center justify-between border-b border-[#eceff3] bg-[#f9fafb] px-6 py-4 text-left">
+            <DialogTitle className="text-xl font-semibold tracking-tight text-[#101828]">Voice Conversion Job</DialogTitle>
+            <button
+              type="button"
+              onClick={() => setVoiceJobModalOpen(false)}
+              className="rounded-md p-1.5 text-[#98a2b3] transition-colors hover:bg-white hover:text-[#475467]"
+            >
+              <X className="size-5" />
+            </button>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-5">
+            {selectedVoiceJob ? (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#f2f4f7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.06em] text-[#475467]">
+                    {selectedVoiceJob.status}
+                  </span>
+                  {selectedVoiceJob.status === "failed" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 rounded-lg border-[#dfe3e8] px-3 text-xs"
+                      onClick={() => void onRetryVoiceJob()}
+                      disabled={isRetryingVoiceJob}
+                    >
+                      <RefreshCcw className="size-3.5" />
+                      Retry
+                    </Button>
+                  ) : null}
+                  {selectedVoiceJob.status !== "reviewed" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8 rounded-lg border-[#dfe3e8] px-3 text-xs text-[#b42318]"
+                      onClick={() => void onCancelVoiceJob()}
+                      disabled={isCancellingVoiceJob}
+                    >
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
+
+                {selectedVoiceJob.failureReason ? (
+                  <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">
+                    {selectedVoiceJob.failureReason}
+                  </p>
+                ) : null}
+
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-[#344054]">Transcript</p>
+                  <div className="max-h-32 overflow-auto rounded-lg border border-[#eaecf0] bg-[#f9fafb] p-3 text-sm text-[#475467]">
+                    {selectedVoiceJob.transcriptText || "Transcript not ready yet."}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-[#344054]">Extracted Sales Drafts</p>
+                  {draftRows.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-[#d0d5dd] bg-[#f9fafb] px-3 py-4 text-sm text-[#667085]">
+                      No draft entries yet. Wait for extraction or retry.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {draftRows.map((row, index) => (
+                        <div
+                          key={`${selectedVoiceJob.id}-draft-${index}`}
+                          className="grid gap-2 rounded-lg border border-[#eaecf0] p-3 md:grid-cols-6"
+                        >
+                          <Input
+                            value={row.productName}
+                            onChange={(event) => onDraftChange(index, "productName", event.target.value)}
+                            placeholder="Product"
+                            className="h-10 md:col-span-2"
+                          />
+                          <Input
+                            value={row.category}
+                            onChange={(event) => onDraftChange(index, "category", event.target.value)}
+                            placeholder="Category"
+                            className="h-10"
+                          />
+                          <Input
+                            value={row.quantity}
+                            type="number"
+                            min={1}
+                            onChange={(event) => onDraftChange(index, "quantity", event.target.value)}
+                            placeholder="Qty"
+                            className="h-10"
+                          />
+                          <Input
+                            value={row.price}
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            onChange={(event) => onDraftChange(index, "price", event.target.value)}
+                            placeholder="Price"
+                            className="h-10"
+                          />
+                          <Input
+                            value={row.soldAt}
+                            type="date"
+                            onChange={(event) => onDraftChange(index, "soldAt", event.target.value)}
+                            className="h-10"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    className="h-10 rounded-xl bg-[#0f172a] px-4 text-sm text-white hover:bg-[#111d3a]"
+                    disabled={draftRows.length === 0 || isConfirmingVoiceJob}
+                    onClick={() => void onConfirmDrafts()}
+                  >
+                    {isConfirmingVoiceJob ? "Saving..." : "Confirm to Sales Records"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="rounded-lg border border-dashed border-[#d0d5dd] bg-[#f9fafb] px-3 py-4 text-sm text-[#667085]">
+                No current job selected yet.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-border p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">

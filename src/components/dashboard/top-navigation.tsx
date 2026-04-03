@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, CircleUserRound, LogOut, Settings } from "lucide-react";
+import { Bell, LogOut, Settings } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -12,8 +12,16 @@ import { DashboardNavItem } from "@/features/owner-dashboard/dashboard-mock";
 import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
 import { cn } from "@/lib/utils";
 import { type AppDispatch } from "@/store";
-import { useGetCurrentUserQuery, useGetNotificationsQuery, useLogoutMutation } from "@/store/api";
+import { useGetCurrentUserQuery, useGetNotificationsQuery, useGetSettingsProfileQuery, useLogoutMutation } from "@/store/api";
 import { logout as clearAuthState } from "@/store/slices/authSlice";
+
+const PROFILE_PLACEHOLDER_IMAGE = "https://ui-avatars.com/api/?name=User&background=e5e7eb&color=111827&bold=true&size=128";
+
+function resolveProfileImage(image?: string | null): string {
+  if (!image) return PROFILE_PLACEHOLDER_IMAGE;
+  const normalized = image.trim();
+  return normalized.length > 0 ? normalized : PROFILE_PLACEHOLDER_IMAGE;
+}
 
 interface TopNavigationProps {
   items: DashboardNavItem[];
@@ -35,17 +43,17 @@ export function TopNavigation({
   const pathname = usePathname();
   const [triggerLogout, { isLoading: isLoggingOut }] = useLogoutMutation();
   const { data: currentUser } = useGetCurrentUserQuery();
-  const resolvedProfileHref = profileHref ?? "/profile";
-  const isNotificationActive = Boolean(
-    notificationHref && pathname.startsWith(notificationHref),
-  );
+  const { data: profile } = useGetSettingsProfileQuery();
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const resolvedProfileHref = profileHref ?? "/profile";
+  const isNotificationActive = Boolean(notificationHref && pathname.startsWith(notificationHref));
   const { data: notificationsData } = useGetNotificationsQuery(
     { page: 1, limit: 1, archived: false },
     { skip: !notificationHref },
   );
-  const resolvedNotificationCount =
-    notificationsData?.meta.unreadCount ?? notificationCount;
+
+  const resolvedNotificationCount = notificationsData?.meta.unreadCount ?? notificationCount;
   const profileImageStorageKey = getProfileImageStorageKey(currentUser);
 
   useEffect(() => {
@@ -67,18 +75,20 @@ export function TopNavigation({
       window.removeEventListener("admin-profile-updated", loadProfileImage);
       window.removeEventListener("owner-profile-updated", loadProfileImage);
     };
-  }, [profileImageStorageKey, resolvedProfileHref]);
+  }, [profileImageStorageKey]);
 
   const handleLogout = async () => {
     try {
       await triggerLogout().unwrap();
     } catch {
-      // Continue local logout even when server logout fails.
+      // continue local logout even when server logout fails
     } finally {
       dispatch(clearAuthState());
       router.replace("/login");
     }
   };
+
+  const resolvedImage = resolveProfileImage(profile?.profileImage ?? profileImage);
 
   return (
     <header className="dashboard-container top-navigation-shell pt-6">
@@ -159,6 +169,7 @@ export function TopNavigation({
               <Bell className="size-5" />
             </Button>
           )}
+
           <Button
             asChild
             variant="ghost"
@@ -166,17 +177,17 @@ export function TopNavigation({
             className="size-12 rounded-full border border-border bg-card text-foreground"
           >
             <Link href={resolvedProfileHref} aria-label="Profile">
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="size-10 rounded-full object-cover"
-                />
-              ) : (
-                <CircleUserRound className="size-5" />
-              )}
+              <img
+                src={resolvedImage}
+                alt="Profile"
+                className="size-10 rounded-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.src = PROFILE_PLACEHOLDER_IMAGE;
+                }}
+              />
             </Link>
           </Button>
+
           <Button
             type="button"
             variant="ghost"
