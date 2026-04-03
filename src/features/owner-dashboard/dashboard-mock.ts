@@ -147,7 +147,6 @@ export interface AdminSegmentItem {
 export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
-  // { label: "Telegram", href: "/telegram-records" },
   { label: "Product", href: "/product" },
   { label: "Analytics", href: "/analytics" },
   { label: "Subscriptions", href: "/subscriptions" },

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { api } from "@/store/api";
+import { authApi } from "@/store/api/modules/authApi";
 import {
   loadUserFromStorage,
   logout,
@@ -22,9 +22,25 @@ export function AuthBootstrap() {
       dispatch(setAuthStatus("checking"));
 
       try {
-        const refreshed = await dispatch(
-          api.endpoints.refresh.initiate(undefined),
+        const currentUser = await dispatch(
+          authApi.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
         ).unwrap();
+
+        if (!alive) return;
+
+        dispatch(
+          setCredentials({
+            token: "",
+            user: currentUser,
+          }),
+        );
+        return;
+      } catch {
+        // Fall back to refresh when current user cannot be fetched with existing session state.
+      }
+
+      try {
+        const refreshed = await dispatch(authApi.endpoints.refresh.initiate(undefined)).unwrap();
 
         if (!alive) return;
 
@@ -35,9 +51,6 @@ export function AuthBootstrap() {
           }),
         );
 
-        await dispatch(
-          api.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
-        ).unwrap();
       } catch {
         if (!alive) return;
         dispatch(logout());
