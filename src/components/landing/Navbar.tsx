@@ -1,19 +1,23 @@
+"use client";
+
+import Image from "next/image";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+
 export default function Navbar() {
   return (
     <header className="site-header">
       <div className="container nav-container">
-        {/* ✅ LOGO */}
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-full border border-slate-400 text-slate-700">
-            <span className="text-lg leading-none">◡</span>
-          </div>
-
-          <p className="logo text-2xl font-semibold tracking-tight text-slate-900">
-            Syntrix
-          </p>
+          <Image
+            src="/logo.png"
+            alt="Syntrix logo"
+            width={180}
+            height={88}
+            className="h-[88px] w-auto object-contain"
+            priority
+          />
         </div>
 
-        {/* NAV */}
         <nav className="desktop-nav">
           <a href="#platform" className="active">
             Platform
@@ -22,8 +26,8 @@ export default function Navbar() {
           <a href="#pricing">Pricing</a>
         </nav>
 
-        {/* ACTIONS */}
         <div className="nav-actions">
+          <ThemeToggle className="landing-theme-toggle h-10 px-3 text-sm" />
           <a href="/login" className="signin-link">
             Sign In
           </a>
@@ -35,3 +39,6 @@ export default function Navbar() {
     </header>
   );
 }
+
+
+

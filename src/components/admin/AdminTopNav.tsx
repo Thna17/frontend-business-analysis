@@ -1,9 +1,12 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, CircleUserRound, Settings } from "lucide-react";
+import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
+import { useGetCurrentUserQuery } from "@/store/api";
 
 const navItems = [
   { label: "Dashboard", href: "/admin" },
@@ -14,10 +17,16 @@ const navItems = [
 export default function AdminTopNav() {
   const pathname = usePathname();
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { data: currentUser } = useGetCurrentUserQuery();
+  const profileImageStorageKey = getProfileImageStorageKey(currentUser);
 
   useEffect(() => {
     const loadProfileImage = () => {
-      setProfileImage(localStorage.getItem("adminProfileImage"));
+      if (!profileImageStorageKey) {
+        setProfileImage(null);
+        return;
+      }
+      setProfileImage(localStorage.getItem(profileImageStorageKey));
     };
 
     loadProfileImage();
@@ -28,15 +37,21 @@ export default function AdminTopNav() {
       window.removeEventListener("storage", loadProfileImage);
       window.removeEventListener("admin-profile-updated", loadProfileImage);
     };
-  }, []);
+  }, [profileImageStorageKey]);
 
   return (
     <header className="admin-topnav">
       <div className="admin-brand">
         <div className="admin-brand-logo">
-          <span className="admin-brand-smile" aria-hidden="true">◡</span>
+          <Image
+            src="/logo-ui.png"
+            alt="Syntrix logo"
+            width={44}
+            height={44}
+            className="h-11 w-11 object-contain"
+            priority
+          />
         </div>
-        <span className="admin-brand-text">Syntrix</span>
       </div>
 
       <nav className="admin-topnav-menu">
@@ -76,4 +91,6 @@ export default function AdminTopNav() {
     </header>
   );
 }
+
+
 

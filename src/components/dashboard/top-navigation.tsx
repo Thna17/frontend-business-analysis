@@ -1,13 +1,19 @@
-﻿"use client";
+"use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, CircleUserRound, Settings } from "lucide-react";
+import { Bell, CircleUserRound, LogOut, Settings } from "lucide-react";
+import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { DashboardNavItem } from "@/features/owner-dashboard/dashboard-mock";
+import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
 import { cn } from "@/lib/utils";
-import { useGetNotificationsQuery } from "@/store/api";
+import { type AppDispatch } from "@/store";
+import { useGetCurrentUserQuery, useGetNotificationsQuery, useLogoutMutation } from "@/store/api";
+import { logout as clearAuthState } from "@/store/slices/authSlice";
 
 interface TopNavigationProps {
   items: DashboardNavItem[];
@@ -24,7 +30,11 @@ export function TopNavigation({
   notificationHref = "/notification",
   notificationCount = 0,
 }: TopNavigationProps) {
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
+  const [triggerLogout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const { data: currentUser } = useGetCurrentUserQuery();
   const resolvedProfileHref = profileHref ?? "/profile";
   const isNotificationActive = Boolean(
     notificationHref && pathname.startsWith(notificationHref),
@@ -36,17 +46,15 @@ export function TopNavigation({
   );
   const resolvedNotificationCount =
     notificationsData?.meta.unreadCount ?? notificationCount;
+  const profileImageStorageKey = getProfileImageStorageKey(currentUser);
 
   useEffect(() => {
-    const useAdminProfile = resolvedProfileHref.startsWith("/admin");
-
     const loadProfileImage = () => {
-      const saved = useAdminProfile
-        ? localStorage.getItem("adminProfileImage") ||
-          localStorage.getItem("profileImage")
-        : localStorage.getItem("profileImage") ||
-          localStorage.getItem("adminProfileImage");
-      setProfileImage(saved);
+      if (!profileImageStorageKey) {
+        setProfileImage(null);
+        return;
+      }
+      setProfileImage(localStorage.getItem(profileImageStorageKey));
     };
 
     loadProfileImage();
@@ -59,30 +67,43 @@ export function TopNavigation({
       window.removeEventListener("admin-profile-updated", loadProfileImage);
       window.removeEventListener("owner-profile-updated", loadProfileImage);
     };
-  }, [resolvedProfileHref]);
+  }, [profileImageStorageKey, resolvedProfileHref]);
+
+  const handleLogout = async () => {
+    try {
+      await triggerLogout().unwrap();
+    } catch {
+      // Continue local logout even when server logout fails.
+    } finally {
+      dispatch(clearAuthState());
+      router.replace("/login");
+    }
+  };
 
   return (
-    <header className="dashboard-container pt-6">
+    <header className="dashboard-container top-navigation-shell pt-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-full border border-slate-400 text-slate-700">
-            <span className="text-xl leading-none">◡</span>
-          </div>
-          <p className="font-heading text-3xl leading-none font-semibold tracking-tight text-slate-900 md:text-[2rem]">
-            Syntrix
-          </p>
+          <Image
+            src="/logo.png"
+            alt="Syntrix logo"
+            width={180}
+            height={88}
+            className="h-[88px] w-auto object-contain"
+            priority
+          />
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <nav className="rounded-full bg-white px-2 py-3">
+          <nav className="rounded-full border border-border bg-card px-2 py-3">
             <ul className="flex items-center gap-1">
               {items.map((item) => (
                 <li key={item.label}>
                   <Link
                     href={item.href ?? "#"}
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium text-slate-900 transition-colors",
-                      item.href && pathname === item.href && "bg-slate-800 text-white",
+                      "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors",
+                      item.href && pathname === item.href && "bg-foreground text-background",
                       !item.href && "cursor-default opacity-90",
                     )}
                     aria-disabled={!item.href}
@@ -98,8 +119,9 @@ export function TopNavigation({
             asChild
             variant="ghost"
             className={cn(
-              "h-12 rounded-full bg-white px-4 text-sm text-slate-900",
-              pathname === settingsHref && "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
+              "h-12 rounded-full border border-border bg-card px-4 text-sm text-foreground",
+              pathname === settingsHref &&
+                "bg-foreground text-background hover:bg-foreground/90 hover:text-background",
             )}
           >
             <Link href={settingsHref}>
@@ -107,15 +129,16 @@ export function TopNavigation({
               Setting
             </Link>
           </Button>
+          <ThemeToggle />
           {notificationHref ? (
             <Button
               asChild
               variant="ghost"
               size="icon"
               className={cn(
-                "relative size-12 rounded-full bg-white text-slate-900",
+                "relative size-12 rounded-full border border-border bg-card text-foreground",
                 isNotificationActive &&
-                  "bg-slate-800 text-white hover:bg-slate-700 hover:text-white",
+                  "bg-foreground text-background hover:bg-foreground/90 hover:text-background",
               )}
             >
               <Link href={notificationHref} aria-label="Notifications">
@@ -131,7 +154,7 @@ export function TopNavigation({
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full bg-white text-slate-900"
+              className="size-12 rounded-full border border-border bg-card text-foreground"
             >
               <Bell className="size-5" />
             </Button>
@@ -140,7 +163,7 @@ export function TopNavigation({
             asChild
             variant="ghost"
             size="icon"
-            className="size-12 rounded-full bg-white text-slate-900"
+            className="size-12 rounded-full border border-border bg-card text-foreground"
           >
             <Link href={resolvedProfileHref} aria-label="Profile">
               {profileImage ? (
@@ -153,6 +176,16 @@ export function TopNavigation({
                 <CircleUserRound className="size-5" />
               )}
             </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-12 rounded-full border border-border bg-card px-4 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            <LogOut className="size-5" />
+            {isLoggingOut ? "Logging out..." : "Logout"}
           </Button>
         </div>
       </div>
