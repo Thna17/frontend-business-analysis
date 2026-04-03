@@ -90,13 +90,13 @@ export function OwnerDashboardWorkspace() {
       </section>
 
       {!hasBusinessProfile ? (
-        <section className="dashboard-surface border-[#e7e9ee] p-7">
+        <section className="dashboard-surface p-7">
           <h3 className="dashboard-section-title text-xl">Get Started</h3>
-          <p className="mt-2 text-sm text-[#667085]">
+          <p className="mt-2 text-sm text-muted-foreground">
             Create your business profile first to unlock full dashboard analytics.
           </p>
           <div className="mt-5 flex gap-3">
-            <Button asChild className="rounded-xl bg-slate-900 text-white hover:bg-slate-800">
+            <Button asChild className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/settings">Create Business Profile</Link>
             </Button>
           </div>
@@ -104,9 +104,9 @@ export function OwnerDashboardWorkspace() {
       ) : null}
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {isOverviewLoading
-          ? Array.from({ length: 4 }).map((_, index) => (
-            <div key={`metric-skeleton-${index}`} className="dashboard-kpi-card border-[#e7e9ee]">
+          {isOverviewLoading
+            ? Array.from({ length: 4 }).map((_, index) => (
+            <div key={`metric-skeleton-${index}`} className="dashboard-kpi-card">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="mt-7 h-10 w-36" />
               <Skeleton className="mt-4 h-4 w-24" />
@@ -128,13 +128,13 @@ export function OwnerDashboardWorkspace() {
       </section>
 
       {noSales ? (
-        <section className="dashboard-surface border-[#e7e9ee] p-7">
+        <section className="dashboard-surface p-7">
           <h3 className="dashboard-section-title text-xl">No Sales Data Yet</h3>
-          <p className="mt-2 text-sm text-[#667085]">
+          <p className="mt-2 text-sm text-muted-foreground">
             Add your first sale record to start generating live insights for revenue trends and product performance.
           </p>
           <div className="mt-5 flex gap-3">
-            <Button asChild className="rounded-xl bg-slate-900 text-white hover:bg-slate-800">
+            <Button asChild className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/sale-record">Add First Sale</Link>
             </Button>
             <Button

@@ -35,14 +35,14 @@ function MetricIcon({ icon }: Pick<MetricItem, "icon">) {
 
 export function KpiCard({ item }: KpiCardProps) {
   return (
-    <Card className="dashboard-kpi-card border-[#e7e9ee] shadow-none">
+    <Card className="dashboard-kpi-card shadow-none">
       <CardContent className="p-0">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-medium text-[#667085]">{item.title}</p>
+          <p className="text-sm font-medium text-muted-foreground">{item.title}</p>
           <MetricIcon icon={item.icon} />
         </div>
 
-        <p className="mt-7 text-[1.95rem] font-semibold tracking-tight text-[#101828]">{item.value}</p>
+        <p className="mt-7 text-[1.95rem] font-semibold tracking-tight text-foreground">{item.value}</p>
 
         <div className="mt-3 flex items-center gap-2 text-sm">
           {item.change ? (
@@ -50,7 +50,7 @@ export function KpiCard({ item }: KpiCardProps) {
               {item.change}
             </span>
           ) : null}
-          <span className="text-[#98a2b3]">{item.compareLabel}</span>
+          <span className="text-muted-foreground">{item.compareLabel}</span>
         </div>
       </CardContent>
     </Card>

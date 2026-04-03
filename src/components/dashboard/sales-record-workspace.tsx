@@ -282,14 +282,14 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
   };
 
   return (
-    <section className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
-      <div className="border-b border-[#edf1f5] px-6 py-5 md:px-7">
+    <section className="dashboard-surface overflow-hidden border-border/80 bg-card/90 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+      <div className="border-b border-border/80 bg-gradient-to-r from-accent/35 via-transparent to-accent/15 px-6 py-5 md:px-7">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] pl-10 text-[15px]"
+                className="h-11 rounded-xl border-border bg-background/80 pl-10 text-[15px]"
                 placeholder="Search records..."
                 value={search}
                 onChange={(event) => {
@@ -306,7 +306,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
+              <SelectTrigger className="h-11 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -319,8 +319,8 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-2 rounded-xl border border-[#dfe3e8] bg-[#f6f7f9] px-3">
-              <CalendarDays className="size-4 text-[#98a2b3]" />
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
+              <CalendarDays className="size-4 text-muted-foreground" />
               <Input
                 type="date"
                 value={startDate}
@@ -331,8 +331,8 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                 className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
               />
             </div>
-            <div className="flex items-center gap-2 rounded-xl border border-[#dfe3e8] bg-[#f6f7f9] px-3">
-              <CalendarDays className="size-4 text-[#98a2b3]" />
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
+              <CalendarDays className="size-4 text-muted-foreground" />
               <Input
                 type="date"
                 value={endDate}
@@ -345,7 +345,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
             </div>
 
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortFilter)}>
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-[15px] text-[#344054]">
+              <SelectTrigger className="h-11 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
                 <SelectValue />
                 <ChevronDown className="size-4" />
               </SelectTrigger>
@@ -361,7 +361,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              className="h-11 rounded-xl border-[#dfe3e8] bg-white px-4 text-[15px] text-[#344054]"
+              className="h-11 rounded-xl border-border bg-card px-4 text-[15px] text-foreground"
               onClick={exportCsv}
               disabled={isLoading || sortedRows.length === 0}
             >
@@ -369,7 +369,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               Export
             </Button>
             <Button
-              className="h-11 rounded-xl bg-[#0f172a] px-5 text-[15px] text-white hover:bg-[#111d3a]"
+              className="h-11 rounded-xl bg-primary px-5 text-[15px] text-primary-foreground hover:bg-primary/90"
               onClick={openCreateModal}
             >
               <Plus className="size-4" />
@@ -381,7 +381,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left">
-          <thead className="bg-[#f5f6f8] text-xs font-semibold tracking-[0.06em] text-[#667085] uppercase">
+          <thead className="bg-muted/70 text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
             <tr>
               <th className="px-6 py-4">Product</th>
               <th className="px-5 py-4">Category</th>
@@ -393,28 +393,38 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               <th className="px-5 py-4">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#eef1f4] bg-white">
+          <tbody className="divide-y divide-border/70 bg-card">
             {sortedRows.map((row) => (
-              <tr key={row.id}>
-                <td className="px-6 py-4 text-base font-semibold text-[#101828]">{row.productName}</td>
-                <td className="px-5 py-4 text-base text-[#667085]">{row.category}</td>
-                <td className="px-5 py-4 text-base text-[#667085]">{row.quantity}</td>
-                <td className="px-5 py-4 text-base text-[#667085]">{formatMoney(row.price, currency)}</td>
-                <td className="px-5 py-4 text-base font-semibold text-[#101828]">
+              <tr key={row.id} className="transition-colors hover:bg-accent/25">
+                <td className="px-6 py-4 text-base font-semibold text-foreground">{row.productName}</td>
+                <td className="px-5 py-4 text-base text-muted-foreground">{row.category}</td>
+                <td className="px-5 py-4 text-base text-muted-foreground">{row.quantity}</td>
+                <td className="px-5 py-4 text-base text-muted-foreground">{formatMoney(row.price, currency)}</td>
+                <td className="px-5 py-4 text-base font-semibold text-foreground">
                   {formatMoney(row.price * row.quantity, currency)}
                 </td>
-                <td className="px-5 py-4 text-base text-[#667085]">{formatDate(row.soldAt)}</td>
+                <td className="px-5 py-4 text-base text-muted-foreground">{formatDate(row.soldAt)}</td>
                 <td className="px-5 py-4">
-                  <span className="inline-flex rounded-full bg-[#d7f2e3] px-3 py-1 text-base font-medium text-[#067647]">
+                  <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
                     Completed
                   </span>
                 </td>
                 <td className="px-5 py-4">
-                  <div className="flex items-center gap-3 text-[#98a2b3]">
-                    <button type="button" onClick={() => openEditModal(row)} disabled={isDeleting}>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(row)}
+                      disabled={isDeleting}
+                      className="rounded-lg p-2 transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
                       <Pencil className="size-5" />
                     </button>
-                    <button type="button" onClick={() => void handleDelete(row.id)} disabled={isDeleting}>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(row.id)}
+                      disabled={isDeleting}
+                      className="rounded-lg p-2 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                    >
                       <Trash2 className="size-5" />
                     </button>
                   </div>
@@ -423,7 +433,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
             ))}
             {!isLoading && sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-9 text-center text-sm text-[#667085]">
+                <td colSpan={8} className="px-6 py-9 text-center text-sm text-muted-foreground">
                   No sale records found.
                 </td>
               </tr>
@@ -432,22 +442,22 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
         </table>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-[#edf1f5] px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
-        <p className="text-[15px] text-[#667085]">
+      <div className="flex flex-col gap-4 border-t border-border/80 px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
+        <p className="text-[15px] text-muted-foreground">
           Showing {salesResponse?.meta.total ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
           {Math.min(currentPage * pageSize, salesResponse?.meta.total ?? 0)} of {salesResponse?.meta.total ?? 0} entries
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-[15px] text-[#667085]"
+            className="h-10 rounded-xl border-border bg-card px-4 text-[15px] text-muted-foreground"
             disabled={currentPage <= 1 || isFetching}
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           >
             Previous
           </Button>
           <Button
-            className="h-10 rounded-xl bg-[#0f172a] px-5 text-[15px] text-white hover:bg-[#111d3a]"
+            className="h-10 rounded-xl bg-primary px-5 text-[15px] text-primary-foreground hover:bg-primary/90"
             disabled={!salesResponse?.meta.hasNextPage || isFetching}
             onClick={() => setCurrentPage((prev) => prev + 1)}
           >
@@ -457,15 +467,15 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-[#e4e7ec] p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
-          <DialogHeader className="flex-row items-center justify-between border-b border-[#eceff3] bg-[#f9fafb] px-6 py-4 text-left">
-            <DialogTitle className="text-2xl font-semibold tracking-tight text-[#101828]">
+        <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-border p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+          <DialogHeader className="flex-row items-center justify-between border-b border-border bg-accent/25 px-6 py-4 text-left">
+            <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">
               {editingSale ? "Update Sales Record" : "Add New Sales Record"}
             </DialogTitle>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-md p-1.5 text-[#98a2b3] transition-colors hover:bg-white hover:text-[#475467]"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
             >
               <X className="size-6" />
             </button>
@@ -473,13 +483,13 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
 
           <div className="grid gap-4.5 px-6 py-6">
             <div className="grid gap-2.5">
-              <label className="text-sm font-semibold text-[#344054]" htmlFor="product-select">
+              <label className="text-sm font-semibold text-foreground" htmlFor="product-select">
                 Product Name
               </label>
               <Select value={form.productName || "__custom"} onValueChange={handleProductSelect}>
                 <SelectTrigger
                   id="product-select"
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground"
                 >
                   <SelectValue placeholder={isProductsFetching ? "Loading products..." : "Select product"} />
                 </SelectTrigger>
@@ -497,25 +507,25 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                   value={customProductName}
                   onChange={(event) => setCustomProductName(event.target.value)}
                   placeholder="Type custom product name"
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054] placeholder:text-[#98a2b3]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground placeholder:text-muted-foreground"
                 />
               ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="category">
+                <label className="text-sm font-semibold text-foreground" htmlFor="category">
                   Category
                 </label>
                 <Input
                   id="category"
                   value={form.category}
                   onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground"
                 />
               </div>
               <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="quantity">
+                <label className="text-sm font-semibold text-foreground" htmlFor="quantity">
                   Quantity
                 </label>
                 <Input
@@ -524,14 +534,14 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                   min={1}
                   value={form.quantity}
                   onChange={(event) => setForm((prev) => ({ ...prev, quantity: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="price">
+                <label className="text-sm font-semibold text-foreground" htmlFor="price">
                   Price
                 </label>
                 <Input
@@ -541,12 +551,12 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                   step="0.01"
                   value={form.price}
                   onChange={(event) => setForm((prev) => ({ ...prev, price: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054] placeholder:text-[#98a2b3]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground placeholder:text-muted-foreground"
                   placeholder="0.00"
                 />
               </div>
               <div className="grid gap-2.5">
-                <label className="text-sm font-semibold text-[#344054]" htmlFor="date">
+                <label className="text-sm font-semibold text-foreground" htmlFor="date">
                   Date
                 </label>
                 <Input
@@ -554,13 +564,13 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                   type="date"
                   value={form.soldAt}
                   onChange={(event) => setForm((prev) => ({ ...prev, soldAt: event.target.value }))}
-                  className="h-12 rounded-xl border-[#dfe3e8] bg-white text-base text-[#344054]"
+                  className="h-12 rounded-xl border-border bg-card text-base text-foreground"
                 />
               </div>
             </div>
 
             {formError ? (
-              <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
                 {formError}
               </p>
             ) : null}
@@ -569,12 +579,12 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
-                className="h-11 rounded-xl border-[#dfe3e8] bg-white px-6 text-base text-[#475467]"
+                className="h-11 rounded-xl border-border bg-card px-6 text-base text-muted-foreground"
               >
                 Cancel
               </Button>
               <Button
-                className="h-11 rounded-xl bg-[#0f172a] px-7 text-base text-white shadow-[0_8px_20px_rgba(15,23,42,0.18)] hover:bg-[#111d3a]"
+                className="h-11 rounded-xl bg-primary px-7 text-base text-primary-foreground shadow-[0_8px_20px_rgba(15,23,42,0.18)] hover:bg-primary/90"
                 onClick={() => void handleSave()}
                 disabled={isCreating || isUpdating}
               >

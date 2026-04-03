@@ -83,20 +83,20 @@ export function RevenueAnalyticsCard({
   });
 
   return (
-    <Card className="dashboard-surface border-[#e7e9ee] shadow-none">
+    <Card className="dashboard-surface shadow-none">
       <CardHeader className="flex flex-row items-start justify-between px-7 pb-0 pt-7">
         <div>
           <CardTitle className="dashboard-section-title">
             Revenue Analytics
           </CardTitle>
-          <p className="mt-1 text-[15px] text-[#667085]">
+          <p className="mt-1 text-[15px] text-muted-foreground">
             Monthly revenue trends for the last 6 months
           </p>
         </div>
 
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-xl border border-[#eaecf0] bg-[#f7f8fa] px-4 py-2 text-[15px] text-[#344054]"
+          className="inline-flex items-center gap-1 rounded-xl border border-border bg-background/70 px-4 py-2 text-[15px] text-foreground"
           onClick={() => {
             if (!onRangeChange || isLoading) return;
             onRangeChange(range === "6m" ? "12m" : "6m");
@@ -125,7 +125,7 @@ export function RevenueAnalyticsCard({
                 y1={y}
                 x2={chartWidth - rightPadding}
                 y2={y}
-                stroke="#edf0f5"
+                stroke="rgba(255,255,255,0.35)"
                 strokeDasharray="6 6"
               />
             ))}
@@ -138,7 +138,7 @@ export function RevenueAnalyticsCard({
               <path
                 d={linePath}
                 fill="none"
-                stroke="#cba52b"
+                stroke="var(--primary)"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -151,11 +151,11 @@ export function RevenueAnalyticsCard({
                 cx={point.x}
                 cy={point.y}
                 r="5"
-                fill="#d4af35"
+                fill="var(--primary)"
               />
             ))}
 
-            <g fill="#98a2b3" fontSize="18">
+            <g fill="currentColor" className="text-foreground" fontSize="18">
               {chartPoints.map((point, index) => (
                 <text
                   key={index}
