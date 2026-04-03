@@ -65,3 +65,23 @@ export interface OwnerProductsOverviewResponse {
     percent: number;
   }>;
 }
+
+export type ProductUpdateSuggestionStatus = "pending" | "approved" | "rejected";
+export type ProductUpdateSuggestionSource = "manual" | "voice" | "telegram";
+
+export interface ProductUpdateSuggestionItem {
+  id: string;
+  ownerUserId: string;
+  productId: string;
+  productName: string;
+  currentCategory: string;
+  currentUnitPrice: number;
+  proposedCategory: string;
+  proposedUnitPrice: number;
+  source: ProductUpdateSuggestionSource;
+  saleId: string | null;
+  status: ProductUpdateSuggestionStatus;
+  resolvedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
