@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronDown, Search } from "lucide-react";
+import { CalendarDays, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,10 +19,8 @@ interface RecentSalesCardProps {
   category: string;
   onCategoryChange: (value: string) => void;
   categories: string[];
-  startDate: string;
-  endDate: string;
-  onStartDateChange: (value: string) => void;
-  onEndDateChange: (value: string) => void;
+  date: string;
+  onDateChange: (value: string) => void;
   page: number;
   total: number;
   pageSize: number;
@@ -39,10 +37,8 @@ export function RecentSalesCard({
   category,
   onCategoryChange,
   categories,
-  startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange,
+  date,
+  onDateChange,
   page,
   total,
   pageSize,
@@ -89,24 +85,16 @@ export function RecentSalesCard({
             </SelectContent>
           </Select>
 
-          <div className="flex items-center gap-2">
+          <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background/70 px-3">
             <CalendarDays className="size-4 text-muted-foreground" />
             <Input
               type="date"
-              value={startDate}
-              onChange={(event) => onStartDateChange(event.target.value)}
-              className="h-11 rounded-xl border-border bg-background/70 text-[15px] text-foreground"
+              value={date}
+              onChange={(event) => onDateChange(event.target.value)}
+              className="h-full border-0 bg-transparent px-0 text-[15px] text-foreground shadow-none focus-visible:ring-0"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <ChevronDown className="size-4 rotate-[-90deg] text-muted-foreground" />
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(event) => onEndDateChange(event.target.value)}
-              className="h-11 rounded-xl border-border bg-background/70 text-[15px] text-foreground"
-            />
-          </div>
+
         </div>
       </div>
 

@@ -13,10 +13,16 @@ import { useEntitlements } from "@/features/subscriptions/use-entitlements";
 import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
 import { cn } from "@/lib/utils";
 import { type AppDispatch } from "@/store";
-import { useGetCurrentUserQuery, useGetNotificationsQuery, useGetSettingsProfileQuery, useLogoutMutation } from "@/store/api";
+import {
+  useGetCurrentUserQuery,
+  useGetNotificationsQuery,
+  useGetSettingsProfileQuery,
+  useLogoutMutation,
+} from "@/store/api";
 import { logout as clearAuthState } from "@/store/slices/authSlice";
 
-const PROFILE_PLACEHOLDER_IMAGE = "https://ui-avatars.com/api/?name=User&background=e5e7eb&color=111827&bold=true&size=128";
+const PROFILE_PLACEHOLDER_IMAGE =
+  "https://ui-avatars.com/api/?name=User&background=e5e7eb&color=111827&bold=true&size=128";
 
 function resolveProfileImage(image?: string | null): string {
   if (!image) return PROFILE_PLACEHOLDER_IMAGE;
@@ -83,7 +89,7 @@ export function TopNavigation({
     try {
       await triggerLogout().unwrap();
     } catch {
-      // continue local logout even when server logout fails
+      // Continue local logout even when server logout fails.
     } finally {
       dispatch(clearAuthState());
       router.replace("/login");
@@ -104,9 +110,9 @@ export function TopNavigation({
   });
 
   return (
-    <header className="dashboard-container top-navigation-shell pt-6">
+    <header className="dashboard-container top-navigation-shell sticky top-0 z-40 pt-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="flex items-center justify-between gap-3 xl:gap-4">
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"
             alt="Syntrix logo"
