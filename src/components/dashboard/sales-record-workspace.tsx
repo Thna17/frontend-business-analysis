@@ -3,7 +3,6 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
-  ChevronDown,
   Download,
   Link2,
   Mic,
@@ -44,6 +43,7 @@ import {
   useRetryVoiceJobMutation,
   useUpdateSaleMutation,
 } from "@/store/api";
+import { useEntitlements } from "@/features/subscriptions/use-entitlements";
 
 type SortFilter = "newest" | "oldest" | "totalHigh" | "totalLow";
 
@@ -146,6 +146,7 @@ function productSyncNotice(action?: "created" | "unchanged" | "suggestion_create
 }
 
 export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceProps) {
+  const entitlements = useEntitlements();
   const voiceInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
@@ -208,14 +209,19 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
   const [retryVoiceJob, { isLoading: isRetryingVoiceJob }] = useRetryVoiceJobMutation();
   const [cancelVoiceJob, { isLoading: isCancellingVoiceJob }] = useCancelVoiceJobMutation();
   const [createTelegramLinkCode, { isLoading: isGeneratingLinkCode }] = useCreateTelegramLinkCodeMutation();
+  const canUseVoice = entitlements.canAccess("voice.input");
+  const canUseTelegram = entitlements.canAccess("telegram.notify");
 
-  const { data: telegramLinkStatus } = useGetTelegramLinkStatusQuery();
+  const { data: telegramLinkStatus } = useGetTelegramLinkStatusQuery(undefined, {
+    skip: !canUseTelegram,
+  });
   const {
     data: voiceJobsResponse,
     isFetching: isVoiceJobsFetching,
   } = useGetVoiceJobsQuery(
     { page: 1, limit: 12 },
     {
+      skip: !canUseVoice,
       pollingInterval: 5000,
     },
   );
@@ -652,10 +658,12 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               variant="outline"
               className="h-10 rounded-xl border-[#dfe3e8] px-4 text-sm text-[#344054]"
               onClick={onGenerateTelegramCode}
-              disabled={isGeneratingLinkCode}
+              disabled={!canUseTelegram || isGeneratingLinkCode}
             >
               <Link2 className="size-4" />
-              {telegramLinkStatus?.linked ? "Reconnect Telegram" : "Connect Telegram"}
+              {canUseTelegram
+                ? (telegramLinkStatus?.linked ? "Reconnect Telegram" : "Connect Telegram")
+                : "Telegram Locked"}
             </Button>
             <Button
               type="button"
@@ -665,16 +673,18 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
                   : "bg-[#0f172a] hover:bg-[#111d3a]"
               }`}
               onClick={isRecording ? onStopRecording : () => void onStartRecording()}
-              disabled={isCreatingVoiceJob || (!isRecording && !isRecorderSupported)}
+              disabled={!canUseVoice || isCreatingVoiceJob || (!isRecording && !isRecorderSupported)}
             >
               {isRecording ? <Square className="size-4" /> : <Mic className="size-4" />}
-              {isRecording
+              {!canUseVoice
+                ? "Voice Locked"
+                : isRecording
                 ? `Stop (${formatRecordingDuration(recordingSeconds)})`
                 : isCreatingVoiceJob
                   ? "Processing..."
                   : "Start Recording"}
             </Button>
-            {!isRecorderSupported ? (
+            {!isRecorderSupported && canUseVoice ? (
               <Button
                 type="button"
                 variant="outline"
@@ -696,6 +706,12 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
             </span>
           </p>
         ) : null}
+        {!canUseVoice || !canUseTelegram ? (
+          <p className="mt-3 rounded-lg border border-[#f5d58b] bg-[#fffaeb] px-3 py-2 text-sm text-[#8a6b0b]">
+            Upgrade to {entitlements.getPlanLabel(entitlements.requiredPlanForFeature(!canUseVoice ? "voice.input" : "telegram.notify"))} to unlock
+            {!canUseVoice && !canUseTelegram ? " voice input and Telegram linking." : !canUseVoice ? " voice input." : " Telegram linking."}
+          </p>
+        ) : null}
         {voiceError ? (
           <p className="mt-3 rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">
             {voiceError}
@@ -709,12 +725,11 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
       </div>
 
       <div className="border-b border-[#edf1f5] px-6 py-5 md:px-7">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
-            <div className="relative">
+        <div className="grid gap-3 xl:grid-cols-[minmax(210px,1.35fr)_minmax(150px,0.9fr)_minmax(150px,0.82fr)_minmax(150px,0.82fr)_minmax(145px,0.75fr)_auto_auto] xl:items-center">
+          <div className="relative min-w-0">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-11 rounded-xl border-border bg-background/80 pl-10 text-[15px]"
+                className="h-11 w-full rounded-xl border-border bg-background/80 pl-10 text-[15px]"
                 placeholder="Search records..."
                 value={search}
                 onChange={(event) => {
@@ -724,81 +739,81 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
               />
             </div>
 
-            <Select
-              value={category}
-              onValueChange={(value) => {
-                setCategory(value);
+          <Select
+            value={category}
+            onValueChange={(value) => {
+              setCategory(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="h-11 w-full min-w-0 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Category: All</SelectItem>
+              {categories.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
+            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(event) => {
+                setStartDate(event.target.value);
                 setCurrentPage(1);
               }}
-            >
-              <SelectTrigger className="h-11 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Category: All</SelectItem>
-                {categories.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {item}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
-              <CalendarDays className="size-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(event) => {
-                  setStartDate(event.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
-            </div>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
-              <CalendarDays className="size-4 text-muted-foreground" />
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(event) => {
-                  setEndDate(event.target.value);
-                  setCurrentPage(1);
-                }}
-                className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
-            </div>
-
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortFilter)}>
-              <SelectTrigger className="h-11 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
-                <SelectValue />
-                <ChevronDown className="size-4" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Sort by: Newest</SelectItem>
-                <SelectItem value="oldest">Sort by: Oldest</SelectItem>
-                <SelectItem value="totalHigh">Sort by: Total High</SelectItem>
-                <SelectItem value="totalLow">Sort by: Total Low</SelectItem>
-              </SelectContent>
-            </Select>
+              className="h-full min-w-0 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+            />
+          </div>
+          <div className="flex h-11 min-w-0 items-center gap-2 rounded-xl border border-border bg-background/80 px-3">
+            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-full min-w-0 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+            />
           </div>
 
-          <div className="flex items-center gap-2">
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortFilter)}>
+            <SelectTrigger className="h-11 w-full min-w-0 rounded-xl border-border bg-background/80 text-[15px] text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Sort by: Newest</SelectItem>
+              <SelectItem value="oldest">Sort by: Oldest</SelectItem>
+              <SelectItem value="totalHigh">Sort by: Total High</SelectItem>
+              <SelectItem value="totalLow">Sort by: Total Low</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="min-w-0">
             <Button
               variant="outline"
-              className="h-11 rounded-xl border-border bg-card px-4 text-[15px] text-foreground"
+              className="h-11 w-full rounded-xl border-border bg-card px-4 text-[15px] text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
               onClick={exportCsv}
               disabled={isLoading || sortedRows.length === 0}
             >
               <Download className="size-4" />
               Export
             </Button>
+          </div>
+          <div className="min-w-0">
             <Button
-              className="h-11 rounded-xl bg-primary px-5 text-[15px] text-primary-foreground hover:bg-primary/90"
+              className="h-11 w-full justify-center gap-2 rounded-xl bg-primary px-5 text-[15px] font-medium text-primary-foreground shadow-[0_10px_24px_rgba(212,175,53,0.22)] hover:bg-primary/90"
               onClick={openCreateModal}
             >
-              <Plus className="size-4" />
-              Add Sales Record
+              <Plus className="size-4 shrink-0" />
+              Add Record
             </Button>
           </div>
         </div>
