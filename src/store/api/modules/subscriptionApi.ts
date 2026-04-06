@@ -2,6 +2,10 @@ import { api } from "@/store/api/core";
 import type {
   ApiEnvelope,
   ChangeSubscriptionPlanRequest,
+  CheckBakongPaymentRequest,
+  CheckBakongPaymentResponse,
+  CreatePaymentCheckoutRequest,
+  PaymentCheckoutResponse,
   SubscriptionDashboardResponse,
 } from "@/store/api/types";
 
@@ -18,6 +22,7 @@ export const subscriptionApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<SubscriptionDashboardResponse>) => response.data,
       providesTags: ["User"],
     }),
+
     changeSubscriptionPlan: builder.mutation<{ message: string }, ChangeSubscriptionPlanRequest>({
       query: (body) => ({
         url: "/subscriptions/plan",
@@ -27,6 +32,7 @@ export const subscriptionApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
       invalidatesTags: ["User"],
     }),
+
     cancelSubscription: builder.mutation<{ message: string }, void>({
       query: () => ({
         url: "/subscriptions/cancel",
@@ -35,12 +41,33 @@ export const subscriptionApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
       invalidatesTags: ["User"],
     }),
+
     reactivateSubscription: builder.mutation<{ message: string }, void>({
       query: () => ({
         url: "/subscriptions/reactivate",
         method: "POST",
       }),
       transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User"],
+    }),
+
+    // ── Payment checkout (navigates to /payments page, but API is here) ──────
+    createPaymentCheckout: builder.mutation<PaymentCheckoutResponse, CreatePaymentCheckoutRequest>({
+      query: (body) => ({
+        url: "/payments/checkout",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<PaymentCheckoutResponse>) => response.data,
+    }),
+
+    checkBakongPayment: builder.mutation<CheckBakongPaymentResponse, CheckBakongPaymentRequest>({
+      query: (body) => ({
+        url: "/payments/bakong/check",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<CheckBakongPaymentResponse>) => response.data,
       invalidatesTags: ["User"],
     }),
   }),
@@ -51,4 +78,6 @@ export const {
   useChangeSubscriptionPlanMutation,
   useCancelSubscriptionMutation,
   useReactivateSubscriptionMutation,
+  useCreatePaymentCheckoutMutation,
+  useCheckBakongPaymentMutation,
 } = subscriptionApi;

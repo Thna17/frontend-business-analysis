@@ -4,7 +4,7 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
-  role: "admin" | "business_owner";
+  role: "admin" | "business_owner" | "business_member";
   isEmailVerified: boolean;
 }
 

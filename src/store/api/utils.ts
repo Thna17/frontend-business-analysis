@@ -17,6 +17,7 @@ export function asRecord(value: unknown): UnknownRecord {
 
 export function mapRole(role: string): AuthUser["role"] {
   if (role === "admin") return "admin";
+  if (role === "business_member") return "business_member";
   return "business_owner";
 }
 

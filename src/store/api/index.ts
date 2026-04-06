@@ -16,3 +16,5 @@ export * from "@/store/api/modules/telegramRecordsApi";
 export * from "@/store/api/modules/notificationsApi";
 export * from "@/store/api/modules/voiceJobsApi";
 export * from "@/store/api/modules/telegramLinkApi";
+export * from "@/store/api/modules/insightsApi";
+export * from "@/store/api/modules/teamApi";
