@@ -23,20 +23,29 @@ import {
 
 const pageSize = 3;
 
-function toIsoDate(value: string): string | undefined {
-  if (!value) return undefined;
+function toIsoDateRange(value: string): { start?: string; end?: string } {
+  if (!value) return {};
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return undefined;
-  return parsed.toISOString();
+  if (Number.isNaN(parsed.getTime())) return {};
+
+  const start = new Date(parsed);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(parsed);
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
 }
 
 export function OwnerDashboardWorkspace() {
   const [range, setRange] = useState<"6m" | "12m">("6m");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   const [page, setPage] = useState(1);
+  const dateRange = toIsoDateRange(selectedDate);
 
   const { data: business, error: businessError } = useGetBusinessProfileQuery();
   const {
@@ -54,8 +63,8 @@ export function OwnerDashboardWorkspace() {
   } = useGetSalesQuery({
     search: search || undefined,
     category: category === "all" ? undefined : category,
-    startDate: toIsoDate(startDate),
-    endDate: toIsoDate(endDate),
+    startDate: dateRange.start,
+    endDate: dateRange.end,
     page,
     limit: pageSize,
   });
@@ -169,14 +178,9 @@ export function OwnerDashboardWorkspace() {
             setPage(1);
           }}
           categories={categories}
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={(value) => {
-            setStartDate(value);
-            setPage(1);
-          }}
-          onEndDateChange={(value) => {
-            setEndDate(value);
+          date={selectedDate}
+          onDateChange={(value) => {
+            setSelectedDate(value);
             setPage(1);
           }}
           page={salesResponse?.meta.page ?? page}

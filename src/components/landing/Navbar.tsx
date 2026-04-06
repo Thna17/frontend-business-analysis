@@ -5,7 +5,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function Navbar() {
   return (
-    <header className="site-header">
+    <header className="site-header sticky top-0 z-[60]">
       <div className="container nav-container">
         <div className="flex items-center gap-3">
           <Image

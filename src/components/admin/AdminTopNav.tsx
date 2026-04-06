@@ -40,7 +40,7 @@ export default function AdminTopNav() {
   }, [profileImageStorageKey]);
 
   return (
-    <header className="admin-topnav">
+    <header className="admin-topnav sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="admin-brand">
         <div className="admin-brand-logo">
           <Image

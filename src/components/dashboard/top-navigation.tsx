@@ -110,9 +110,9 @@ export function TopNavigation({
   });
 
   return (
-    <header className="dashboard-container top-navigation-shell pt-6">
+    <header className="dashboard-container top-navigation-shell sticky top-0 z-40 pt-4 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="flex items-center justify-between gap-3 xl:gap-4">
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"
             alt="Syntrix logo"

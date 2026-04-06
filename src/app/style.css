@@ -41,6 +41,7 @@ select {
   width: 100%;
   overflow-x: hidden;
   background: #f3f3f1;
+  padding-top: 72px;
 }
 
 .container {
@@ -50,8 +51,11 @@ select {
 
 /* HEADER */
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 50;
   background: rgba(243, 243, 241, 0.92);
   backdrop-filter: blur(10px);
@@ -769,6 +773,10 @@ select {
 }
 
 @media (max-width: 640px) {
+  .landing-page {
+    padding-top: 112px;
+  }
+
   .nav-container {
     height: auto;
     padding: 16px 0;
