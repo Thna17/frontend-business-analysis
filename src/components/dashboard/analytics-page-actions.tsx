@@ -2,8 +2,16 @@
 
 import { Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEntitlements } from "@/features/subscriptions/use-entitlements";
 
 export function AnalyticsPageActions() {
+  const entitlements = useEntitlements();
+  const canExport = entitlements.canAccess("reports.export");
+
+  if (!canExport) {
+    return null;
+  }
+
   return (
     <div className="flex items-center gap-2">
       <Button

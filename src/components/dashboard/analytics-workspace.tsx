@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useGetOwnerAnalyticsDashboardQuery } from "@/store/api";
+import { FeatureGate } from "@/components/shared/feature-gate";
 
 type PeriodKey = "6m" | "12m";
 
@@ -239,6 +240,7 @@ export function AnalyticsWorkspace() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_2fr]">
+        <FeatureGate feature="analytics.trend" overlay>
         <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Sales by Category</h3>
           <div className="mt-6 flex justify-center">
@@ -277,7 +279,9 @@ export function AnalyticsWorkspace() {
             )}
           </div>
         </article>
+        </FeatureGate>
 
+        <FeatureGate feature="analytics.top-products" overlay>
         <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
           <div className="mt-6 space-y-6">
@@ -298,9 +302,11 @@ export function AnalyticsWorkspace() {
             )}
           </div>
         </article>
+        </FeatureGate>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
+
         <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
           <h3 className="dashboard-section-title">Customer Activity</h3>
           <div className="mt-5 h-[220px]">

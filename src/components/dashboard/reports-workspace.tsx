@@ -17,6 +17,7 @@ import {
   useGenerateReportMutation,
   useGetReportsDashboardQuery,
 } from "@/store/api";
+import { FeatureGate } from "@/components/shared/feature-gate";
 
 type ReportType = "Sales" | "Revenue" | "Product" | "Customer";
 type ExportFormat = "PDF" | "CSV" | "Excel";
@@ -173,6 +174,7 @@ export function ReportsWorkspace() {
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
       <div className="space-y-6">
+        <FeatureGate feature="reports.export" className="min-h-[200px]">
         <article className="dashboard-surface border-[#e7e9ee] shadow-none">
           <div className="border-b border-[#edf1f5] px-6 py-5">
             <h3 className="dashboard-section-title">Generate New Report</h3>
@@ -266,6 +268,7 @@ export function ReportsWorkspace() {
             {actionError ? <p className="text-sm text-rose-600">{actionError}</p> : null}
           </div>
         </article>
+        </FeatureGate>
 
         <article className="dashboard-surface border-[#e7e9ee] shadow-none">
           <div className="flex items-center justify-between border-b border-[#edf1f5] px-6 py-5">
