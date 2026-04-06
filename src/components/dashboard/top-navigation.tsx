@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { DashboardNavItem } from "@/features/owner-dashboard/dashboard-mock";
+import { useEntitlements } from "@/features/subscriptions/use-entitlements";
 import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
 import { cn } from "@/lib/utils";
 import { type AppDispatch } from "@/store";
@@ -42,6 +43,7 @@ export function TopNavigation({
   const dispatch = useDispatch<AppDispatch>();
   const pathname = usePathname();
   const [triggerLogout, { isLoading: isLoggingOut }] = useLogoutMutation();
+  const entitlements = useEntitlements();
   const { data: currentUser } = useGetCurrentUserQuery();
   const { data: profile } = useGetSettingsProfileQuery();
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -89,30 +91,42 @@ export function TopNavigation({
   };
 
   const resolvedImage = resolveProfileImage(profile?.profileImage ?? profileImage);
+  const visibleItems = items.filter((item) => {
+    if (!entitlements.canAccess(item.requiredFeature)) {
+      return false;
+    }
+
+    if (currentUser?.role === "business_member" && item.href === "/subscriptions") {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
     <header className="dashboard-container top-navigation-shell pt-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3 xl:gap-4">
+        <div className="flex shrink-0 items-center">
           <Image
             src="/logo.png"
             alt="Syntrix logo"
-            width={180}
-            height={88}
-            className="h-[88px] w-auto object-contain"
+            width={210}
+            height={105}
+            sizes="(min-width: 1536px) 210px, (min-width: 1280px) 185px, (min-width: 768px) 180px, 160px"
+            className="h-auto w-[160px] object-contain object-left sm:w-[180px] xl:w-[185px] 2xl:w-[210px]"
             priority
           />
         </div>
 
-        <div className="hidden items-center gap-3 xl:flex">
-          <nav className="rounded-full border border-border bg-card px-2 py-3">
+        <div className="hidden min-w-0 flex-1 items-center justify-end gap-2 xl:flex">
+          <nav className="min-w-0 rounded-full border border-border bg-card px-2 py-2.5">
             <ul className="flex items-center gap-1">
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <li key={item.label}>
                   <Link
                     href={item.href ?? "#"}
                     className={cn(
-                      "whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors",
+                      "whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors 2xl:px-4",
                       item.href && pathname === item.href && "bg-foreground text-background",
                       !item.href && "cursor-default opacity-90",
                     )}
@@ -129,7 +143,7 @@ export function TopNavigation({
             asChild
             variant="ghost"
             className={cn(
-              "h-12 rounded-full border border-border bg-card px-4 text-sm text-foreground",
+              "h-11 rounded-full border border-border bg-card px-3 text-sm text-foreground 2xl:h-12 2xl:px-4",
               pathname === settingsHref &&
                 "bg-foreground text-background hover:bg-foreground/90 hover:text-background",
             )}
@@ -146,7 +160,7 @@ export function TopNavigation({
               variant="ghost"
               size="icon"
               className={cn(
-                "relative size-12 rounded-full border border-border bg-card text-foreground",
+                "relative size-11 rounded-full border border-border bg-card text-foreground 2xl:size-12",
                 isNotificationActive &&
                   "bg-foreground text-background hover:bg-foreground/90 hover:text-background",
               )}
@@ -164,7 +178,7 @@ export function TopNavigation({
             <Button
               variant="ghost"
               size="icon"
-              className="size-12 rounded-full border border-border bg-card text-foreground"
+              className="size-11 rounded-full border border-border bg-card text-foreground 2xl:size-12"
             >
               <Bell className="size-5" />
             </Button>
@@ -174,13 +188,13 @@ export function TopNavigation({
             asChild
             variant="ghost"
             size="icon"
-            className="size-12 rounded-full border border-border bg-card text-foreground"
+            className="size-11 rounded-full border border-border bg-card text-foreground 2xl:size-12"
           >
             <Link href={resolvedProfileHref} aria-label="Profile">
               <img
                 src={resolvedImage}
                 alt="Profile"
-                className="size-10 rounded-full object-cover"
+                className="size-9 rounded-full object-cover 2xl:size-10"
                 onError={(event) => {
                   event.currentTarget.src = PROFILE_PLACEHOLDER_IMAGE;
                 }}
@@ -191,7 +205,7 @@ export function TopNavigation({
           <Button
             type="button"
             variant="ghost"
-            className="h-12 rounded-full border border-border bg-card px-4 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+            className="h-11 rounded-full border border-border bg-card px-3 text-sm text-foreground hover:bg-accent hover:text-accent-foreground 2xl:h-12 2xl:px-4"
             onClick={handleLogout}
             disabled={isLoggingOut}
           >

@@ -13,3 +13,5 @@ export type * from "@/store/api/contracts/telegram";
 export type * from "@/store/api/contracts/notification";
 export type * from "@/store/api/contracts/voiceSales";
 export type * from "@/store/api/contracts/telegramLink";
+export type * from "@/store/api/contracts/insights";
+export type * from "@/store/api/contracts/team";

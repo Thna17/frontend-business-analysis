@@ -3,11 +3,17 @@ import type { AuthUser } from "@/store/slices/authSlice";
 export type AppRole = AuthUser["role"];
 
 const OWNER_ONLY_PREFIXES = [
+  "/subscriptions",
+  "/payments",
+  "/payments/success",
+  "/payments/failed",
+] as const;
+
+const WORKSPACE_PREFIXES = [
   "/owner",
   "/sale-record",
   "/product",
   "/analytics",
-  "/subscriptions",
   "/report",
   "/settings",
 ] as const;
@@ -59,12 +65,29 @@ export function getRequiredRoleForPath(path: string): AppRole | null {
     return "business_owner";
   }
 
+  if (WORKSPACE_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
+    return "business_owner";
+  }
+
   return null;
 }
 
 export function isPathAllowedForRole(path: string, role: AppRole): boolean {
-  const requiredRole = getRequiredRoleForPath(path);
-  return requiredRole === null || requiredRole === role;
+  const normalized = normalizePath(path);
+
+  if (ADMIN_ONLY_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
+    return role === "admin";
+  }
+
+  if (OWNER_ONLY_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
+    return role === "business_owner";
+  }
+
+  if (WORKSPACE_PREFIXES.some((prefix) => matchesPrefix(normalized, prefix))) {
+    return role === "business_owner" || role === "business_member";
+  }
+
+  return true;
 }
 
 export function sanitizeNextPath(input: string | null | undefined): string | null {

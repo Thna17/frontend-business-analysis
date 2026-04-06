@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { AiInsightsPanel } from "@/components/dashboard/ai-insights-panel";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ProductRankingCard } from "@/components/dashboard/product-ranking-card";
 import { RecentSalesCard } from "@/components/dashboard/recent-sales-card";
 import { RevenueAnalyticsCard } from "@/components/dashboard/revenue-analytics-card";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -126,6 +128,10 @@ export function OwnerDashboardWorkspace() {
         />
         <ProductRankingCard items={rankingItems} />
       </section>
+
+      <FeatureGate feature="insights.ai" className="min-h-[240px]">
+        <AiInsightsPanel />
+      </FeatureGate>
 
       {noSales ? (
         <section className="dashboard-surface p-7">

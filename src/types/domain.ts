@@ -1,8 +1,10 @@
 export type UserRole = "BUSINESS_OWNER" | "ADMIN";
 
-export type SubscriptionPlan = "FREE" | "PRO" | "BUSINESS";
+export type SubscriptionPlan = "free" | "pro" | "business";
 
 export type SubscriptionStatus = "ACTIVE" | "EXPIRED" | "CANCELED";
+
+export type BillingCycle = "monthly" | "annual";
 
 export interface User {
   id: string;
@@ -39,6 +41,7 @@ export interface RevenueAnalytics {
 export interface Subscription {
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  billingCycle: BillingCycle;
   renewDate: string;
 }
 

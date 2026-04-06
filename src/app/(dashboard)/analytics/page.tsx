@@ -1,5 +1,6 @@
 import { AnalyticsPageActions } from "@/components/dashboard/analytics-page-actions";
 import { AnalyticsWorkspace } from "@/components/dashboard/analytics-workspace";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
 import { topNavItems } from "@/features/owner-dashboard/dashboard-mock";
 
@@ -19,7 +20,9 @@ export default function AnalyticsPage() {
           <AnalyticsPageActions />
         </section>
 
-        <AnalyticsWorkspace />
+        <FeatureGate feature="analytics.trend" className="min-h-[420px]">
+          <AnalyticsWorkspace />
+        </FeatureGate>
 
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">© 2026 Syntrix Analytics. All rights reserved.</footer>
       </div>
