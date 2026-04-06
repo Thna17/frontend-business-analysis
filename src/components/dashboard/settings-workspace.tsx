@@ -4,11 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Building2,
+  KeyRound,
   Shield,
+  Trash2,
   TriangleAlert,
   User,
+  Users,
   Wrench,
 } from "lucide-react";
+import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,6 +27,9 @@ import {
 import {
   useChangePasswordMutation,
   useGetSettingsDashboardQuery,
+  useGetTeamWorkspaceQuery,
+  useCreateTeamMemberMutation,
+  useDeleteTeamMemberMutation,
   useRequestAccountDeactivationMutation,
   useRequestAccountDeletionMutation,
   useUpdateSettingsAccountMutation,
@@ -31,6 +38,7 @@ import {
   useUpdateSettingsPreferencesMutation,
   useUpdateSettingsSecurityMutation,
 } from "@/store/api";
+import { selectCurrentUser } from "@/store/slices/authSlice";
 
 function normalizeError(error: unknown) {
   const payload = error as { data?: { message?: string } };
@@ -45,6 +53,7 @@ function currencyCode(label: string): string {
 
 function humanRole(role: string): string {
   if (role === "business_owner") return "Business Owner";
+  if (role === "business_member") return "Team Member";
   if (role === "admin") return "Administrator";
   return role;
 }
@@ -57,8 +66,15 @@ const BUSINESS_TYPE_OPTIONS = [
 ] as const;
 
 export function SettingsWorkspace() {
+  const currentUser = useSelector(selectCurrentUser);
+  const isPrimaryOwner = currentUser?.role === "business_owner";
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [teamDraft, setTeamDraft] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+  });
 
   const [accountDraft, setAccountDraft] = useState<{
     fullName?: string;
@@ -95,6 +111,7 @@ export function SettingsWorkspace() {
   const [openDelete, setOpenDelete] = useState(false);
 
   const { data, isLoading, isFetching } = useGetSettingsDashboardQuery();
+  const { data: teamData, isFetching: isTeamFetching } = useGetTeamWorkspaceQuery();
 
   const [updateAccount, { isLoading: isSavingAccount }] = useUpdateSettingsAccountMutation();
   const [updateBusiness, { isLoading: isSavingBusiness }] = useUpdateSettingsBusinessMutation();
@@ -104,6 +121,8 @@ export function SettingsWorkspace() {
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [requestDeactivation, { isLoading: isRequestingDeactivate }] = useRequestAccountDeactivationMutation();
   const [requestDeletion, { isLoading: isRequestingDeletion }] = useRequestAccountDeletionMutation();
+  const [createTeamMember, { isLoading: isCreatingTeamMember }] = useCreateTeamMemberMutation();
+  const [deleteTeamMember, { isLoading: isDeletingTeamMember }] = useDeleteTeamMemberMutation();
 
   const account = useMemo(() => ({
     fullName: accountDraft.fullName ?? data?.account.fullName ?? "",
@@ -182,7 +201,9 @@ export function SettingsWorkspace() {
     || isSavingSecurity
     || isChangingPassword
     || isRequestingDeactivate
-    || isRequestingDeletion;
+    || isRequestingDeletion
+    || isCreatingTeamMember
+    || isDeletingTeamMember;
 
   const saveAll = useCallback(async () => {
     setActionError(null);
@@ -204,23 +225,30 @@ export function SettingsWorkspace() {
     }
 
     try {
-      await Promise.all([
+      const tasks: Promise<unknown>[] = [
         updateAccount({
           fullName: account.fullName,
           phone: account.phone || null,
         }).unwrap(),
-        updateBusiness({
-          name: business.name,
-          type: business.type,
-          website: business.website,
-          address: business.address,
-          description: business.description,
-          currency: business.currency || currencyCode(preferences.currency),
-        }).unwrap(),
         updateNotifications(notifications).unwrap(),
         updatePreferences(preferences).unwrap(),
         updateSecurity({ twoFactorEnabled }).unwrap(),
-      ]);
+      ];
+
+      if (isPrimaryOwner) {
+        tasks.push(
+          updateBusiness({
+            name: business.name,
+            type: business.type,
+            website: business.website,
+            address: business.address,
+            description: business.description,
+            currency: business.currency || currencyCode(preferences.currency),
+          }).unwrap(),
+        );
+      }
+
+      await Promise.all(tasks);
 
       if (security.currentPassword && security.newPassword && security.confirmPassword) {
         await changePassword({
@@ -256,6 +284,7 @@ export function SettingsWorkspace() {
     business.type,
     business.website,
     changePassword,
+    isPrimaryOwner,
     notifications,
     preferences,
     security.confirmPassword,
@@ -310,6 +339,7 @@ export function SettingsWorkspace() {
   };
 
   const saveBusinessOnly = async () => {
+    if (!isPrimaryOwner) return;
     setActionError(null);
     try {
       await updateBusiness({
@@ -321,6 +351,32 @@ export function SettingsWorkspace() {
         currency: business.currency,
       }).unwrap();
       setSavedAt("business profile updated");
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  };
+
+  const addTeamMember = async () => {
+    if (!teamDraft.fullName || !teamDraft.email || !teamDraft.password) {
+      setActionError("Enter full name, email, and a temporary password to add a team member.");
+      return;
+    }
+
+    setActionError(null);
+    try {
+      await createTeamMember(teamDraft).unwrap();
+      setTeamDraft({ fullName: "", email: "", password: "" });
+      setSavedAt("team member added");
+    } catch (error) {
+      setActionError(normalizeError(error));
+    }
+  };
+
+  const removeTeamMember = async (id: string) => {
+    setActionError(null);
+    try {
+      await deleteTeamMember(id).unwrap();
+      setSavedAt("team member removed");
     } catch (error) {
       setActionError(normalizeError(error));
     }
@@ -430,12 +486,155 @@ export function SettingsWorkspace() {
               <label className="mb-1 block text-sm font-medium text-[#475467]">Address</label>
               <Input value={business.address} onChange={(e) => setBusinessDraft((p) => ({ ...p, address: e.target.value }))} />
             </div>
-            <Button className="h-11 rounded-full bg-[#0f172a] text-sm text-white hover:bg-[#1e293b]" onClick={saveBusinessOnly} disabled={isBusy}>
-              Update Business Info
-            </Button>
+            {isPrimaryOwner ? (
+              <Button className="h-11 rounded-full bg-[#0f172a] text-sm text-white hover:bg-[#1e293b]" onClick={saveBusinessOnly} disabled={isBusy}>
+                Update Business Info
+              </Button>
+            ) : (
+              <div className="rounded-xl border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-sm text-[#667085]">
+                Business details can only be updated by the primary owner.
+              </div>
+            )}
           </div>
         </article>
       </div>
+
+      <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
+        <div className="mb-4 inline-flex items-center gap-2">
+          <Users className="size-5 text-[#d4af35]" />
+          <h3 className="dashboard-section-title">Team Seats</h3>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#e4e7ec] bg-[#f8fafc] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#101828]">
+                    {teamData?.seatSummary.used ?? 0}
+                    {teamData?.seatSummary.unlimited ? " / Unlimited" : ` / ${teamData?.seatSummary.limit ?? 0}`} seats used
+                  </p>
+                  <p className="mt-1 text-sm text-[#667085]">
+                    {teamData?.seatSummary.planName ?? "Current"} plan
+                    {teamData?.seatSummary.unlimited
+                      ? " includes unlimited team seats."
+                      : ` includes ${teamData?.seatSummary.limit ?? 0} total seats.`}
+                  </p>
+                </div>
+                <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#344054]">
+                  {teamData?.seatSummary.unlimited
+                    ? "No seat cap"
+                    : `${teamData?.seatSummary.remaining ?? 0} seats left`}
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-[#e4e7ec]">
+              <table className="w-full text-left">
+                <thead className="bg-[#f8fafc] text-xs font-semibold uppercase tracking-[0.06em] text-[#667085]">
+                  <tr>
+                    <th className="px-4 py-3">Member</th>
+                    <th className="px-4 py-3">Access</th>
+                    <th className="px-4 py-3">Joined</th>
+                    <th className="px-4 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#eef1f4] bg-white">
+                  {(teamData?.members ?? []).map((member) => (
+                    <tr key={member.id}>
+                      <td className="px-4 py-4">
+                        <p className="font-medium text-[#101828]">{member.fullName}</p>
+                        <p className="text-sm text-[#667085]">{member.email}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-[#475467]">
+                        {member.type === "owner" ? "Primary owner" : "Workspace member"}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-[#475467]">
+                        {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString("en-US") : "—"}
+                      </td>
+                      <td className="px-4 py-4">
+                        {isPrimaryOwner && member.type === "member" ? (
+                          <Button
+                            variant="outline"
+                            className="h-9 rounded-full border-[#f7c7c7] text-[#b42318] hover:bg-[#fff5f5]"
+                            onClick={() => {
+                              void removeTeamMember(member.id);
+                            }}
+                            disabled={isDeletingTeamMember}
+                          >
+                            <Trash2 className="size-4" />
+                            Remove
+                          </Button>
+                        ) : (
+                          <span className="text-sm text-[#98a2b3]">
+                            {member.type === "owner" ? "Included" : "View only"}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {!isTeamFetching && (teamData?.members?.length ?? 0) === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-sm text-[#667085]">
+                        No team members yet.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e4e7ec] bg-[#fcfcfd] p-4">
+            <div className="mb-4 inline-flex items-center gap-2">
+              <KeyRound className="size-4 text-[#d4af35]" />
+              <p className="text-sm font-semibold text-[#101828]">Add Team Member</p>
+            </div>
+            {isPrimaryOwner ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#475467]">Full Name</label>
+                  <Input
+                    value={teamDraft.fullName}
+                    onChange={(event) => setTeamDraft((previous) => ({ ...previous, fullName: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#475467]">Email</label>
+                  <Input
+                    type="email"
+                    value={teamDraft.email}
+                    onChange={(event) => setTeamDraft((previous) => ({ ...previous, email: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[#475467]">Temporary Password</label>
+                  <Input
+                    type="password"
+                    value={teamDraft.password}
+                    onChange={(event) => setTeamDraft((previous) => ({ ...previous, password: event.target.value }))}
+                  />
+                </div>
+                <p className="text-xs text-[#667085]">
+                  This creates a real login account and consumes one seat immediately.
+                </p>
+                <Button
+                  className="h-11 w-full rounded-full bg-[#d4af35] text-sm font-semibold text-[#101828] hover:bg-[#c39f2f]"
+                  onClick={() => {
+                    void addTeamMember();
+                  }}
+                  disabled={isCreatingTeamMember}
+                >
+                  Add Member
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-[#e4e7ec] bg-white px-4 py-3 text-sm text-[#667085]">
+                Team seats are managed by the primary owner. You can view the workspace roster here.
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">

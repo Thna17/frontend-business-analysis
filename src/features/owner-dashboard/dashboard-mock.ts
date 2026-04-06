@@ -37,6 +37,7 @@ export interface SalesTransaction {
 export interface DashboardNavItem {
   label: string;
   href?: string;
+  requiredFeature?: string;
 }
 
 export interface SaleRecordRow {
@@ -148,9 +149,9 @@ export const topNavItems: DashboardNavItem[] = [
   { label: "Dashboard", href: "/owner" },
   { label: "Sale Record", href: "/sale-record" },
   { label: "Product", href: "/product" },
-  { label: "Analytics", href: "/analytics" },
+  { label: "Analytics", href: "/analytics", requiredFeature: "analytics.trend" },
   { label: "Subscriptions", href: "/subscriptions" },
-  { label: "Report", href: "/report" },
+  { label: "Report", href: "/report", requiredFeature: "reports.export" },
 ];
 
 export const adminTopNavItems: DashboardNavItem[] = [
@@ -505,7 +506,7 @@ export const analyticsHeatmap: HeatmapCell[][] = [
 
 export const subscriptionCurrentPlan = {
   name: "Pro Plan",
-  price: 49,
+  price: 19,
   status: "ACTIVE NOW",
   description: "Current monthly subscription for advanced analytics and priority support.",
   nextBillingDate: "October 24, 2026",
@@ -520,21 +521,21 @@ export const subscriptionUsageMetrics: SubscriptionUsageMetric[] = [
 
 export const subscriptionPlanTiers: SubscriptionPlanTier[] = [
   {
-    id: "foundation",
+    id: "free",
     tier: "TIER I",
-    name: "Foundation",
-    subtitle: "Starter",
-    priceLabel: "$19",
+    name: "Free",
+    subtitle: "Get started",
+    priceLabel: "$0",
     perLabel: "/mo",
     features: [
-      "Up to 3 team members",
+      "1 business profile",
       "Sales transaction management",
       "Basic revenue dashboard",
       "Product catalog tracking",
-      "Monthly billing reports",
-      "Email support",
+      "Subscription visibility",
+      "Core owner dashboard access",
     ],
-    cta: "Choose Foundation",
+    cta: "Current Plan",
     tone: "outline",
   },
   {
@@ -542,15 +543,15 @@ export const subscriptionPlanTiers: SubscriptionPlanTier[] = [
     tier: "TIER II",
     name: "Pro",
     subtitle: "Most Popular",
-    priceLabel: "$49",
+    priceLabel: "$19",
     perLabel: "/mo",
     features: [
-      "Everything in Foundation",
-      "Advanced analytics insights",
-      "Usage metrics and alerts",
+      "Everything in Free",
+      "Trend, growth, and top product analytics",
+      "Report export tools",
+      "Voice sales input",
+      "Telegram notifications",
       "Priority billing support",
-      "CSV import/export tools",
-      "Role-based dashboard access",
     ],
     cta: "In Use",
     tone: "highlight",
@@ -559,32 +560,32 @@ export const subscriptionPlanTiers: SubscriptionPlanTier[] = [
     id: "business",
     tier: "TIER III",
     name: "Business",
-    subtitle: "Enterprise Ready",
-    priceLabel: "Custom",
-    perLabel: "",
+    subtitle: "AI-powered scale",
+    priceLabel: "$49",
+    perLabel: "/mo",
     features: [
       "Everything in Pro",
-      "Multi-business account support",
-      "Dedicated account manager",
-      "Custom onboarding workflow",
-      "SLA and uptime commitment",
-      "Security and compliance review",
+      "Business AI insights",
+      "Predictive revenue forecasting",
+      "Deeper operational recommendations",
+      "Priority support",
+      "Best for scaling teams",
     ],
-    cta: "Contact Sales",
+    cta: "Upgrade to Business",
     tone: "default",
   },
 ];
 
 export const subscriptionBillingHistory: BillingHistoryItem[] = [
-  { id: "INV-9402", plan: "Pro Monthly", amount: 49, date: "Sep 24, 2026", status: "Paid" },
-  { id: "INV-8831", plan: "Pro Monthly", amount: 49, date: "Aug 24, 2026", status: "Paid" },
-  { id: "INV-7720", plan: "Starter Monthly", amount: 19, date: "Jul 24, 2026", status: "Paid" },
+  { id: "INV-9402", plan: "Pro Monthly", amount: 19, date: "Sep 24, 2026", status: "Paid" },
+  { id: "INV-8831", plan: "Pro Monthly", amount: 19, date: "Aug 24, 2026", status: "Paid" },
+  { id: "INV-7720", plan: "Free Plan", amount: 0, date: "Jul 24, 2026", status: "Paid" },
 ];
 
 export const reportInsights = [
   {
     title: "Revenue increased by 12%",
-    description: "Growth is primarily driven by new enterprise subscriptions this month.",
+    description: "Growth is primarily driven by more Pro and Business upgrades this month.",
     tone: "amber" as const,
   },
   {
@@ -679,7 +680,7 @@ export const adminUserDirectory: AdminUserDirectoryItem[] = [
   {
     id: "ad-2",
     name: "Mengchheang",
-    tier: "PLUS TIER",
+    tier: "PRO",
     initials: "MC",
     color: "#c7d2fe",
     status: "online",
@@ -768,14 +769,14 @@ export const adminRevenueVelocity: AdminRevenueVelocityItem[] = [
 
 export const adminSubscriptionDistribution = [
   { label: "Free Tier", percent: 75, users: "963K", color: "#7c6203" },
-  { label: "Plus Tier", percent: 20, users: "257K", color: "#d4af35" },
-  { label: "Pro Tier", percent: 5, users: "64.2K", color: "#111827" },
+  { label: "Pro Tier", percent: 20, users: "257K", color: "#d4af35" },
+  { label: "Business Tier", percent: 5, users: "64.2K", color: "#111827" },
 ];
 
 export const adminUserSegments: AdminSegmentItem[] = [
   {
     id: "seg-1",
-    title: "Enterprise Orgs",
+    title: "Business Accounts",
     description: "Global scaling accounts",
     icon: "building",
   },

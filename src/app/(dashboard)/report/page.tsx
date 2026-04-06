@@ -1,5 +1,6 @@
 import { ReportsPageActions } from "@/components/dashboard/reports-page-actions";
 import { ReportsWorkspace } from "@/components/dashboard/reports-workspace";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { TopNavigation } from "@/components/dashboard/top-navigation";
 import { topNavItems } from "@/features/owner-dashboard/dashboard-mock";
 
@@ -19,7 +20,9 @@ export default function ReportPage() {
           <ReportsPageActions />
         </section>
 
-        <ReportsWorkspace />
+        <FeatureGate feature="reports.export" className="min-h-[420px]">
+          <ReportsWorkspace />
+        </FeatureGate>
 
         <footer className="pt-10 text-center text-sm text-[#98a2b3]">© 2026 Syntrix Analytics. All rights reserved.</footer>
       </div>

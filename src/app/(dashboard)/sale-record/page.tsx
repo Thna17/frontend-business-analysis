@@ -26,14 +26,13 @@ export default function SaleRecordPage() {
       <TopNavigation items={topNavItems} />
 
       <div className="dashboard-container mt-10 space-y-7">
-        <section className="rounded-3xl border border-border bg-card/80 p-6 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-          <p className="mb-2 inline-flex rounded-full bg-accent px-3 py-1 text-xs font-semibold tracking-wide text-accent-foreground">
-            Sales Center
-          </p>
-          <h1 className="dashboard-title">Sales Records</h1>
-          <p className="dashboard-subtitle mt-2">
-            Manage and track your business sales transactions
-          </p>
+        <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="dashboard-title">Sales Records</h1>
+            <p className="dashboard-subtitle mt-2 max-w-2xl">
+              Manage and track your business sales transactions.
+            </p>
+          </div>
         </section>
 
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">

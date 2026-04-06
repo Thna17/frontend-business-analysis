@@ -87,8 +87,9 @@ export const ownerAnalytics: RevenueAnalytics = {
 };
 
 export const ownerSubscription: Subscription = {
-  plan: "PRO",
+  plan: "pro",
   status: "ACTIVE",
+  billingCycle: "monthly",
   renewDate: "2026-04-08",
 };
 

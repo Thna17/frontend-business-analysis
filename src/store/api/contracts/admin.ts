@@ -54,8 +54,8 @@ export interface AdminAnalyticsResponse {
   };
   plans: {
     Free: number;
-    Plus: number;
     Pro: number;
+    Business: number;
   };
   revenueByMonth: Array<{
     month: string;
@@ -105,11 +105,12 @@ export interface AdminSubscriptionOverviewResponse {
 
 export interface AdminSubscriptionPlanConfig {
   id: string;
-  planKey: string;
+  planKey: "free" | "pro" | "business";
   name: string;
   subtitle: string;
-  price: string;
-  suffix: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
   badge: string;
   highlighted: boolean;
   rank: number;
@@ -117,6 +118,15 @@ export interface AdminSubscriptionPlanConfig {
     text: string;
     disabled: boolean;
   }>;
+  featureKeys: string[];
+  limits: {
+    seats: number;
+    productsLimit: number;
+    salesRecordsPerMonth: number;
+    reportsPerMonth: number;
+    analyticsQueriesPerMonth: number;
+    storageGb: number;
+  };
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -124,16 +134,20 @@ export interface AdminSubscriptionPlanConfig {
 export type AdminSubscriptionPlanConfigListResponse = AdminSubscriptionPlanConfig[];
 
 export interface UpsertAdminSubscriptionPlanConfigInput {
+  planKey: "free" | "pro" | "business";
   name: string;
   subtitle: string;
-  price: string;
-  suffix: string;
+  description: string;
+  monthlyPrice: number;
+  annualPrice: number;
   badge: string;
   highlighted: boolean;
   features: Array<{
     text: string;
     disabled: boolean;
   }>;
+  featureKeys: string[];
+  limits: AdminSubscriptionPlanConfig["limits"];
 }
 
 export interface AdminPaymentListItem {

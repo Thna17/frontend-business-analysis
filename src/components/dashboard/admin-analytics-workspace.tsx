@@ -27,8 +27,8 @@ type AnalyticsResponse = {
   };
   plans: {
     Free: number;
-    Plus: number;
     Pro: number;
+    Business: number;
   };
   revenueByMonth: {
     month: string;
@@ -92,8 +92,8 @@ const defaultData: AnalyticsResponse = {
   },
   plans: {
     Free: 0,
-    Plus: 0,
     Pro: 0,
+    Business: 0,
   },
   revenueByMonth: [],
   recentActivities: [],
@@ -124,7 +124,7 @@ export function AdminAnalyticsWorkspace() {
     return Array.from({ length: 5 }).map((_, index) => index * step);
   }, [trendValues]);
 
-  const totalPlans = data.plans.Free + data.plans.Plus + data.plans.Pro;
+  const totalPlans = data.plans.Free + data.plans.Pro + data.plans.Business;
 
   const subscriptionDistribution = [
     {
@@ -134,15 +134,15 @@ export function AdminAnalyticsWorkspace() {
       color: "#d6dbe4",
     },
     {
-      tier: "PLUS",
-      percent: totalPlans > 0 ? Math.round((data.plans.Plus / totalPlans) * 100) : 0,
-      valueLabel: data.plans.Plus.toString(),
-      color: "#d4af35",
-    },
-    {
       tier: "PRO",
       percent: totalPlans > 0 ? Math.round((data.plans.Pro / totalPlans) * 100) : 0,
       valueLabel: data.plans.Pro.toString(),
+      color: "#d4af35",
+    },
+    {
+      tier: "BUSINESS",
+      percent: totalPlans > 0 ? Math.round((data.plans.Business / totalPlans) * 100) : 0,
+      valueLabel: data.plans.Business.toString(),
       color: "#7a6200",
     },
   ];
@@ -167,15 +167,15 @@ export function AdminAnalyticsWorkspace() {
       icon: "store",
     },
     {
-      id: "plus-users",
-      title: "Growing Businesses",
-      description: `${data.plans.Plus} accounts currently on the Plus plan`,
+      id: "pro-users",
+      title: "Pro Customers",
+      description: `${data.plans.Pro} accounts currently on the Pro plan`,
       icon: "sparkles",
     },
     {
-      id: "pro-users",
-      title: "Scaling Teams",
-      description: `${data.plans.Pro} accounts currently on the Pro plan`,
+      id: "business-users",
+      title: "Business Customers",
+      description: `${data.plans.Business} accounts currently on the Business plan`,
       icon: "building",
     },
     {
