@@ -1,44 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
-  Circle,
   CheckCircle2,
   ChevronRight,
   CircleHelp,
   Crown,
-  CreditCard,
   Database,
   Download,
   FileSpreadsheet,
   FileText,
   Gem,
+  Lock,
   Mail,
   Rocket,
   Search,
   ShieldCheck,
+  Sparkles,
+  Star,
   Users,
   XCircle,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   useCancelSubscriptionMutation,
-  useChangeSubscriptionPlanMutation,
   useGetSubscriptionDashboardQuery,
   useReactivateSubscriptionMutation,
   type SubscriptionDashboardResponse,
+  type SubscriptionPlanKey,
 } from "@/store/api";
-
-interface KhqrState {
-  merchantName: string;
-  bakongId: string;
-  phone: string;
-  city: string;
-}
 
 type UsageIcon = "users" | "reports" | "queries" | "storage";
 
@@ -47,34 +39,18 @@ interface UsageCard {
   value: string;
   note: string;
   progress: number;
+  progressColor: string;
   icon: UsageIcon;
 }
 
-type SwitchablePlanId = "free" | "pro" | "business";
-
-type OwnerPlanTier = {
-  id: string;
-  name: string;
-  subtitle: string;
-  monthlyPrice: number;
-  features: Array<{ text: string; disabled: boolean }>;
-  users: number;
-  priceLabel: string;
-  perLabel: string;
-  highlighted: boolean;
-  badge: string;
-  rank: number;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function usageIcon(icon: UsageIcon) {
-  if (icon === "users") return <Users className="size-4 text-[#d4af35]" />;
-  if (icon === "reports") return <FileText className="size-4 text-[#d4af35]" />;
-  if (icon === "queries") return <Search className="size-4 text-[#d4af35]" />;
-  return <Database className="size-4 text-[#d4af35]" />;
-}
-
-function isSwitchablePlanId(value: string): value is SwitchablePlanId {
-  return value === "free" || value === "pro" || value === "business";
+  const cls = "size-4 text-[#d4af35]";
+  if (icon === "users") return <Users className={cls} />;
+  if (icon === "reports") return <FileText className={cls} />;
+  if (icon === "queries") return <Search className={cls} />;
+  return <Database className={cls} />;
 }
 
 function planIcon(planId: string) {
@@ -84,16 +60,11 @@ function planIcon(planId: string) {
   return <Gem className="size-8" />;
 }
 
-function extractNumberFromPrice(raw: string): number {
-  const numeric = Number(raw.replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(numeric) ? numeric : 0;
-}
-
 function formatMoney(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
 }
@@ -117,159 +88,128 @@ function normalizeError(error: unknown) {
 function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
   if (!data) {
     return [
-      { title: "Active Users", value: "0 / 0", note: "No data", progress: 0, icon: "users" },
-      { title: "Reports Generated", value: "0", note: "No data", progress: 0, icon: "reports" },
-      { title: "Analytics Queries", value: "0", note: "No data", progress: 0, icon: "queries" },
-      { title: "Storage Used", value: "0 GB", note: "No data", progress: 0, icon: "storage" },
+      { title: "Active Users", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "users" },
+      { title: "Reports Generated", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "reports" },
+      { title: "Analytics Queries", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "queries" },
+      { title: "Storage Used", value: "0 GB", note: "No data", progress: 0, progressColor: "#d4af35", icon: "storage" },
     ];
   }
 
-  const usersProgress = data.usage.activeUsers.limit > 0
-    ? (data.usage.activeUsers.used / data.usage.activeUsers.limit) * 100
-    : 0;
-  const reportsProgress = data.usage.reportsGenerated.limit > 0
-    ? (data.usage.reportsGenerated.used / data.usage.reportsGenerated.limit) * 100
-    : 0;
-  const queriesProgress = data.usage.analyticsQueries.limit > 0
-    ? (data.usage.analyticsQueries.used / data.usage.analyticsQueries.limit) * 100
-    : 0;
-  const storageProgress = data.usage.storage.limitGb > 0
-    ? (data.usage.storage.usedGb / data.usage.storage.limitGb) * 100
-    : 0;
+  const u = data.usage;
+
+  function pct(used: number, limit: number | null, unlimited: boolean): number {
+    if (unlimited || !limit) return 0;
+    return Math.min(100, Math.max(0, (used / limit) * 100));
+  }
+
+  function progressColor(p: number): string {
+    if (p >= 90) return "#ef4444";
+    if (p >= 70) return "#f59e0b";
+    return "#d4af35";
+  }
+
+  const usersProgress = pct(u.activeUsers.used, u.activeUsers.limit, u.activeUsers.unlimited);
+  const reportsProgress = pct(u.reportsGenerated.used, u.reportsGenerated.limit, u.reportsGenerated.unlimited);
+  const queriesProgress = pct(u.analyticsQueries.used, u.analyticsQueries.limit, u.analyticsQueries.unlimited);
+  const storageProgress = pct(u.storage.usedGb, u.storage.limitGb, u.storage.unlimited);
 
   return [
     {
       title: "Active Users",
-      value: `${data.usage.activeUsers.used} / ${data.usage.activeUsers.limit}`,
-      note: "Seats in current plan",
-      progress: Math.min(100, Math.max(0, usersProgress)),
+      value: u.activeUsers.unlimited
+        ? `${u.activeUsers.used} / ∞`
+        : `${u.activeUsers.used} / ${u.activeUsers.limit ?? "—"}`,
+      note: u.activeUsers.unlimited ? "Unlimited seats" : "Seats in current plan",
+      progress: usersProgress,
+      progressColor: progressColor(usersProgress),
       icon: "users",
     },
     {
       title: "Reports Generated",
-      value: String(data.usage.reportsGenerated.used),
-      note: `Limit ${data.usage.reportsGenerated.limit} reports`,
-      progress: Math.min(100, Math.max(0, reportsProgress)),
+      value: String(u.reportsGenerated.used),
+      note: u.reportsGenerated.unlimited
+        ? "Unlimited reports"
+        : `Limit ${u.reportsGenerated.limit ?? "—"} reports`,
+      progress: reportsProgress,
+      progressColor: progressColor(reportsProgress),
       icon: "reports",
     },
     {
       title: "Analytics Queries",
-      value: `${data.usage.analyticsQueries.used.toLocaleString()}`,
-      note: `Limit ${data.usage.analyticsQueries.limit.toLocaleString()}`,
-      progress: Math.min(100, Math.max(0, queriesProgress)),
+      value: u.analyticsQueries.used.toLocaleString(),
+      note: u.analyticsQueries.unlimited
+        ? "Unlimited queries"
+        : `Limit ${(u.analyticsQueries.limit ?? 0).toLocaleString()}`,
+      progress: queriesProgress,
+      progressColor: progressColor(queriesProgress),
       icon: "queries",
     },
     {
       title: "Storage Used",
-      value: `${data.usage.storage.usedGb.toFixed(2)} GB`,
-      note: `${data.usage.storage.limitGb} GB available`,
-      progress: Math.min(100, Math.max(0, storageProgress)),
+      value: `${u.storage.usedGb.toFixed(2)} GB`,
+      note: `${u.storage.limitGb} GB available`,
+      progress: storageProgress,
+      progressColor: progressColor(storageProgress),
       icon: "storage",
     },
   ];
 }
 
 function statusBadge(status: "active" | "expired" | "canceled") {
-  if (status === "active") {
-    return "bg-[#d7f2e3] text-[#067647]";
-  }
-  if (status === "expired") {
-    return "bg-[#fef3d2] text-[#b67a08]";
-  }
+  if (status === "active") return "bg-[#d7f2e3] text-[#067647]";
+  if (status === "expired") return "bg-[#fef3d2] text-[#b67a08]";
   return "bg-[#fff5f5] text-[#dc2626]";
 }
 
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  pro: 1,
+  business: 2,
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function SubscriptionsWorkspace() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
-  const [openCardDialog, setOpenCardDialog] = useState(false);
+  const [billingToggle, setBillingToggle] = useState<"monthly" | "annual">("monthly");
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [khqrOverride, setKhqrOverride] = useState<KhqrState | null>(null);
-  const [khqrForm, setKhqrForm] = useState<KhqrState>({
-    merchantName: "",
-    bakongId: "",
-    phone: "",
-    city: "",
-  });
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const {
-    data,
-    isFetching,
-  } = useGetSubscriptionDashboardQuery({ page, limit: 3 });
-
-  const [changePlan, { isLoading: isChangingPlan }] = useChangeSubscriptionPlanMutation();
+  const { data, isFetching } = useGetSubscriptionDashboardQuery({ page, limit: 3 });
   const [cancelSubscription, { isLoading: isCanceling }] = useCancelSubscriptionMutation();
   const [reactivateSubscription, { isLoading: isReactivating }] = useReactivateSubscriptionMutation();
 
-  const khqr: KhqrState = khqrOverride ?? {
-    merchantName: data?.paymentMethod.merchantName || "Syntrix Cambodia",
-    bakongId: data?.paymentMethod.bakongId || "syntrix@aclb",
-    phone: "+855 12 345 678",
-    city: "Phnom Penh",
-  };
-
   const activePlanId = data?.currentPlan.key ?? "free";
   const usage = mapUsageCards(data);
+  const plans = data?.plans ?? [];
 
-  const planTiers: OwnerPlanTier[] = ((data as unknown as { plans?: Array<Record<string, unknown>> })?.plans ?? [])
-    .map((plan, index) => {
-      const id = String(plan.id ?? plan.planKey ?? `custom-${index + 1}`);
-      const monthlyPriceRaw =
-        typeof plan.monthlyPrice === "number"
-          ? plan.monthlyPrice
-          : extractNumberFromPrice(String(plan.price ?? "0"));
-      const suffix = String(plan.suffix ?? "/mo");
-      const normalizedFeatures = Array.isArray(plan.features)
-        ? plan.features
-            .map((feature): { text: string; disabled: boolean } | null => {
-              if (typeof feature === "string") return { text: feature, disabled: false };
-              if (feature && typeof feature === "object" && "text" in feature) {
-                const f = feature as { text?: unknown; disabled?: unknown };
-                if (typeof f.text !== "string" || f.text.trim().length === 0) return null;
-                return { text: f.text, disabled: Boolean(f.disabled) };
-              }
-              return null;
-            })
-            .filter((feature): feature is { text: string; disabled: boolean } => Boolean(feature))
-        : [];
+  // ── Billing toggle: resolve what price to show ────────────────────────────
+  const effectiveBillingToggle = billingToggle;
 
-      return {
-        id,
-        name: String(plan.name ?? "Plan"),
-        subtitle: String(plan.subtitle ?? ""),
-        monthlyPrice: monthlyPriceRaw,
-        features: normalizedFeatures,
-        users: Number(plan.activeUsers ?? 0),
-        priceLabel:
-          monthlyPriceRaw === 0
-            ? "Free"
-            : formatMoney(monthlyPriceRaw, data?.paymentMethod.currency ?? "USD"),
-        perLabel: monthlyPriceRaw === 0 ? "" : suffix,
-        highlighted: Boolean(plan.highlighted),
-        badge: String(plan.badge ?? ""),
-        rank: Number(plan.rank ?? index),
-      };
-    })
-    .sort((a, b) => a.rank - b.rank);
+  function displayPrice(plan: SubscriptionDashboardResponse["plans"][number]) {
+    if (plan.monthlyPrice === 0) return "Free";
+    const price = effectiveBillingToggle === "annual" ? plan.annualPrice : plan.monthlyPrice;
+    return formatMoney(price, data?.paymentMethod.currency ?? "USD");
+  }
 
-  const activePlanMeta = planTiers.find((plan) => plan.id === activePlanId);
+  function displaySuffix(plan: SubscriptionDashboardResponse["plans"][number]) {
+    if (plan.monthlyPrice === 0) return "";
+    return effectiveBillingToggle === "annual" ? "/year" : "/month";
+  }
 
-  const khqrPayload = JSON.stringify({
-    merchant: khqr.merchantName,
-    bakongId: khqr.bakongId,
-    phone: khqr.phone,
-    city: khqr.city,
-    reference: "syntrix-subscription-monthly",
-  });
-
-  const onSelectTier = useCallback(async (tierId: SwitchablePlanId) => {
-    setActionError(null);
-    try {
-      await changePlan({ plan: tierId }).unwrap();
-    } catch (error) {
-      setActionError(normalizeError(error));
-    }
-  }, [changePlan]);
+  // ── Navigate to payment page ──────────────────────────────────────────────
+  const handleUpgradePlan = useCallback(
+    (targetPlan: SubscriptionPlanKey) => {
+      if (targetPlan === "free") return;
+      const params = new URLSearchParams({
+        plan: targetPlan,
+        billingCycle: effectiveBillingToggle,
+      });
+      router.push(`/payments?${params.toString()}`);
+    },
+    [router, effectiveBillingToggle],
+  );
 
   const onCancelSubscription = async () => {
     setActionError(null);
@@ -289,29 +229,24 @@ export function SubscriptionsWorkspace() {
     }
   };
 
-  const handleUpgrade = useCallback(async () => {
-    await onSelectTier("pro");
-  }, [onSelectTier]);
-
+  // ── Compatibility: listen for legacy upgrade event ────────────────────────
   useEffect(() => {
-    const listener = () => {
-      void handleUpgrade();
-    };
+    const listener = () => handleUpgradePlan("pro");
     window.addEventListener("subscription:upgrade", listener);
     return () => window.removeEventListener("subscription:upgrade", listener);
-  }, [handleUpgrade]);
+  }, [handleUpgradePlan]);
 
+  // ── Invoice download ──────────────────────────────────────────────────────
   const onDownloadTaxForm = () => {
     const blob = new Blob(
-      [
-        [
-          "Syntrix Tax Form",
-          `Generated: ${new Date().toISOString()}`,
-          `Plan: ${data?.currentPlan.name ?? "N/A"}`,
-          `Status: ${data?.currentPlan.status ?? "N/A"}`,
-          `Currency: ${data?.paymentMethod.currency ?? "USD"}`,
-        ].join("\n"),
-      ],
+      [[
+        "Syntrix Analytics — Tax Form",
+        `Generated: ${new Date().toISOString()}`,
+        `Plan: ${data?.currentPlan.name ?? "N/A"}`,
+        `Status: ${data?.currentPlan.status ?? "N/A"}`,
+        `Billing Cycle: ${data?.currentPlan.billingCycle ?? "monthly"}`,
+        `Currency: ${data?.paymentMethod.currency ?? "USD"}`,
+      ].join("\n")],
       { type: "text/plain;charset=utf-8;" },
     );
     const url = URL.createObjectURL(blob);
@@ -344,64 +279,73 @@ export function SubscriptionsWorkspace() {
     URL.revokeObjectURL(url);
   };
 
-  const openUpdateCard = () => {
-    setKhqrForm(khqr);
-    setOpenCardDialog(true);
-  };
-
-  const saveCard = () => {
-    if (!khqrForm.merchantName || !khqrForm.bakongId || !khqrForm.phone) return;
-    setKhqrOverride(khqrForm);
-    setOpenCardDialog(false);
-  };
+  const activePlanRank = PLAN_RANK[activePlanId] ?? 0;
 
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+      {/* ── LEFT COLUMN ───────────────────────────────────────────────────── */}
       <div className="space-y-6">
+
+        {/* Current Plan Card */}
         <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-24 w-36 items-center justify-center rounded-2xl bg-[#d4af35] text-white">
-                {planIcon(activePlanMeta?.id ?? activePlanId)}
+              <div className="flex h-24 w-36 items-center justify-center rounded-2xl bg-gradient-to-br from-[#d4af35] to-[#9d7a10] text-white">
+                {planIcon(activePlanId)}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-2xl font-semibold text-[#101828]">{data?.currentPlan.name ?? "Subscription"} Plan</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-2xl font-semibold text-[#101828]">
+                    {data?.currentPlan.name ?? "—"} Plan
+                  </h3>
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(data?.currentPlan.status ?? "active")}`}>
                     {(data?.currentPlan.status ?? "active").toUpperCase()}
                   </span>
+                  {data?.currentPlan.billingCycle === "annual" && (
+                    <span className="rounded-full bg-[#f0fdf4] px-2 py-1 text-xs font-semibold text-[#15803d]">
+                      ANNUAL
+                    </span>
+                  )}
                 </div>
-                <p className="mt-2 max-w-2xl text-sm text-[#475467]">{data?.currentPlan.description ?? "Loading plan..."}</p>
+                <p className="mt-1.5 max-w-2xl text-sm text-[#475467]">
+                  {data?.currentPlan.description ?? "Loading plan details..."}
+                </p>
                 <p className="mt-2 text-3xl font-semibold text-[#d4af35]">
-                  {formatMoney(data?.currentPlan.monthlyPrice ?? 0, data?.paymentMethod.currency ?? "USD")}
-                  <span className="ml-2 text-sm font-medium text-[#667085]">/ month</span>
+                  {data
+                    ? formatMoney(data.currentPlan.effectivePrice, data.paymentMethod.currency)
+                    : "—"}
+                  <span className="ml-2 text-sm font-medium text-[#667085]">
+                    / {data?.currentPlan.billingCycle === "annual" ? "year" : "month"}
+                  </span>
                 </p>
-                <p className="mt-2 flex items-center gap-1 text-sm text-[#667085]">
-                  <CalendarDays className="size-4" />
-                  Next billing date:{" "}
-                  <span className="font-semibold">{formatDate(data?.currentPlan.nextBillingDate ?? null)}</span>
-                </p>
+                {data?.currentPlan.nextBillingDate ? (
+                  <p className="mt-1.5 flex items-center gap-1 text-sm text-[#667085]">
+                    <CalendarDays className="size-4" />
+                    Next billing:{" "}
+                    <span className="font-semibold">{formatDate(data.currentPlan.nextBillingDate)}</span>
+                  </p>
+                ) : null}
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="h-11 rounded-full border-[#d4af35] px-5 text-sm text-[#9d7a10] hover:bg-[#fffaf0]"
-              onClick={() => {
-                const next: Record<string, "free" | "pro" | "business"> = {
-                  free: "pro",
-                  pro: "business",
-                  business: "free",
-                };
-                void onSelectTier(next[activePlanId]);
-              }}
-              disabled={isChangingPlan}
-            >
-              Change Plan
-            </Button>
+
+            {activePlanId !== "business" && (
+              <Button
+                variant="outline"
+                className="h-11 rounded-full border-[#d4af35] px-5 text-sm text-[#9d7a10] hover:bg-[#fffaf0]"
+                onClick={() => handleUpgradePlan(
+                  (["free", "pro", "business"] as SubscriptionPlanKey[]).find(
+                    (p) => PLAN_RANK[p] === activePlanRank + 1,
+                  ) ?? "pro",
+                )}
+              >
+                Upgrade Plan
+              </Button>
+            )}
           </div>
-          {actionError ? <p className="mt-3 text-sm text-rose-600">{actionError}</p> : null}
+          {actionError ? <p className="mt-3 rounded-xl bg-[#fff5f5] px-4 py-2 text-sm text-rose-600">{actionError}</p> : null}
         </article>
 
+        {/* Usage Metrics */}
         <section>
           <h3 className="mb-4 dashboard-section-title">Usage Metrics</h3>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -413,7 +357,10 @@ export function SubscriptionsWorkspace() {
                   {usageIcon(item.icon)}
                 </div>
                 <div className="mt-2 h-2 rounded-full bg-[#edf1f5]">
-                  <div className="h-full rounded-full bg-[#d4af35]" style={{ width: `${item.progress}%` }} />
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${item.progress}%`, background: item.progressColor }}
+                  />
                 </div>
                 <p className="mt-2 text-sm text-[#667085]">{item.note}</p>
               </article>
@@ -421,34 +368,95 @@ export function SubscriptionsWorkspace() {
           </div>
         </section>
 
+        {/* Subscription Plans */}
         <section className="plan-tier-section">
-          <div className="plan-tier-header">
-            <h2>Subscription Plans</h2>
+          {/* Header + billing toggle */}
+          <div className="plan-tier-header flex items-center justify-between gap-4 flex-wrap mb-5">
+            <div>
+              <h2 className="text-2xl font-semibold text-[#101828]">Subscription Plans</h2>
+              <p className="mt-1 text-sm text-[#667085]">
+                Upgrade anytime. Annual billing saves up to 2 months.
+              </p>
+            </div>
+
+            {/* Monthly / Annual Toggle */}
+            <div className="flex items-center gap-1 rounded-full border border-[#e4e7ec] bg-[#f9fafb] p-1">
+              <button
+                type="button"
+                onClick={() => setBillingToggle("monthly")}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+                  billingToggle === "monthly"
+                    ? "bg-white shadow-sm text-[#101828]"
+                    : "text-[#667085] hover:text-[#344054]"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingToggle("annual")}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  billingToggle === "annual"
+                    ? "bg-white shadow-sm text-[#101828]"
+                    : "text-[#667085] hover:text-[#344054]"
+                }`}
+              >
+                Annual
+                <span className="rounded-full bg-[#d7f2e3] px-2 py-0.5 text-[10px] font-bold text-[#067647] tracking-wide">
+                  SAVE UP TO 17%
+                </span>
+              </button>
+            </div>
           </div>
 
+          {/* Plans Grid */}
           <div className="plan-tier-grid">
-            {planTiers.map((tier) => {
-              const active = tier.id === activePlanId;
-              const showBadge = active ? "CURRENT PLAN" : tier.badge;
+            {plans.map((tier) => {
+              const isActive = tier.id === activePlanId;
+              const tierRank = PLAN_RANK[tier.id] ?? 0;
+              const isDowngrade = tierRank < activePlanRank;
+              const isUpgrade = tierRank > activePlanRank;
+              const showBadge = isActive ? "CURRENT PLAN" : tier.badge;
+              const isFree = tier.monthlyPrice === 0;
+
+              const savings = billingToggle === "annual" && !isFree ? tier.annualSavings : 0;
 
               return (
                 <article
                   key={tier.id}
-                  className={`plan-tier-card ${active || tier.highlighted ? "highlighted" : ""}`}
+                  className={`plan-tier-card ${isActive || tier.highlighted ? "highlighted" : ""}`}
                 >
                   {showBadge ? <div className="plan-tier-badge">{showBadge}</div> : null}
 
-                  <h3>{tier.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f3efe2] text-[#8a6a00]">
+                      {planIcon(tier.id)}
+                    </div>
+                    <h3>{tier.name}</h3>
+                  </div>
                   <p className="plan-tier-subtitle">{tier.subtitle}</p>
 
                   <div className="plan-tier-price-row">
-                    <span className="plan-tier-price">{tier.priceLabel}</span>
-                    <span className="plan-tier-suffix">{tier.perLabel}</span>
+                    <span className="plan-tier-price">{displayPrice(tier)}</span>
+                    <span className="plan-tier-suffix">{displaySuffix(tier)}</span>
                   </div>
 
+                  {billingToggle === "annual" && savings > 0 ? (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <Star className="size-3 text-[#067647]" fill="currentColor" />
+                      <span className="text-xs font-semibold text-[#067647]">
+                        Save {formatMoney(savings, "USD")} per year
+                      </span>
+                    </div>
+                  ) : null}
+
                   <div className="plan-tier-users">
-                    <span>Active Users</span>
-                    <strong>{tier.users}</strong>
+                    <span>
+                      {tier.limits.seats === -1 ? "Unlimited" : tier.limits.seats} seat{tier.limits.seats !== 1 ? "s" : ""}
+                    </span>
+                    <strong>
+                      {tier.limits.storageGb} GB storage
+                    </strong>
                   </div>
 
                   <ul className="plan-tier-features">
@@ -458,7 +466,13 @@ export function SubscriptionsWorkspace() {
                         className={feature.disabled ? "disabled" : ""}
                       >
                         <span className="feature-dot" aria-hidden="true">
-                          <Circle size={10} fill="currentColor" strokeWidth={1.8} />
+                          {feature.disabled ? (
+                            <span className="inline-block size-2.5 rounded-full bg-[#d0d5dd]" />
+                          ) : (
+                            <CheckCircle2
+                              className={`size-4 ${isActive || tier.highlighted ? "text-[#8d7007]" : "text-[#067647]"}`}
+                            />
+                          )}
                         </span>
                         {feature.text}
                       </li>
@@ -467,21 +481,45 @@ export function SubscriptionsWorkspace() {
 
                   <button
                     type="button"
-                    className={`plan-tier-manage-btn ${active || tier.highlighted ? "gold" : "light"}`}
+                    className={`plan-tier-manage-btn ${isActive || tier.highlighted ? "gold" : "light"} ${
+                      isUpgrade ? "ring-2 ring-[#d4af35] ring-offset-2" : ""
+                    }`}
                     onClick={() => {
-                      if (!isSwitchablePlanId(tier.id)) return;
-                      void onSelectTier(tier.id);
+                      if (isActive) return;
+                      if (isFree) return;
+                      handleUpgradePlan(tier.id as SubscriptionPlanKey);
                     }}
-                    disabled={isChangingPlan || !isSwitchablePlanId(tier.id)}
+                    disabled={isActive}
                   >
-                    {active ? "In Use" : isSwitchablePlanId(tier.id) ? "Switch Plan" : "Managed by Admin"}
+                    {isActive
+                      ? "✓ Current Plan"
+                      : isFree
+                        ? "Downgrade to Free"
+                        : isDowngrade
+                          ? "Downgrade Plan"
+                          : (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Sparkles className="size-3.5" />
+                              {billingToggle === "annual"
+                                ? `Upgrade — ${displayPrice(tier)}/yr`
+                                : `Upgrade — ${displayPrice(tier)}/mo`}
+                            </span>
+                          )}
                   </button>
                 </article>
               );
             })}
           </div>
+
+          {billingToggle === "annual" ? (
+            <p className="mt-4 text-center text-xs text-[#98a2b3]">
+              <Lock className="inline size-3 mr-1" />
+              Annual plans are billed upfront. Cancel within 14 days for a full refund.
+            </p>
+          ) : null}
         </section>
 
+        {/* Billing History */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="dashboard-section-title">Billing History</h3>
@@ -510,17 +548,31 @@ export function SubscriptionsWorkspace() {
                 <tbody className="divide-y divide-[#eef1f4] bg-white">
                   {(data?.billingHistory ?? []).map((row) => (
                     <tr key={row.id}>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">#{row.id.slice(0, 8)}</td>
-                      <td className="px-4 py-4 text-sm text-[#475467]">{row.plan}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">{formatMoney(row.amount, row.currency)}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">
+                        #{row.id.slice(0, 8)}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-[#475467] capitalize">{row.plan}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">
+                        {formatMoney(row.amount, row.currency)}
+                      </td>
                       <td className="px-4 py-4 text-sm text-[#475467]">{formatDate(row.date)}</td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex rounded-full bg-[#d7f2e3] px-3 py-1 text-sm font-semibold text-[#067647]">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                          row.status === "succeeded"
+                            ? "bg-[#d7f2e3] text-[#067647]"
+                            : row.status === "pending"
+                              ? "bg-[#fef3d2] text-[#b67a08]"
+                              : "bg-[#fff5f5] text-[#dc2626]"
+                        }`}>
                           {row.status}
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <button type="button" onClick={() => onDownloadInvoice(row)} className="text-[#d4af35]">
+                        <button
+                          type="button"
+                          onClick={() => onDownloadInvoice(row)}
+                          className="text-[#d4af35] hover:text-[#9d7a10]"
+                        >
                           <Download className="size-5" />
                         </button>
                       </td>
@@ -528,7 +580,7 @@ export function SubscriptionsWorkspace() {
                   ))}
                   {(data?.billingHistory ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-[#667085]">
+                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#667085]">
                         No billing transactions yet.
                       </td>
                     </tr>
@@ -540,63 +592,17 @@ export function SubscriptionsWorkspace() {
         </section>
       </div>
 
+      {/* ── RIGHT COLUMN (Sidebar) ─────────────────────────────────────────── */}
       <aside className="space-y-6">
-        <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
-          <h3 className="dashboard-section-title">Payment Method</h3>
-          <div className="mt-4 rounded-3xl bg-gradient-to-br from-[#111827] via-[#1f2937] to-[#0f172a] p-5 text-white">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="inline-flex items-center gap-2">
-                <CreditCard className="size-5" />
-                <span className="text-sm font-semibold tracking-[0.08em] uppercase">Bakong KHQR</span>
-              </div>
-              <span className="rounded-full bg-emerald-500/20 px-2 py-1 text-xs font-semibold text-emerald-300">
-                Ready
-              </span>
-            </div>
-            <div className="grid grid-cols-[120px_1fr] gap-4">
-              <div>
-                <div className="overflow-hidden rounded-xl border border-white/20 bg-white p-2">
-                  <QRCodeSVG value={khqrPayload} size={104} bgColor="#ffffff" fgColor="#111827" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-[11px] tracking-[0.16em] text-white/60 uppercase">Merchant</p>
-                  <p className="text-sm font-semibold">{khqr.merchantName}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] tracking-[0.16em] text-white/60 uppercase">Bakong ID</p>
-                  <p className="text-xs">{khqr.bakongId}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[11px] tracking-[0.16em] text-white/60 uppercase">Phone</p>
-                    <p className="text-xs">{khqr.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] tracking-[0.16em] text-white/60 uppercase">City</p>
-                    <p className="text-xs">{khqr.city}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            className="mt-4 h-11 w-full rounded-full border-[#dfe3e8] bg-white text-base text-[#344054]"
-            onClick={openUpdateCard}
-          >
-            Update KHQR Account
-          </Button>
-        </article>
 
+        {/* Quick Actions */}
         <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
           <h3 className="dashboard-section-title">Quick Actions</h3>
           <div className="mt-4 space-y-3">
             <button
               type="button"
               onClick={onDownloadTaxForm}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-base font-medium text-[#1f2937]"
+              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
             >
               <span className="inline-flex items-center gap-2">
                 <FileSpreadsheet className="size-4" />
@@ -608,11 +614,11 @@ export function SubscriptionsWorkspace() {
             <button
               type="button"
               onClick={onContactBilling}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-base font-medium text-[#1f2937]"
+              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
             >
               <span className="inline-flex items-center gap-2">
                 <CircleHelp className="size-4" />
-                Contact Billing
+                Contact Billing Support
               </span>
               <ChevronRight className="size-4 text-[#98a2b3]" />
             </button>
@@ -620,23 +626,23 @@ export function SubscriptionsWorkspace() {
             <button
               type="button"
               onClick={() => setEmailNotifications((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-base font-medium text-[#1f2937]"
+              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
             >
               <span className="inline-flex items-center gap-2">
                 <Mail className="size-4" />
-                Email Notification Settings
+                Email Notifications
               </span>
-              <span className="text-sm text-[#667085]">{emailNotifications ? "ON" : "OFF"}</span>
+              <span className={`text-xs font-bold ${emailNotifications ? "text-[#067647]" : "text-[#667085]"}`}>
+                {emailNotifications ? "ON" : "OFF"}
+              </span>
             </button>
 
             {(data?.currentPlan.status ?? "active") === "canceled" ? (
               <button
                 type="button"
-                onClick={() => {
-                  void onReactivate();
-                }}
+                onClick={() => { void onReactivate(); }}
                 disabled={isReactivating}
-                className="flex w-full items-center justify-between rounded-full border border-[#d4af35] bg-[#fffaf0] px-4 py-3 text-left text-base font-medium text-[#8a6b0b]"
+                className="flex w-full items-center justify-between rounded-full border border-[#d4af35] bg-[#fffaf0] px-4 py-3 text-left text-sm font-medium text-[#8a6b0b] hover:bg-[#fff6e6]"
               >
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="size-4" />
@@ -644,14 +650,12 @@ export function SubscriptionsWorkspace() {
                 </span>
                 <ChevronRight className="size-4 text-[#d4af35]" />
               </button>
-            ) : (
+            ) : activePlanId !== "free" ? (
               <button
                 type="button"
-                onClick={() => {
-                  void onCancelSubscription();
-                }}
+                onClick={() => { void onCancelSubscription(); }}
                 disabled={isCanceling}
-                className="flex w-full items-center justify-between rounded-full border border-[#f7c7c7] bg-[#fff5f5] px-4 py-3 text-left text-base font-medium text-[#dc2626]"
+                className="flex w-full items-center justify-between rounded-full border border-[#f7c7c7] bg-[#fff5f5] px-4 py-3 text-left text-sm font-medium text-[#dc2626] hover:bg-[#fef0f0]"
               >
                 <span className="inline-flex items-center gap-2">
                   <XCircle className="size-4" />
@@ -659,88 +663,25 @@ export function SubscriptionsWorkspace() {
                 </span>
                 <ChevronRight className="size-4 text-[#f87171]" />
               </button>
-            )}
+            ) : null}
           </div>
         </article>
 
+        {/* Help Box */}
         <article className="dashboard-surface border-[#eadbb0] bg-[#f8f3e4] p-5 shadow-none">
           <CircleHelp className="size-8 text-[#b98a05]" />
           <h4 className="mt-4 text-xl font-semibold text-[#111827]">Need help?</h4>
-          <p className="mt-2 text-base text-[#667085]">
-            Check our knowledge base for answers to common billing questions.
+          <p className="mt-2 text-sm text-[#667085]">
+            Check our knowledge base for billing FAQ, plan comparisons, and payment guides.
           </p>
-          <button type="button" className="mt-4 text-base font-semibold text-[#b98a05] underline">
-            Visit Help Center
+          <button type="button" className="mt-4 text-sm font-semibold text-[#b98a05] underline">
+            Visit Help Center →
           </button>
-          {isFetching ? <p className="mt-3 text-xs text-[#98a2b3]">Refreshing subscription data...</p> : null}
+          {isFetching ? (
+            <p className="mt-3 text-xs text-[#98a2b3]">Syncing subscription data...</p>
+          ) : null}
         </article>
       </aside>
-
-      <Dialog open={openCardDialog} onOpenChange={setOpenCardDialog}>
-        <DialogContent className="max-w-[560px] rounded-2xl border-[#e4e7ec]">
-          <DialogHeader>
-            <DialogTitle>Update Bakong KHQR</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-[#344054]" htmlFor="merchantName">
-                Merchant Name
-              </label>
-              <Input
-                id="merchantName"
-                value={khqrForm.merchantName}
-                onChange={(event) => setKhqrForm((prev) => ({ ...prev, merchantName: event.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-[#344054]" htmlFor="bakongId">
-                  Bakong ID
-                </label>
-                <Input
-                  id="bakongId"
-                  value={khqrForm.bakongId}
-                  placeholder="merchant@aclb"
-                  onChange={(event) => setKhqrForm((prev) => ({ ...prev, bakongId: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-[#344054]" htmlFor="phone">
-                  Phone
-                </label>
-                <Input
-                  id="phone"
-                  value={khqrForm.phone}
-                  placeholder="+855 12 345 678"
-                  onChange={(event) => setKhqrForm((prev) => ({ ...prev, phone: event.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-[#344054]" htmlFor="city">
-                City
-              </label>
-              <Input
-                id="city"
-                value={khqrForm.city}
-                onChange={(event) => setKhqrForm((prev) => ({ ...prev, city: event.target.value }))}
-              />
-            </div>
-
-            <div className="mt-2 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpenCardDialog(false)}>
-                Cancel
-              </Button>
-              <Button className="bg-[#111827] text-white hover:bg-[#1f2937]" onClick={saveCard}>
-                Save KHQR
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }

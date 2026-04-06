@@ -8,7 +8,7 @@ interface SubscriptionCardProps {
   subscription: Subscription;
 }
 
-const plans: SubscriptionPlan[] = ["FREE", "PRO", "BUSINESS"];
+const plans: SubscriptionPlan[] = ["free", "pro", "business"];
 
 export function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   return (
