@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useGetProductsQuery } from "@/redux/services/api";
+import { useGetProductsQuery } from "@/store/api";
 import { Loader2 } from "lucide-react";
 
 export default function BestSellersSection() {

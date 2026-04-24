@@ -6,33 +6,40 @@ import { Home, ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 to-white px-4">
-            <div className="max-w-2xl text-center">
-                <h1 className="text-9xl font-serif mb-4 text-gray-200">404</h1>
-                <h2 className="text-4xl md:text-5xl font-serif mb-6">
-                    Page Not Found
-                </h2>
-                <p className="text-lg text-gray-600 mb-12 max-w-md mx-auto">
-                    The page you're looking for doesn't exist or has been moved.
-                    Let's get you back to discovering exceptional pieces.
-                </p>
+        <div className="min-h-screen bg-background px-4 py-10">
+            <div className="dashboard-container">
+                <div className="mx-auto max-w-3xl">
+                    <div className="dashboard-empty-state min-h-[70vh] justify-center">
+                        <div className="dashboard-empty-state-icon">
+                            <span className="font-heading text-lg font-semibold text-foreground">404</span>
+                        </div>
+                        <p className="dashboard-eyebrow">Route unavailable</p>
+                        <h2 className="mt-3 font-heading text-4xl font-semibold tracking-[-0.04em] text-foreground md:text-5xl">
+                            This workspace page doesn&apos;t exist
+                        </h2>
+                        <p className="mt-4 mb-10 max-w-xl text-base leading-7 text-muted-foreground">
+                            The link may be outdated, the route may have moved, or this area may not belong to your current dashboard flow.
+                            Return to your analytics workspace and continue from a known screen.
+                        </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Link href="/">
-                        <Button size="lg" className="bg-black hover:bg-gray-800 text-white px-8">
-                            <Home className="w-4 h-4 mr-2" />
-                            Back to Home
-                        </Button>
-                    </Link>
-                    <Button
-                        size="lg"
-                        variant="outline"
-                        className="border-2 border-black hover:bg-black hover:text-white px-8"
-                        onClick={() => window.history.back()}
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Go Back
-                    </Button>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+                            <Link href="/owner">
+                                <Button size="lg" className="px-8">
+                                    <Home className="w-4 h-4 mr-2" />
+                                    Go to Dashboard
+                                </Button>
+                            </Link>
+                            <Button
+                                size="lg"
+                                variant="outline"
+                                className="px-8"
+                                onClick={() => window.history.back()}
+                            >
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Go Back
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
