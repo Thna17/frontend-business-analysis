@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Circle, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -36,6 +36,15 @@ type EditablePlan = {
     analyticsQueriesPerMonth: string;
     storageGb: string;
   };
+};
+
+const limitLabels: Record<keyof EditablePlan["limits"], string> = {
+  seats: "Seats",
+  productsLimit: "Products",
+  salesRecordsPerMonth: "Sales / Month",
+  reportsPerMonth: "Reports / Month",
+  analyticsQueriesPerMonth: "Analytics / Month",
+  storageGb: "Storage (GB)",
 };
 
 function toEditablePlan(input: {
@@ -92,6 +101,8 @@ export default function PlanTierSection() {
   const [updatePlan, { isLoading: isUpdating }] = useUpdateAdminSubscriptionPlanMutation();
   const [draftPlan, setDraftPlan] = useState<EditablePlan | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingFeatureFocusIndex, setPendingFeatureFocusIndex] = useState<number | null>(null);
+  const featuresListRef = useRef<HTMLDivElement | null>(null);
   const isSubmitting = isUpdating;
 
   const subscriptionPlans = useMemo(() => {
@@ -168,11 +179,32 @@ export default function PlanTierSection() {
 
   const addFeature = () => {
     if (!draftPlan) return;
+    const nextIndex = draftPlan.features.length;
     setDraftPlan({
       ...draftPlan,
       features: [...draftPlan.features, { text: "New feature", disabled: false }],
     });
+    setPendingFeatureFocusIndex(nextIndex);
   };
+
+  useEffect(() => {
+    if (pendingFeatureFocusIndex === null) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const container = featuresListRef.current;
+      const input = document.getElementById(`plan-feature-${pendingFeatureFocusIndex}`) as HTMLInputElement | null;
+
+      if (container && input) {
+        input.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        input.focus();
+        input.select();
+      }
+
+      setPendingFeatureFocusIndex(null);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [draftPlan?.features.length, pendingFeatureFocusIndex]);
 
   const savePlanChanges = async () => {
     if (!draftPlan) return;
@@ -226,14 +258,14 @@ export default function PlanTierSection() {
     <section className="plan-tier-section">
       <div className="plan-tier-header">
         <h2 className="dashboard-section-title">Plan Tier Architecture</h2>
-        <p className="text-sm text-[#667085]">Canonical plans are fixed to Free, Pro, and Business.</p>
+        <p className="text-sm text-muted-foreground">Canonical plans are fixed to Free, Pro, and Business.</p>
       </div>
 
       {isLoadingPlanConfigs ? (
-        <p className="px-2 text-sm text-[#667085]">Loading plan architecture...</p>
+        <p className="px-2 text-sm text-muted-foreground">Loading plan architecture...</p>
       ) : null}
       {isPlanConfigError ? (
-        <p className="px-2 text-sm text-[#b42318]">
+        <p className="px-2 text-sm text-destructive">
           Unable to load plan configuration from server.
         </p>
       ) : null}
@@ -296,16 +328,18 @@ export default function PlanTierSection() {
       ) : null}
 
       <Dialog open={Boolean(draftPlan)} onOpenChange={(open) => !open && setDraftPlan(null)}>
-        <DialogContent className="max-w-[760px] rounded-2xl">
+        <DialogContent className="max-h-[88vh] max-w-[1040px] overflow-y-auto rounded-2xl p-0">
           <DialogHeader>
-            <DialogTitle>{draftPlan?.id ? "Edit Plan" : "Create Plan"}</DialogTitle>
+            <div className="border-b border-border/70 px-6 py-5 md:px-7">
+              <DialogTitle>{draftPlan?.id ? "Edit Plan" : "Create Plan"}</DialogTitle>
+            </div>
           </DialogHeader>
 
           {draftPlan ? (
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-6 px-6 py-6 md:px-7">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-name">
+                  <label className="dashboard-field-label" htmlFor="plan-name">
                     Plan Name
                   </label>
                   <Input
@@ -316,7 +350,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-badge">
+                  <label className="dashboard-field-label" htmlFor="plan-badge">
                     Badge (optional)
                   </label>
                   <Input
@@ -328,7 +362,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-subtitle">
+                  <label className="dashboard-field-label" htmlFor="plan-subtitle">
                     Subtitle
                   </label>
                   <Input
@@ -339,7 +373,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-monthly-price">
+                  <label className="dashboard-field-label" htmlFor="plan-monthly-price">
                     Monthly Price
                   </label>
                   <Input
@@ -351,7 +385,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-annual-price">
+                  <label className="dashboard-field-label" htmlFor="plan-annual-price">
                     Annual Price
                   </label>
                   <Input
@@ -363,7 +397,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="inline-flex items-center gap-2 text-sm text-[#344054]">
+                  <label className="inline-flex items-center gap-2 text-sm text-foreground">
                     <input
                       type="checkbox"
                       checked={draftPlan.highlighted}
@@ -374,7 +408,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-description">
+                  <label className="dashboard-field-label" htmlFor="plan-description">
                     Description
                   </label>
                   <Input
@@ -385,7 +419,7 @@ export default function PlanTierSection() {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="plan-feature-keys">
+                  <label className="dashboard-field-label" htmlFor="plan-feature-keys">
                     Feature Keys
                   </label>
                   <Input
@@ -397,11 +431,11 @@ export default function PlanTierSection() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 {Object.entries(draftPlan.limits).map(([key, value]) => (
                   <div key={key} className="space-y-2">
-                    <label className="text-sm font-medium capitalize text-[#344054]">
-                      {key}
+                    <label className="dashboard-field-label">
+                      {limitLabels[key as keyof EditablePlan["limits"]]}
                     </label>
                     <Input
                       value={value}
@@ -421,46 +455,52 @@ export default function PlanTierSection() {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-[#344054]">Features</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Features</h4>
                   <Button type="button" variant="outline" size="sm" onClick={addFeature}>
                     <Plus className="mr-1 size-4" />
                     Add Feature
                   </Button>
                 </div>
 
-                <div className="max-h-[260px] space-y-2 overflow-y-auto rounded-xl border border-[#e4e7ec] p-3">
+                <div
+                  ref={featuresListRef}
+                  className="max-h-[260px] space-y-2 overflow-y-auto rounded-xl border border-border/80 p-3"
+                >
                   {draftPlan.features.map((feature, index) => (
                     <div
                       key={`${draftPlan.id ?? "new"}-feature-${index}`}
-                      className="grid grid-cols-[1fr_auto_auto] items-center gap-2"
+                      className="grid gap-3 rounded-[calc(var(--radius-control)-2px)] border border-border/70 bg-card/70 p-3"
                     >
                       <Input
+                        id={`plan-feature-${index}`}
                         value={feature.text}
                         onChange={(event) => updateFeatureText(index, event.target.value)}
                       />
-                      <label className="inline-flex items-center gap-1 text-xs text-[#667085]">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(feature.disabled)}
-                          onChange={(event) => toggleFeatureDisabled(index, event.target.checked)}
-                        />
-                        Disabled
-                      </label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-[#ef4444] hover:text-[#dc2626]"
-                        onClick={() => removeFeature(index)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <label className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(feature.disabled)}
+                            onChange={(event) => toggleFeatureDisabled(index, event.target.checked)}
+                          />
+                          Disabled
+                        </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => removeFeature(index)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {formError ? <p className="text-sm font-medium text-[#b42318]">{formError}</p> : null}
+              {formError ? <p className="text-sm font-medium text-destructive">{formError}</p> : null}
 
               <div className="flex justify-end gap-2 pt-1">
                   <Button
@@ -473,7 +513,7 @@ export default function PlanTierSection() {
                   </Button>
                   <Button
                     type="button"
-                    className="bg-[#111827] text-white hover:bg-[#1f2937]"
+                    variant="dark"
                     onClick={savePlanChanges}
                     disabled={isSubmitting}
                   >

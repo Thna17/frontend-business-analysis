@@ -1,5 +1,6 @@
 export type SubscriptionPlanKey = "free" | "pro" | "business";
 export type BillingCycle = "monthly" | "annual";
+export type PaymentProvider = "bakong" | "aba_payway";
 
 // ─── Plan Configuration ───────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export interface SubscriptionUsage {
 export interface SubscriptionDashboardResponse {
   currentPlan: CurrentPlan;
   paymentMethod: {
-    provider: string;
+    provider: PaymentProvider;
     label: string;
     merchantName: string;
     bakongId: string;
@@ -119,13 +120,16 @@ export interface ChangeSubscriptionPlanRequest {
 export interface CreatePaymentCheckoutRequest {
   plan: Exclude<SubscriptionPlanKey, "free">;
   billingCycle: BillingCycle;
-  provider: "bakong";
+  provider: PaymentProvider;
   currency?: string;
 }
 
 export interface PaymentCheckoutResponse {
   transactionId: string;
-  provider: string;
+  provider: PaymentProvider;
+  metadata: {
+    sandbox?: boolean;
+  } | null;
   status: "pending" | "succeeded" | "failed";
   amount: number;
   currency: string;
@@ -143,6 +147,21 @@ export interface CheckBakongPaymentRequest {
 
 export interface CheckBakongPaymentResponse {
   id: string;
+  status: "pending" | "succeeded" | "failed";
+  qrExpirationAt: string | null;
+  completedAt: string | null;
+  subscriptionPlan: string;
+  amount: number;
+  currency: string;
+}
+
+export interface SimulateAbaPaywayPaymentRequest {
+  transactionId: string;
+}
+
+export interface SimulateAbaPaywayPaymentResponse {
+  id: string;
+  provider: PaymentProvider;
   status: "pending" | "succeeded" | "failed";
   qrExpirationAt: string | null;
   completedAt: string | null;

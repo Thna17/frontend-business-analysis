@@ -11,11 +11,11 @@ export default function SubscriptionHeader() {
       </div>
 
       <div className="subscriptions-hero-actions">
-        <Button className=" h-11 rounded-full bg-[#d4af35] px-6 text-sm font-semibold text-[#1f2937] hover:bg-[#c9a62f]">
+        <Button className="px-6" size="lg">
           <span>+</span>
           Export Financial Report
         </Button>
-        <Button className="h-11 rounded-full bg-[#d4af35] px-6 text-sm font-semibold text-[#1f2937] hover:bg-[#c9a62f]">
+        <Button className="px-6" size="lg">
           <span>+</span>
           Add New Plan Tier
         </Button>

@@ -34,12 +34,6 @@ export interface SalesTransaction {
   status: "Completed" | "Pending";
 }
 
-export interface DashboardNavItem {
-  label: string;
-  href?: string;
-  requiredFeature?: string;
-}
-
 export interface SaleRecordRow {
   id: string;
   product: string;
@@ -144,21 +138,6 @@ export interface AdminSegmentItem {
   description: string;
   icon: "building" | "sparkles" | "store" | "graduation";
 }
-
-export const topNavItems: DashboardNavItem[] = [
-  { label: "Dashboard", href: "/owner" },
-  { label: "Sale Record", href: "/sale-record" },
-  { label: "Product", href: "/product" },
-  { label: "Analytics", href: "/analytics", requiredFeature: "analytics.trend" },
-  { label: "Subscriptions", href: "/subscriptions" },
-  { label: "Report", href: "/report", requiredFeature: "reports.export" },
-];
-
-export const adminTopNavItems: DashboardNavItem[] = [
-  { label: "Dashboard", href: "/admin" },
-  { label: "Analytics", href: "/admin-analytics" },
-  { label: "Subscriptions", href: "/admin/subscriptions" },
-];
 
 export const metricItems: MetricItem[] = [
   {

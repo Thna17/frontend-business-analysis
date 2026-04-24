@@ -1,66 +1,123 @@
+import Link from "next/link";
+
 export default function HeroSection() {
   return (
-    <section id="platform" className="hero-section">
-      <div className="container hero-grid">
-        <div className="hero-content fade-up">
-          <div className="eyebrow-pill">● SYNTRIX ACTIVE</div>
+    <section id="platform" className="lp-hero">
+      <div className="lp-container">
+        <div className="lp-hero-inner">
 
-          <h1 className="hero-title">
-            Strategic
-            <br />
-            Intelligence
-            <br />
-            <span>for Visionaries.</span>
-          </h1>
-
-          <p className="hero-description">
-            The elite business analysis platform designed for decision makers
-            who demand precision. Transform raw enterprise data into predictive
-            foresight with architectural clarity.
-          </p>
-
-          <div className="hero-actions">
-            <a href="#" className="primary-btn">
-              Secure Access <span>→</span>
-            </a>
-            <a href="#" className="secondary-btn">
-              Request Audit
-            </a>
-          </div>
-        </div>
-
-        <div className="hero-visual fade-up delay-1">
-          <div className="mockup-card">
-            <div className="mockup-topbar">
-              <span className="dot pink"></span>
-              <span className="dot beige"></span>
-              <span className="dot gray"></span>
+          {/* Left — Copy */}
+          <div className="lp-animate">
+            <div className="lp-eyebrow">
+              <span className="lp-eyebrow-dot" />
+              Built for small business owners
             </div>
 
-            <div className="mockup-body">
-              <div className="mockup-left">
-                <div className="mockup-line long"></div>
-                <div className="mockup-line short"></div>
-                <div className="mockup-card-small"></div>
+            <h1 className="lp-hero-title">
+              Track sales,<br />
+              grow with<br />
+              <em>confidence.</em>
+            </h1>
+
+            <p className="lp-hero-desc">
+              Syntrix gives you a clear view of your revenue, products, and business
+              performance — all in one place. No spreadsheets. No guesswork.
+            </p>
+
+            <div className="lp-hero-actions">
+              <Link href="/signup" className="lp-btn lp-btn-primary lp-btn-lg">
+                Start for free
+                <span aria-hidden>→</span>
+              </Link>
+              <Link href="#solutions" className="lp-btn lp-btn-ghost lp-btn-lg">
+                See how it works
+              </Link>
+            </div>
+
+            <div className="lp-hero-trust">
+              <div className="lp-hero-trust-avatars">
+                <span>JT</span>
+                <span>SK</span>
+                <span>AN</span>
+                <span>RB</span>
+              </div>
+              <span>Trusted by 200+ business owners</span>
+            </div>
+          </div>
+
+          {/* Right — Dashboard preview */}
+          <div className="lp-hero-visual lp-animate lp-delay-1">
+            <div className="lp-dashboard-preview">
+              {/* Browser bar */}
+              <div className="lp-dp-topbar">
+                <span className="lp-dp-dot" />
+                <span className="lp-dp-dot" />
+                <span className="lp-dp-dot" />
+                <div className="lp-dp-url" />
               </div>
 
-              <div className="mockup-center">
-                <div className="mockup-panel panel-top"></div>
-                <div className="mockup-panel panel-bottom"></div>
-              </div>
+              {/* Dashboard body */}
+              <div className="lp-dp-body">
+                {/* KPI row */}
+                <div className="lp-dp-kpis">
+                  <div className="lp-dp-kpi featured">
+                    <div className="lp-dp-kpi-label" />
+                    <div className="lp-dp-kpi-value" />
+                  </div>
+                  <div className="lp-dp-kpi">
+                    <div className="lp-dp-kpi-label" />
+                    <div className="lp-dp-kpi-value" />
+                  </div>
+                  <div className="lp-dp-kpi">
+                    <div className="lp-dp-kpi-label" />
+                    <div className="lp-dp-kpi-value" />
+                  </div>
+                </div>
 
-              <div className="mockup-right">
-                <div className="mockup-panel panel-top"></div>
+                {/* Chart */}
+                <div className="lp-dp-chart">
+                  <div className="lp-dp-bar" style={{ height: "40%" }} />
+                  <div className="lp-dp-bar" style={{ height: "60%" }} />
+                  <div className="lp-dp-bar" style={{ height: "50%" }} />
+                  <div className="lp-dp-bar accent" style={{ height: "82%" }} />
+                  <div className="lp-dp-bar" style={{ height: "70%" }} />
+                  <div className="lp-dp-bar accent" style={{ height: "92%" }} />
+                  <div className="lp-dp-bar" style={{ height: "65%" }} />
+                  <div className="lp-dp-bar" style={{ height: "78%" }} />
+                </div>
 
-                <div className="chart-box">
-                  <div className="bar bar-1"></div>
-                  <div className="bar bar-2"></div>
-                  <div className="bar bar-3"></div>
-                  <div className="bar bar-4"></div>
-                  <div className="bar bar-5"></div>
+                {/* Rows */}
+                <div className="lp-dp-rows">
+                  <div className="lp-dp-row" />
+                  <div className="lp-dp-row" />
+                  <div className="lp-dp-row" />
                 </div>
               </div>
             </div>
+
+            {/* Floating badge */}
+            <div className="lp-hero-badge">
+              <div className="lp-hero-badge-icon">📈</div>
+              <div>
+                <strong>Revenue up 28%</strong>
+                <span className="lp-hero-badge-sub">vs last month</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Logos strip */}
+      <div className="lp-logos" style={{ marginTop: "clamp(3rem, 6vw, 5rem)" }}>
+        <div className="lp-container">
+          <div className="lp-logos-inner">
+            <span className="lp-logos-label">Trusted by teams at</span>
+            <span className="lp-logo-item">RetailHub</span>
+            <span className="lp-logo-item">FoodCo</span>
+            <span className="lp-logo-item">EduSmart</span>
+            <span className="lp-logo-item">StyleBridge</span>
+            <span className="lp-logo-item">MarketLane</span>
           </div>
         </div>
       </div>

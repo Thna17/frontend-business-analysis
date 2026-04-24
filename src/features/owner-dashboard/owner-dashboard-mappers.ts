@@ -60,14 +60,6 @@ export function mapOverviewToMetrics(
       compareLabel: "average per transaction",
       icon: "aov",
     },
-    {
-      title: "Current Period",
-      value: formatCurrency(overview.kpi.currentPeriodRevenue, currency),
-      change: formatPercent(overview.kpi.growthPercentage),
-      changeDirection: growthDirection,
-      compareLabel: `vs ${formatCurrency(overview.kpi.previousPeriodRevenue, currency)}`,
-      icon: "today",
-    },
   ];
 }
 

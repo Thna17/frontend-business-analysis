@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StateMessage } from "@/components/shared/state-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "@/lib/utils";
@@ -42,9 +43,9 @@ const accessLabels: Record<AccessTone, string> = {
 const accessOrder: AccessTone[] = ["full", "limited", "tickets"];
 
 const accessBadgeClass: Record<AccessTone, string> = {
-  full: "bg-[#f2f4f7] text-[#344054]",
-  limited: "bg-[#eaecf0] text-[#475467]",
-  tickets: "bg-[#eaecf0] text-[#475467]",
+  full: "bg-secondary text-secondary-foreground",
+  limited: "bg-surface-subtle text-muted-foreground",
+  tickets: "bg-surface-subtle text-muted-foreground",
 };
 
 export function AdminSettingsWorkspace() {
@@ -173,43 +174,34 @@ export function AdminSettingsWorkspace() {
   return (
     <div className="space-y-6">
       {savedAt ? (
-        <div className="rounded-xl border border-[#d7f2e3] bg-[#ecfbf2] px-4 py-2 text-sm font-medium text-[#067647]">
-          Admin settings saved at {savedAt}.
-        </div>
+        <StateMessage tone="success" message={`Admin settings saved at ${savedAt}.`} />
       ) : null}
 
       {saving ? (
-        <div className="rounded-xl border border-[#f0e5c2] bg-[#fffaf0] px-4 py-2 text-sm font-medium text-[#8a6b0b]">
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="size-4 animate-spin" />
-            Saving settings...
-          </span>
-        </div>
+        <StateMessage tone="loading" icon={<Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />} message="Saving settings..." />
       ) : null}
 
       {saveError ? (
-        <div className="rounded-xl border border-[#f6c8c8] bg-[#fff5f5] px-4 py-2 text-sm font-medium text-[#b42318]">
-          {saveError}
-        </div>
+        <StateMessage tone="danger" message={saveError} />
       ) : null}
 
       <section>
-        <h1 className="dashboard-title">Welcome in, Admin!</h1>
+        <h1 className="dashboard-title">Admin Platform Settings</h1>
         <p className="dashboard-subtitle mt-2">
-          Here&apos;s what&apos;s happening across your platform today.
+          Control global branding, security posture, and operational safeguards from one consistent workspace.
         </p>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[2.2fr_1fr]">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <article className="dashboard-surface p-6 shadow-none">
           <div className="mb-6 flex items-start justify-between gap-3">
             <div>
               <h3 className="dashboard-section-title">Platform Configurations</h3>
-              <p className="mt-1 text-sm text-[#667085]">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Define your global brand identity and UI defaults.
               </p>
             </div>
-            <Button className="h-10 rounded-full bg-[#d4af35] px-6 text-sm font-semibold text-[#1f2937] hover:bg-[#c9a62f]">
+            <Button className="h-10 rounded-full px-6 text-sm">
               Update Assets
             </Button>
           </div>
@@ -217,21 +209,21 @@ export function AdminSettingsWorkspace() {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-4">
               <div>
-                <p className="mb-2 text-xs font-semibold tracking-wider text-[#475467]">
+                <p className="dashboard-field-label mb-2">
                   GLOBAL BRAND NAME
                 </p>
                 <Input
                   value={brandName}
                   onChange={(event) => setBrandNameDraft(event.target.value)}
-                  className="h-12 border-[#d7dce3] bg-[#f3f5f8] text-sm font-medium"
+                  className="h-12 border-border bg-surface-subtle text-sm font-medium"
                 />
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold tracking-wider text-[#475467]">
+                <p className="dashboard-field-label mb-2">
                   PRIMARY ACCENT COLOR
                 </p>
-                <div className="flex h-14 items-center gap-3 rounded-xl border border-[#d7dce3] bg-[#f3f5f8] px-3">
+                <div className="flex h-14 items-center gap-3 rounded-xl border border-border bg-surface-subtle px-3">
                   <input
                     type="color"
                     aria-label="Primary accent color"
@@ -249,13 +241,13 @@ export function AdminSettingsWorkspace() {
             </div>
 
             <div className="flex h-full flex-col justify-end">
-              <label className="flex h-full min-h-[210px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[#d7dce3] bg-[#fafbfc] text-center transition-colors hover:bg-[#f7f9fc]">
-                <CloudUpload className="size-9 text-[#7c6f53]" />
-                <p className="mt-3 text-xl font-semibold text-[#1f2937]">Logo Upload</p>
-                <p className="mt-1 text-sm text-[#667085]">
+              <label className="flex h-full min-h-[210px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-subtle text-center transition-colors hover:bg-accent/35">
+                <CloudUpload className="size-9 text-muted-foreground" />
+                <p className="mt-3 text-xl font-semibold text-foreground">Logo Upload</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Recommended: SVG or high-res PNG (min 400px)
                 </p>
-                <p className="mt-2 text-xs font-medium text-[#98a2b3]">{uploadedLogo}</p>
+                <p className="mt-2 text-xs font-medium text-muted-foreground">{uploadedLogo}</p>
                 <input
                   type="file"
                   className="hidden"
@@ -271,7 +263,7 @@ export function AdminSettingsWorkspace() {
           </div>
         </article>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <article className="dashboard-surface p-6 shadow-none">
           <h3 className="dashboard-section-title">System Health</h3>
 
           <div className="mt-5 space-y-4">
@@ -282,28 +274,28 @@ export function AdminSettingsWorkspace() {
             ].map(([label, value]) => (
               <div
                 key={label}
-                className="flex items-center justify-between rounded-xl border border-[#e8ebf0] bg-white px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
               >
                 <div className="flex items-center gap-2">
-                  <span className="inline-block size-2.5 rounded-full bg-[#856700]" />
-                  <p className="text-sm font-semibold text-[#101828]">{label}</p>
+                  <span className="inline-block size-2.5 rounded-full bg-primary" />
+                  <p className="text-sm font-semibold text-foreground">{label}</p>
                 </div>
-                <p className="text-sm text-[#667085]">{value}</p>
+                <p className="text-sm text-muted-foreground">{value}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-7 border-t border-[#eef1f4] pt-5">
+          <div className="mt-7 border-t border-border/70 pt-5">
             <Button
               variant="ghost"
-              className="h-10 w-full rounded-full text-sm font-semibold text-[#8a6b0b] hover:bg-[#fff7de] hover:text-[#745806]"
+              className="h-10 w-full rounded-full text-sm font-semibold text-primary hover:bg-primary/10 hover:text-primary"
               onClick={refreshTelemetry}
             >
               View Live Telemetry
               <ChartNoAxesCombined className="size-4" />
             </Button>
             {telemetryAt ? (
-              <p className="mt-2 text-center text-xs text-[#98a2b3]">
+              <p className="mt-2 text-center text-xs text-muted-foreground">
                 Last refreshed at {telemetryAt}
               </p>
             ) : null}
@@ -312,36 +304,36 @@ export function AdminSettingsWorkspace() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <article className="dashboard-surface p-6 shadow-none">
           <div className="mb-5 inline-flex items-center gap-2">
-            <ShieldCheck className="size-5 text-[#9b7a08]" />
+            <ShieldCheck className="size-5 text-primary" />
             <h3 className="dashboard-section-title">Security & Compliance</h3>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-xl border border-[#e4e7ec] bg-[#f6f8fb] p-4">
+            <div className="rounded-xl border border-border bg-surface-subtle p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-[#101828]">Multi-Factor Auth (MFA)</p>
-                  <p className="text-sm text-[#667085]">Enforce 2FA for all administrative roles</p>
+                  <p className="text-base font-semibold text-foreground">Multi-Factor Auth (MFA)</p>
+                  <p className="text-sm text-muted-foreground">Enforce 2FA for all administrative roles</p>
                 </div>
                 <ToggleSwitch checked={mfaEnabled} onChange={setMfaDraft} disabled={saving} />
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#e4e7ec] bg-white p-4">
+            <div className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-[#101828]">AES-256 Encryption</p>
-                  <p className="text-sm text-[#667085]">Database-level field encryption</p>
+                  <p className="text-base font-semibold text-foreground">AES-256 Encryption</p>
+                  <p className="text-sm text-muted-foreground">Database-level field encryption</p>
                 </div>
-                <span className="text-sm font-bold tracking-wide text-[#8a6b0b]">ACTIVE</span>
+                <span className="text-sm font-bold tracking-wide text-primary">ACTIVE</span>
               </div>
             </div>
 
             <Button
               variant="outline"
-              className="h-12 w-full rounded-xl border-[#d7dce3] bg-[#f2f4f7] text-sm font-semibold tracking-[0.08em] text-[#1f2937] hover:bg-[#eaedf2]"
+              className="h-12 w-full rounded-xl border-border bg-surface-subtle text-sm font-semibold tracking-[0.08em] text-foreground hover:bg-accent/45"
               onClick={exportAuditLogs}
             >
               DOWNLOAD AUDIT LOGS (Q3)
@@ -349,17 +341,17 @@ export function AdminSettingsWorkspace() {
           </div>
         </article>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <article className="dashboard-surface p-6 shadow-none">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="dashboard-section-title">User Roles</h3>
-            <button type="button" className="rounded-lg p-1 text-[#667085] hover:bg-[#f2f4f7]">
+            <button type="button" className="rounded-lg p-1 text-muted-foreground hover:bg-accent/45">
               <EllipsisVertical className="size-5" />
             </button>
           </div>
 
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#edf0f5] text-left text-xs font-semibold tracking-wider text-[#667085]">
+              <tr className="border-b border-border/70 text-left text-xs font-semibold tracking-wider text-muted-foreground">
                 <th className="pb-3">ROLE</th>
                 <th className="pb-3">MEMBERS</th>
                 <th className="pb-3">ACCESS</th>
@@ -367,20 +359,20 @@ export function AdminSettingsWorkspace() {
             </thead>
             <tbody>
               {roles.map((row) => (
-                <tr key={row.id} className="border-b border-[#f0f2f6] last:border-none">
+                <tr key={row.id} className="border-b border-border/60 last:border-none">
                   <td className="py-4">
                     <div className="flex items-center gap-2">
-                      <span className="inline-block size-2 rounded-full bg-[#d4af35]" />
+                      <span className="inline-block size-2 rounded-full bg-primary" />
                       <button
                         type="button"
-                        className="text-base font-semibold text-[#101828] hover:text-[#6e5504]"
+                        className="text-base font-semibold text-foreground hover:text-primary"
                         onClick={() => rotateRoleAccess(row.id)}
                       >
                         {row.role}
                       </button>
                     </div>
                   </td>
-                  <td className="py-4 text-base font-medium text-[#1f2937]">{row.members}</td>
+                  <td className="py-4 text-base font-medium text-secondary-foreground">{row.members}</td>
                   <td className="py-4">
                     <span className={cn("rounded-md px-3 py-1 text-sm font-medium", accessBadgeClass[row.access])}>
                       {accessLabels[row.access]}
@@ -392,24 +384,24 @@ export function AdminSettingsWorkspace() {
           </table>
 
           <div className="mt-5 flex items-center justify-between">
-            <button type="button" className="text-base font-semibold text-[#8a6b0b] hover:text-[#745806]">
+            <button type="button" className="text-base font-semibold text-primary hover:text-primary/80">
               Manage Permissions
             </button>
-            <span className="text-sm text-[#98a2b3]">{roleTotal} assigned members</span>
+            <span className="text-sm text-muted-foreground">{roleTotal} assigned members</span>
           </div>
         </article>
       </section>
 
-      <section className="rounded-2xl border border-[#f6c8c8] bg-[#fff8f8] p-6">
+      <section className="settings-danger-surface rounded-2xl p-6">
         <div className="mb-5 inline-flex items-center gap-2">
-          <AlertTriangle className="size-5 text-[#d92d20]" />
-          <h3 className="text-[1.75rem] font-semibold tracking-tight text-[#b42318]">Danger Zone</h3>
+          <AlertTriangle className="size-5 text-destructive" />
+          <h3 className="text-[1.75rem] font-semibold tracking-tight text-destructive">Danger Zone</h3>
         </div>
 
         <div className="grid gap-6 md:grid-cols-[1.1fr_auto_1.1fr_auto] md:items-center">
           <div>
-            <p className="text-2xl font-semibold tracking-tight text-[#101828]">Platform Maintenance</p>
-            <p className="mt-1 text-base text-[#4b5563]">
+            <p className="text-2xl font-semibold tracking-tight text-foreground">Platform Maintenance</p>
+            <p className="mt-1 text-base text-muted-foreground">
               Temporarily disable all user access for core updates.
             </p>
           </div>
@@ -418,8 +410,8 @@ export function AdminSettingsWorkspace() {
             className={cn(
               "h-11 min-w-[110px] rounded-xl border text-base font-semibold",
               maintenanceMode
-                ? "border-[#d92d20] bg-[#d92d20] text-white hover:bg-[#b42318]"
-                : "border-[#d92d20] bg-transparent text-[#d92d20] hover:bg-[#ffecec]",
+                ? "border-destructive bg-destructive text-white hover:bg-destructive/90"
+                : "border-destructive bg-transparent text-destructive hover:bg-destructive/10",
             )}
             onClick={() => setMaintenanceDraft(!maintenanceMode)}
           >
@@ -427,13 +419,14 @@ export function AdminSettingsWorkspace() {
           </Button>
 
           <div>
-            <p className="text-2xl font-semibold tracking-tight text-[#101828]">Purge Cache</p>
-            <p className="mt-1 text-base text-[#4b5563]">
+            <p className="text-2xl font-semibold tracking-tight text-foreground">Purge Cache</p>
+            <p className="mt-1 text-base text-muted-foreground">
               Flush global CDN and local system caching layers.
             </p>
           </div>
           <Button
-            className="h-11 min-w-[110px] rounded-xl bg-[#d92d20] text-base font-semibold text-white hover:bg-[#b42318]"
+            variant="destructive"
+            className="h-11 min-w-[110px] rounded-xl text-base font-semibold"
             onClick={purgeCache}
           >
             Purge Now
@@ -441,11 +434,11 @@ export function AdminSettingsWorkspace() {
         </div>
 
         {cachePurgedAt ? (
-          <p className="mt-4 text-sm text-[#b42318]">Cache purged successfully at {cachePurgedAt}.</p>
+          <p className="mt-4 text-sm text-destructive">Cache purged successfully at {cachePurgedAt}.</p>
         ) : null}
 
         {maintenanceMode ? (
-          <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-[#b42318]">
+          <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-destructive">
             <Shield className="size-4" />
             Maintenance mode is enabled for platform admins.
           </p>

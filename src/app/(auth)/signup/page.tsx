@@ -4,13 +4,16 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { Building2, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
+import { Building2, Mail, UserRound } from "lucide-react";
+import { AuthField } from "@/components/auth/auth-field";
+import { AuthPasswordField } from "@/components/auth/auth-password-field";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { logout as clearAuthState } from "@/store/slices/authSlice";
 import { type AppDispatch } from "@/store";
 import { useRegisterMutation } from "@/store/api";
+import { toast } from "sonner";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as { data?: { message?: string } };
@@ -34,9 +37,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [register, { isLoading }] = useRegisterMutation();
 
@@ -49,15 +49,14 @@ export default function SignupPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setErrorMessage(null);
 
     if (!agreeTerms) {
-      setErrorMessage("Please accept terms and conditions.");
+      toast.error("Please accept terms and conditions.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage("Password and confirm password do not match.");
+      toast.error("Password and confirm password do not match.");
       return;
     }
 
@@ -72,151 +71,102 @@ export default function SignupPage() {
 
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Unable to create account."));
+      toast.error(getErrorMessage(error, "Unable to create account."));
     }
   };
 
   return (
-    <AuthShell title="Create Your Account" subtitle="Start managing sales, analytics, and subscriptions in one platform.">
-      <form className="space-y-4" onSubmit={handleSubmit}>
+    <AuthShell
+      title="Create your account"
+      subtitle="Join hundreds of business owners who track their growth with Syntrix."
+    >
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label htmlFor="full-name" className="text-sm font-medium text-[#344054]">
-              Full Name
-            </label>
-            <div className="relative">
-              <UserRound className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#98a2b3]" />
-              <Input
-                id="full-name"
-                className="h-11 border-[#d0d5dd] bg-white pl-9"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="business-name" className="text-sm font-medium text-[#344054]">
-              Business Name
-            </label>
-            <div className="relative">
-              <Building2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#98a2b3]" />
-              <Input
-                id="business-name"
-                className="h-11 border-[#d0d5dd] bg-white pl-9"
-                value={businessName}
-                onChange={(event) => setBusinessName(event.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-[#344054]">
-            Email
-          </label>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#98a2b3]" />
+          <AuthField id="full-name" label="Full name" icon={<UserRound className="size-4" />}>
             <Input
-              id="email"
-              type="email"
-              className="h-11 border-[#d0d5dd] bg-white pl-9"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              id="full-name"
+              className="auth-input"
+              value={fullName}
+              autoComplete="name"
+              onChange={(event) => setFullName(event.target.value)}
               required
             />
-          </div>
+          </AuthField>
+
+          <AuthField
+            id="business-name"
+            label="Business name"
+            hint="Optional"
+            icon={<Building2 className="size-4" />}
+          >
+            <Input
+              id="business-name"
+              className="auth-input"
+              value={businessName}
+              autoComplete="organization"
+              onChange={(event) => setBusinessName(event.target.value)}
+            />
+          </AuthField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-[#344054]">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#98a2b3]" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                className="h-11 border-[#d0d5dd] pl-9 pr-10"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-[#98a2b3] hover:text-[#667085]"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </div>
+        <AuthField id="email" label="Work email" icon={<Mail className="size-4" />}>
+          <Input
+            id="email"
+            type="email"
+            className="auth-input"
+            value={email}
+            autoComplete="email"
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </AuthField>
 
-          <div className="space-y-1.5">
-            <label htmlFor="confirm-password" className="text-sm font-medium text-[#344054]">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#98a2b3]" />
-              <Input
-                id="confirm-password"
-                type={showConfirmPassword ? "text" : "password"}
-                className="h-11 border-[#d0d5dd] pl-9 pr-10"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-[#98a2b3] hover:text-[#667085]"
-                onClick={() => setShowConfirmPassword((value) => !value)}
-                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-              >
-                {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AuthPasswordField
+            id="password"
+            label="Password"
+            value={password}
+            autoComplete="new-password"
+            onChange={setPassword}
+          />
+          <AuthPasswordField
+            id="confirm-password"
+            label="Confirm password"
+            value={confirmPassword}
+            autoComplete="new-password"
+            onChange={setConfirmPassword}
+          />
         </div>
 
         <div className="space-y-1.5">
-          <div className="h-1.5 w-full rounded-full bg-[#eaecf0]">
-            <div className={`h-full rounded-full transition-all ${passwordStrength.width} ${passwordStrength.color}`} />
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div className={`h-full rounded-full transition-all duration-200 ${passwordStrength.width} ${passwordStrength.color}`} />
           </div>
-          <p className="text-xs text-[#667085]">Password strength: {passwordStrength.label}</p>
+          <p className="text-xs text-muted-foreground">Password strength: {passwordStrength.label}</p>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-sm text-[#475467]">
+        <label className="inline-flex items-center gap-3 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={agreeTerms}
             onChange={(event) => setAgreeTerms(event.target.checked)}
-            className="size-4 rounded border-[#d0d5dd] accent-[#d4af35]"
+            className="size-4 rounded border-border accent-primary"
           />
-          I agree to the terms and privacy policy.
+          <span>I agree to the terms and privacy policy.</span>
         </label>
 
-        {errorMessage ? (
-          <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">{errorMessage}</p>
-        ) : null}
-
-        <Button
-          className="h-11 w-full rounded-xl bg-[#0f172a] text-sm font-semibold text-white hover:bg-[#1e293b]"
-          type="submit"
-          disabled={isLoading}
-        >
+        <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
           {isLoading ? "Creating account..." : "Create account"}
         </Button>
+
+        <div className="auth-form-footer">
+          <p className="text-sm text-muted-foreground">Already have an account?</p>
+          <Link href="/login" className="auth-inline-link font-semibold">
+            Sign in
+          </Link>
+        </div>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#667085]">
-        Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-[#8a6b0b] hover:text-[#6e5504]">
-          Sign in
-        </Link>
-      </p>
     </AuthShell>
   );
 }

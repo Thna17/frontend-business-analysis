@@ -133,10 +133,3 @@ export interface NewsletterSubscription {
   email: string;
   subscribedAt: Date;
 }
-
-// Navigation Types
-export interface NavigationItem {
-  name: string;
-  href: string;
-  submenu?: NavigationItem[];
-}

@@ -6,6 +6,8 @@ import type {
   CheckBakongPaymentResponse,
   CreatePaymentCheckoutRequest,
   PaymentCheckoutResponse,
+  SimulateAbaPaywayPaymentRequest,
+  SimulateAbaPaywayPaymentResponse,
   SubscriptionDashboardResponse,
 } from "@/store/api/types";
 
@@ -70,6 +72,20 @@ export const subscriptionApi = api.injectEndpoints({
       transformResponse: (response: ApiEnvelope<CheckBakongPaymentResponse>) => response.data,
       invalidatesTags: ["User"],
     }),
+
+    simulateAbaPaywayPayment: builder.mutation<
+      SimulateAbaPaywayPaymentResponse,
+      SimulateAbaPaywayPaymentRequest
+    >({
+      query: (body) => ({
+        url: "/payments/aba-payway/simulate-success",
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: ApiEnvelope<SimulateAbaPaywayPaymentResponse>) =>
+        response.data,
+      invalidatesTags: ["User"],
+    }),
   }),
 });
 
@@ -80,4 +96,5 @@ export const {
   useReactivateSubscriptionMutation,
   useCreatePaymentCheckoutMutation,
   useCheckBakongPaymentMutation,
+  useSimulateAbaPaywayPaymentMutation,
 } = subscriptionApi;

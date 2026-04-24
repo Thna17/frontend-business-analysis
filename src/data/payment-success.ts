@@ -1,17 +1,15 @@
 export const paymentSuccessInfo = {
-  title: "Payment Successful",
-  description:
-    "Your account has been upgraded to Pro. You now have access to advanced analytics, faster exports, and priority support.",
+  title: "Payment successful",
   primaryButtonText: "Go to Subscriptions",
   primaryButtonHref: "/subscriptions",
   secondaryButtonText: "Download Receipt",
   helpText: "Need help?",
-  helpLinkText: "Contact Support",
+  helpLinkText: "Contact support",
   helpLinkHref: "/notification",
 };
 
 export const transactionDetails = {
-  label: "TRANSACTION DETAILS",
+  label: "Receipt",
   plan: "Pro Plan (Annual)",
   amount: "$199.00",
   date: "March 30, 2026",
@@ -20,11 +18,10 @@ export const transactionDetails = {
 
 export const paymentSuccessFooter = {
   brand: "Syntrix",
-  copyright: "(c) 2026 Syntrix Analysis Group. All rights reserved.",
+  copyright: "© 2026 Syntrix. All rights reserved.",
   links: [
     { label: "Privacy Policy", href: "#" },
     { label: "Terms of Service", href: "#" },
     { label: "Cookie Policy", href: "#" },
-    { label: "Regulatory Disclosure", href: "#" },
   ],
 };

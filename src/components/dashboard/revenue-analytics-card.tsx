@@ -1,5 +1,14 @@
-import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { ChevronDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { dashboardChartPalette } from "@/components/dashboard/chart-tokens";
+import {
+  DashboardChartEmptyState,
+  DashboardChartFigure,
+  DashboardChartLegend,
+  DashboardChartRail,
+  DashboardChartStat,
+} from "@/components/dashboard/dashboard-chart-primitives";
 
 export type MonthlyRevenuePoint = {
   label: string;
@@ -47,8 +56,12 @@ export function RevenueAnalyticsCard({
           { label: "May", value: 0 },
           { label: "Jun", value: 0 },
         ];
+  const hasData = normalizedData.length > 0;
 
   const maxValue = Math.max(...safeData.map((item) => item.value), 1);
+  const latestPoint = safeData[safeData.length - 1];
+  const previousPoint = safeData[safeData.length - 2];
+  const delta = latestPoint && previousPoint ? latestPoint.value - previousPoint.value : 0;
 
   const usableWidth = chartWidth - leftPadding - rightPadding;
   const usableHeight = chartHeight - topPadding - bottomPadding;
@@ -83,15 +96,21 @@ export function RevenueAnalyticsCard({
   });
 
   return (
-    <Card className="dashboard-surface shadow-none">
+    <Card className="dashboard-surface dashboard-surface-hover shadow-none">
       <CardHeader className="flex flex-row items-start justify-between px-7 pb-0 pt-7">
         <div>
           <CardTitle className="dashboard-section-title">
             Revenue Analytics
           </CardTitle>
           <p className="mt-1 text-[15px] text-muted-foreground">
-            Monthly revenue trends for the last 6 months
+            Monthly revenue trends for the {range === "12m" ? "last 12 months" : "last 6 months"}
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground">
+            <span className={delta >= 0 ? "text-emerald-600" : "text-rose-600"}>
+              {delta >= 0 ? "+" : "-"}${Math.abs(delta).toLocaleString()}
+            </span>
+            vs previous period point
+          </div>
         </div>
 
         <button
@@ -109,12 +128,35 @@ export function RevenueAnalyticsCard({
       </CardHeader>
 
       <CardContent className="px-6 pb-7">
-        <div className="mt-7 h-[350px]">
-          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full w-full">
+        <div className="dashboard-chart-shell mt-7">
+          <DashboardChartFigure
+            ariaLabel="Revenue trend line chart"
+            frameClassName="min-h-[350px]"
+            isLoading={isLoading}
+            loadingHeightClassName="h-[350px]"
+            emptyState={!hasData ? (
+              <DashboardChartEmptyState
+              eyebrow="Revenue signal"
+              icon={<TrendingUp className="size-5" />}
+              title="Revenue trend appears once sales accumulate"
+              description="Add more tracked sales and this chart will surface momentum, peaks, and a steadier monthly baseline."
+              className="h-[350px]"
+            />
+            ) : undefined}
+            legend={(
+              <DashboardChartLegend
+                items={[
+                  { label: "Revenue line", dotClassName: "bg-primary" },
+                  { label: "Trend field", dotClassName: "bg-[color:var(--surface-contrast)]" },
+                ]}
+              />
+            )}
+          >
+          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-full w-full" role="img" aria-label="Revenue trend line chart">
             <defs>
               <linearGradient id="rev-gradient-dynamic" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4af35" stopOpacity="0.22" />
-                <stop offset="100%" stopColor="#d4af35" stopOpacity="0.03" />
+                <stop offset="0%" stopColor={dashboardChartPalette.primary} stopOpacity="0.22" />
+                <stop offset="100%" stopColor={dashboardChartPalette.primary} stopOpacity="0.03" />
               </linearGradient>
             </defs>
 
@@ -125,8 +167,7 @@ export function RevenueAnalyticsCard({
                 y1={y}
                 x2={chartWidth - rightPadding}
                 y2={y}
-                stroke="rgba(255,255,255,0.35)"
-                strokeDasharray="6 6"
+                className="dashboard-chart-grid-line"
               />
             ))}
 
@@ -135,27 +176,33 @@ export function RevenueAnalyticsCard({
             ) : null}
 
             {linePath ? (
-              <path
+              <motion.path
                 d={linePath}
                 fill="none"
-                stroke="var(--primary)"
+                className="dashboard-chart-line-primary"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
               />
             ) : null}
 
             {chartPoints.map((point, index) => (
-              <circle
+              <motion.circle
                 key={index}
                 cx={point.x}
                 cy={point.y}
                 r="5"
-                fill="var(--primary)"
+                className="dashboard-chart-point"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.24, delay: index * 0.04, ease: "easeOut" }}
               />
             ))}
 
-            <g fill="currentColor" className="text-foreground" fontSize="18">
+            <g className="dashboard-chart-axis-label">
               {chartPoints.map((point, index) => (
                 <text
                   key={index}
@@ -168,6 +215,24 @@ export function RevenueAnalyticsCard({
               ))}
             </g>
           </svg>
+          </DashboardChartFigure>
+          <DashboardChartRail>
+          <DashboardChartStat
+            label="Latest"
+            value={`$${latestPoint?.value.toLocaleString() ?? "0"}`}
+            copy={latestPoint?.label ?? "Current period"}
+          />
+          <DashboardChartStat
+            label="Peak"
+            value={`$${Math.max(...safeData.map((item) => item.value)).toLocaleString()}`}
+            copy="Highest point in the selected range"
+          />
+          <DashboardChartStat
+            label="Average"
+            value={`$${Math.round(safeData.reduce((sum, item) => sum + item.value, 0) / safeData.length).toLocaleString()}`}
+            copy="Smoothed monthly baseline"
+          />
+          </DashboardChartRail>
         </div>
       </CardContent>
     </Card>

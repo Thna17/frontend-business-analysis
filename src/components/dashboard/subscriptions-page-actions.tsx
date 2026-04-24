@@ -12,13 +12,14 @@ export function SubscriptionsPageActions() {
       <Button
         variant="outline"
         disabled
-        className="h-11 rounded-full border-[#e4e7ec] bg-white px-5 text-sm text-[#98a2b3] disabled:opacity-100"
+        className="h-11 rounded-full px-5 text-sm text-muted-foreground disabled:opacity-100"
       >
         <Settings className="size-4" />
         Manage Billing
       </Button>
       <Button
-        className="h-11 rounded-full bg-[#d4af35] px-6 text-sm font-medium text-[#101828] hover:bg-[#c39f2f]"
+        variant="default"
+        className="h-11 rounded-full px-6 text-sm"
         onClick={() => router.push("/payments")}
       >
         <ArrowUpRight className="size-4" />

@@ -1,112 +1,152 @@
-const pricingPlans = [
+import Link from "next/link";
+
+const plans = [
   {
-    tier: "TIER I",
-    name: "Free",
+    tier: "Starter",
+    tierLabel: "Free",
     price: "$0",
     suffix: "/mo",
+    desc: "Perfect for new businesses. Get full access to core sales tracking at no cost.",
     features: [
-      "Create and manage 1 business profile",
-      "Add, edit, and delete sales records",
+      "1 business profile",
+      "Add, edit & delete sales records",
       "Basic revenue overview",
-      "Simple dashboard view",
-      "Search by product name",
-      "Filter by date and category",
+      "Simple dashboard",
+      "Search & filter by date and category",
     ],
-    highlighted: false,
-    badge: "",
-    buttonStyle: "outline-gold",
+    action: { label: "Get started free", style: "outline" },
+    featured: false,
+    badge: null,
   },
   {
-    tier: "TIER II",
-    name: "Pro",
+    tier: "Growth",
+    tierLabel: "Pro",
     price: "$19",
     suffix: "/mo",
+    desc: "For growing businesses ready to leverage analytics to make better decisions.",
     features: [
-      "All Free features",
-      "Trend, growth, and top product analytics",
-      "Report export and downloadable summaries",
-      "Voice sales input",
+      "Everything in Free",
+      "Revenue trends & growth analytics",
+      "Top product insights",
+      "Export reports as CSV",
+      "Voice input via Telegram",
       "Telegram notifications",
-      "Best for growing businesses",
     ],
-    highlighted: true,
-    badge: "RECOMMENDED",
-    buttonStyle: "gold",
+    action: { label: "Start Pro trial", style: "primary" },
+    featured: true,
+    badge: "Most popular",
   },
   {
-    tier: "TIER III",
-    name: "Business",
+    tier: "Scale",
+    tierLabel: "Business",
     price: "$49",
     suffix: "/mo",
+    desc: "For serious operators who want AI-driven insights and team collaboration.",
     features: [
-      "All Pro features",
-      "Business AI insights",
-      "Predictive revenue outlook",
+      "Everything in Pro",
+      "AI business insights panel",
+      "Predictive revenue forecasting",
       "Deeper operational recommendations",
-      "Subscription status monitoring",
+      "Team member accounts",
       "Priority support",
-      "Best for scaling teams",
     ],
-    highlighted: false,
-    badge: "",
-    buttonStyle: "outline-dark",
+    action: { label: "Get Business", style: "outline" },
+    featured: false,
+    badge: null,
   },
 ];
 
 export default function PricingSection() {
   return (
-    <section id="pricing" className="pricing-section">
-      <div className="container">
-        <div className="pricing-heading">
+    <section id="pricing" className="lp-section lp-section-alt">
+      <div className="lp-container">
+        <div className="lp-pricing-header">
           <div>
-            <p className="section-label">PRICING</p>
-            <h2>Choose Your Plan</h2>
+            <p className="lp-section-tag">✦ Pricing</p>
+            <h2 className="lp-section-title">Simple, transparent pricing</h2>
+            <p className="lp-section-text">
+              Start free and upgrade when you&apos;re ready. No hidden fees, no long-term contracts.
+            </p>
           </div>
-
-          <p className="pricing-text">
-            Select the plan that fits your business needs. Start free and upgrade anytime.
-          </p>
+          <div style={{ fontSize: "0.85rem", color: "var(--lp-muted)", textAlign: "right" }}>
+            <strong style={{ color: "var(--lp-text)" }}>14-day free trial</strong>
+            <br />No credit card required
+          </div>
         </div>
 
-        <div className="pricing-grid">
-          {pricingPlans.map((plan) => (
+        <div className="lp-pricing-grid">
+          {plans.map((plan) => (
             <div
-              key={plan.name}
-              className={`pricing-card ${plan.highlighted ? "highlighted" : ""}`}
+              key={plan.tier}
+              className={`lp-plan${plan.featured ? " featured" : ""}`}
             >
-              {plan.badge && <div className="pricing-badge">{plan.badge}</div>}
+              {plan.badge && (
+                <div className="lp-plan-badge">{plan.badge}</div>
+              )}
 
-              <p className="plan-tier">{plan.tier}</p>
-              <h3 className="plan-name">{plan.name}</h3>
+              <p className="lp-plan-tier">{plan.tier}</p>
+              <h3 className="lp-plan-name">{plan.tierLabel}</h3>
 
-              <div className="plan-price-row">
-                <span className="plan-price">{plan.price}</span>
-                {plan.suffix ? (
-                  <span className="plan-suffix">{plan.suffix}</span>
-                ) : null}
+              <div className="lp-plan-price-row">
+                <span className="lp-plan-price">{plan.price}</span>
+                <span className="lp-plan-suffix">{plan.suffix}</span>
               </div>
 
-              <ul className="plan-features">
-                {plan.features.map((feature, index) => (
-                  <li key={`${plan.name}-${index}`}>
-                    <span className="feature-icon">⊚</span>
-                    <span>{feature}</span>
+              <p className="lp-plan-desc">{plan.desc}</p>
+
+              <ul className="lp-plan-features">
+                {plan.features.map((f, i) => (
+                  <li key={i}>
+                    <span className="lp-plan-check">✓</span>
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
 
-              <a
-                href="#"
-                className={`plan-button ${
-                  plan.buttonStyle === "gold"
-                    ? "plan-button-gold"
-                    : plan.buttonStyle === "outline-dark"
-                    ? "plan-button-outline-dark"
-                    : "plan-button-outline-gold"
-                }`}
+              <Link
+                href="/signup"
+                className={`lp-plan-action ${plan.action.style === "primary" ? "lp-plan-action-primary" : "lp-plan-action-outline"}`}
               >
-                Get Started
-              </a>
+                {plan.action.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* Testimonials */}
+        <div className="lp-testimonial-grid" style={{ marginTop: "3.5rem" }}>
+          {[
+            {
+              initials: "KS",
+              name: "Kosal Sorn",
+              role: "Retail shop owner, Phnom Penh",
+              text: "Before Syntrix, I tracked everything in notebooks. Now I can see which products bring the most profit every single day. It changed how I run my store.",
+            },
+            {
+              initials: "LB",
+              name: "Linda Breckenridge",
+              role: "Food & Beverage, Singapore",
+              text: "The voice input feature is a game-changer. I just talk to Telegram after each sale and everything is logged. My accountant loves the reports.",
+            },
+            {
+              initials: "RM",
+              name: "Rath Mengly",
+              role: "Education services, Cambodia",
+              text: "The AI insights helped me notice seasonal revenue dips I never saw before. I adjusted my student intake timing and revenue jumped 22% in one quarter.",
+            },
+          ].map((t) => (
+            <div className="lp-testimonial" key={t.name}>
+              <div className="lp-testimonial-stars">
+                {[...Array(5)].map((_, i) => <span key={i}>★</span>)}
+              </div>
+              <p className="lp-testimonial-text">&ldquo;{t.text}&rdquo;</p>
+              <div className="lp-testimonial-author">
+                <div className="lp-testimonial-avatar">{t.initials}</div>
+                <div>
+                  <p className="lp-testimonial-name">{t.name}</p>
+                  <p className="lp-testimonial-role">{t.role}</p>
+                </div>
+              </div>
             </div>
           ))}
         </div>

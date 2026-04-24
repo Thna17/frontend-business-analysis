@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   ArrowUpRight,
+  ArrowDownRight,
   Building2,
   CalendarDays,
   Box,
@@ -11,14 +12,16 @@ import {
   UserRoundMinus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { MetricItem } from "@/features/owner-dashboard/dashboard-mock";
 
 interface KpiCardProps {
   item: MetricItem;
+  featured?: boolean;
 }
 
 function MetricIcon({ icon }: Pick<MetricItem, "icon">) {
-  const className = "size-5 text-[#d4af35]";
+  const className = "size-5 text-primary";
 
   if (icon === "users") return <UserRound className={className} />;
   if (icon === "churn") return <UserRoundMinus className={className} />;
@@ -33,20 +36,30 @@ function MetricIcon({ icon }: Pick<MetricItem, "icon">) {
   return <DollarSign className={className} />;
 }
 
-export function KpiCard({ item }: KpiCardProps) {
+export function KpiCard({ item, featured = false }: KpiCardProps) {
   return (
-    <Card className="dashboard-kpi-card shadow-none">
+    <Card className={cn(
+      "dashboard-kpi-card dashboard-surface-hover shadow-none h-full",
+      featured && "dashboard-kpi-card-featured",
+    )}>
       <CardContent className="p-0">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-medium text-muted-foreground">{item.title}</p>
-          <MetricIcon icon={item.icon} />
+          <p className="dashboard-kpi-card-label">{item.title}</p>
+          <div className="dashboard-kpi-card-icon">
+            <MetricIcon icon={item.icon} />
+          </div>
         </div>
 
-        <p className="mt-7 text-[1.95rem] font-semibold tracking-tight text-foreground">{item.value}</p>
+        <p className="dashboard-kpi-card-value">{item.value}</p>
 
-        <div className="mt-3 flex items-center gap-2 text-sm">
+        <div className="dashboard-kpi-card-footer">
           {item.change ? (
-            <span className={item.changeDirection === "up" ? "text-emerald-600" : "text-rose-600"}>
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              item.changeDirection === "up"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-rose-50 text-rose-700"
+            }`}>
+              {item.changeDirection === "up" ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
               {item.change}
             </span>
           ) : null}

@@ -12,11 +12,12 @@ import {
   XCircle,
   Search,
   Trash2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
+import { ProductEditorDialog, type ProductFormState } from "@/components/dashboard/product-editor-dialog";
 import {
   Select,
   SelectContent,
@@ -46,16 +47,6 @@ type SortFilter =
   | "revenueHigh"
   | "stockLow"
   | "stockHigh";
-
-interface ProductFormState {
-  name: string;
-  category: string;
-  newCategory: string;
-  categoryMode: "existing" | "new";
-  unitPrice: string;
-  stock: string;
-  isActive: boolean;
-}
 
 const pageSize = 6;
 
@@ -131,6 +122,7 @@ export function ProductManagementWorkspace() {
   const [form, setForm] = useState<ProductFormState>(formDefaults);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
 
   const { startDate, endDate } = useMemo(() => dateBoundsByPreset(dateFilter), [dateFilter]);
@@ -281,6 +273,7 @@ export function ProductManagementWorkspace() {
             isActive: form.isActive,
           },
         }).unwrap();
+        setActionSuccess("Product updated successfully.");
       } else {
         await createProduct({
           name: form.name.trim(),
@@ -289,6 +282,7 @@ export function ProductManagementWorkspace() {
           stock,
           isActive: true,
         }).unwrap();
+        setActionSuccess("Product added to the catalog.");
       }
 
       setFormError(null);
@@ -300,8 +294,10 @@ export function ProductManagementWorkspace() {
 
   const onDelete = async (id: string) => {
     setActionError(null);
+    setActionSuccess(null);
     try {
       await deleteProduct(id).unwrap();
+      setActionSuccess("Product removed from the catalog.");
     } catch (error) {
       setActionError(normalizeError(error));
     }
@@ -331,16 +327,46 @@ export function ProductManagementWorkspace() {
   const from = total === 0 ? 0 : (page - 1) * limit + 1;
   const to = Math.min(page * limit, total);
   const hasNext = Boolean(productsResponse?.meta.hasNextPage);
+  const hasActiveFilters = Boolean(search || category !== "all" || dateFilter !== "all" || sortBy !== "updatedDesc");
 
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-      <section className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
-        <div className="border-b border-[#edf1f5] px-6 py-5 md:px-7">
+      <div className="space-y-6">
+      <PageSummaryStrip
+        eyebrow="Catalog Overview"
+        title="Product catalog control"
+        description="Track catalog performance, resolve update suggestions, and keep pricing, stock, and categories consistent across analytics surfaces."
+        items={[
+          {
+            label: "Products",
+            value: String(overview?.kpi.totalProducts ?? total),
+            helper: "Active catalog records",
+          },
+          {
+            label: "Revenue",
+            value: formatMoney(overview?.kpi.productRevenue ?? 0),
+            helper: "Revenue attributed to products",
+          },
+          {
+            label: "Best Seller",
+            value: overview?.kpi.bestSeller ?? "No leader yet",
+            helper: "Top-performing product right now",
+          },
+          {
+            label: "Low Stock",
+            value: `${overview?.kpi.lowStockCount ?? 0}`,
+            helper: "Products that need replenishment",
+          },
+        ]}
+      />
+      <section className="dashboard-surface overflow-hidden shadow-none">
+        <div className="border-b border-border/80 px-6 py-5 md:px-7">
           <div className="grid flex-1 gap-3 md:grid-cols-[1fr_auto_auto_auto]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] pl-10 text-sm"
+                aria-label="Search products"
+                className="h-11 rounded-xl border-border bg-surface-subtle pl-10 text-sm"
                 placeholder="Search records..."
                 value={search}
                 onChange={(event) => {
@@ -357,7 +383,7 @@ export function ProductManagementWorkspace() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+              <SelectTrigger className="h-11 rounded-xl border-border bg-surface-subtle text-sm text-secondary-foreground">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -377,7 +403,7 @@ export function ProductManagementWorkspace() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+              <SelectTrigger className="h-11 rounded-xl border-border bg-surface-subtle text-sm text-secondary-foreground">
                 <CalendarDays className="size-4" />
                 <SelectValue />
               </SelectTrigger>
@@ -396,7 +422,7 @@ export function ProductManagementWorkspace() {
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="h-11 rounded-xl border-[#dfe3e8] bg-[#f6f7f9] text-sm text-[#344054]">
+              <SelectTrigger className="h-11 rounded-xl border-border bg-surface-subtle text-sm text-secondary-foreground">
                 <SelectValue />
                 <ChevronDown className="size-4" />
               </SelectTrigger>
@@ -412,10 +438,46 @@ export function ProductManagementWorkspace() {
             </Select>
           </div>
         </div>
+        <div className="dashboard-filter-summary">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              {total > 0 ? `${total} products matched` : "No products matched"}
+            </p>
+            <div className="dashboard-filter-chip-row">
+              {search ? <span className="dashboard-filter-chip">Search: {search}</span> : null}
+              {category !== "all" ? <span className="dashboard-filter-chip">Category: {category}</span> : null}
+              {dateFilter !== "all" ? <span className="dashboard-filter-chip">Date: {dateFilter}</span> : null}
+              {sortBy !== "updatedDesc" ? <span className="dashboard-filter-chip">Sort: {sortBy}</span> : null}
+              {!hasActiveFilters ? (
+                <span className="text-sm text-muted-foreground">
+                  Search products, monitor stock, and review recent updates from one list.
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {hasActiveFilters ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSearch("");
+                setCategory("all");
+                setDateFilter("all");
+                setSortBy("updatedDesc");
+                setCurrentPage(1);
+              }}
+            >
+              Clear filters
+            </Button>
+          ) : null}
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left">
-            <thead className="bg-[#f5f6f8] text-xs font-semibold tracking-[0.06em] text-[#667085] uppercase">
+        <DashboardDataTable
+          ariaLabel="Product catalog table"
+          caption="Product catalog with category, price, sales, revenue, stock, and actions"
+          tableClassName="min-w-[980px]"
+        >
+            <thead>
               <tr>
                 <th className="px-6 py-4">Product</th>
                 <th className="px-5 py-4">Category</th>
@@ -427,28 +489,31 @@ export function ProductManagementWorkspace() {
                 <th className="px-5 py-4">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#eef1f4] bg-white">
+            <tbody>
               {(productsResponse?.items ?? []).map((row) => (
                 <tr key={row.id}>
-                  <td className="px-6 py-4 text-sm font-semibold text-[#101828]">{row.name}</td>
-                  <td className="px-5 py-4 text-sm text-[#667085]">{row.category}</td>
-                  <td className="px-5 py-4 text-sm text-[#667085]">{formatMoney(row.unitPrice)}</td>
-                  <td className="px-5 py-4 text-sm text-[#667085]">{row.quantitySold}</td>
-                  <td className="px-5 py-4 text-sm font-semibold text-[#101828]">{formatMoney(row.revenue)}</td>
-                  <td className="px-5 py-4 text-sm text-[#667085]">{row.stock}</td>
-                  <td className="px-5 py-4 text-sm text-[#667085]">{formatDate(row.lastSoldAt)}</td>
+                  <td className="dashboard-table-title-cell px-6 py-4">{row.name}</td>
+                  <td className="dashboard-table-body-text px-5 py-4">{row.category}</td>
+                  <td className="dashboard-table-body-text px-5 py-4">{formatMoney(row.unitPrice)}</td>
+                  <td className="dashboard-table-body-text px-5 py-4">{row.quantitySold}</td>
+                  <td className="dashboard-table-value px-5 py-4">{formatMoney(row.revenue)}</td>
+                  <td className="dashboard-table-body-text px-5 py-4">{row.stock}</td>
+                  <td className="dashboard-table-body-text px-5 py-4">{formatDate(row.lastSoldAt)}</td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center gap-3 text-[#98a2b3]">
-                      <button type="button" onClick={() => onOpenEdit(row)} aria-label={`Edit ${row.name}`}>
+                    <div className="dashboard-row-actions">
+                      <button type="button" onClick={() => onOpenEdit(row)} aria-label={`Edit ${row.name}`} className="dashboard-row-action">
                         <Pencil className="size-4" />
+                        Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => onDelete(row.id)}
                         aria-label={`Delete ${row.name}`}
                         disabled={isDeleting}
+                        className="dashboard-row-action dashboard-row-action-danger"
                       >
                         <Trash2 className="size-4" />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -456,30 +521,35 @@ export function ProductManagementWorkspace() {
               ))}
               {!isFetching && (productsResponse?.items ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-9 text-center text-sm text-[#667085]">
+                  <td colSpan={8} className="px-6 py-9 text-center text-sm text-muted-foreground">
                     No products found.
                   </td>
                 </tr>
               ) : null}
             </tbody>
-          </table>
-        </div>
+        </DashboardDataTable>
 
-        <div className="flex flex-col gap-4 border-t border-[#edf1f5] px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-7">
-          <p className="text-sm text-[#667085]">
-            Showing {from} to {to} of {total} entries
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="dashboard-table-footer">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Showing {from} to {to} of {total} entries
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {hasActiveFilters ? "Filtered product view is active." : "Showing the full product catalog."}
+            </p>
+          </div>
+          <div className="dashboard-pagination">
             <Button
               variant="outline"
-              className="h-10 rounded-xl border-[#dfe3e8] bg-white px-4 text-sm text-[#667085]"
+              className="h-10 rounded-xl px-4 text-sm"
               disabled={page <= 1 || isFetching}
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             >
               Previous
             </Button>
             <Button
-              className="h-10 rounded-xl bg-[#0f172a] px-5 text-sm text-white hover:bg-[#111d3a]"
+              variant="dark"
+              className="h-10 rounded-xl px-5 text-sm"
               disabled={!hasNext || isFetching}
               onClick={() => setCurrentPage((prev) => prev + 1)}
             >
@@ -487,48 +557,56 @@ export function ProductManagementWorkspace() {
             </Button>
           </div>
         </div>
+        {actionSuccess ? (
+          <div className="px-6 pb-5 md:px-7">
+            <div className="dashboard-inline-feedback dashboard-inline-feedback-success">
+              <p>{actionSuccess}</p>
+            </div>
+          </div>
+        ) : null}
       </section>
+      </div>
 
       <aside className="space-y-6">
-        <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <section className="dashboard-surface p-6 shadow-none">
           <div className="flex items-center justify-between gap-3">
             <h3 className="dashboard-section-title">Pending Product Updates</h3>
-            <span className="rounded-full bg-[#f2f4f7] px-2.5 py-1 text-xs font-semibold text-[#475467]">
+            <span className="rounded-full bg-surface-subtle px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
               {suggestions.length}
             </span>
           </div>
-          <p className="mt-2 text-sm text-[#667085]">
+          <p className="mt-2 text-sm text-muted-foreground">
             Review category and price conflicts from Sales, Voice, and Telegram.
           </p>
-          <div className="mt-4 space-y-3">
+          <div className="dashboard-workflow-list mt-4">
             {isSuggestionsFetching ? (
-              <p className="text-sm text-[#667085]">Loading suggestions...</p>
+              <p className="text-sm text-muted-foreground">Loading suggestions...</p>
             ) : null}
             {!isSuggestionsFetching && suggestions.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[#d0d5dd] bg-[#f9fafb] px-3 py-4 text-sm text-[#667085]">
+              <p className="dashboard-workflow-card dashboard-workflow-card-muted border-dashed text-sm text-muted-foreground">
                 No pending updates.
               </p>
             ) : null}
             {suggestions.map((item) => (
-              <div key={item.id} className="rounded-xl border border-[#e4e7ec] bg-white p-3">
+              <div key={item.id} className="dashboard-workflow-list-item">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-[#101828]">{item.productName}</p>
-                    <p className="mt-1 text-xs text-[#667085]">
+                    <p className="text-sm font-semibold text-foreground">{item.productName}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Current: {item.currentCategory} / {formatMoney(item.currentUnitPrice)}
                     </p>
-                    <p className="text-xs text-[#667085]">
+                    <p className="text-xs text-muted-foreground">
                       Proposed: {item.proposedCategory} / {formatMoney(item.proposedUnitPrice)}
                     </p>
-                    <p className="mt-1 text-xs text-[#98a2b3]">Source: {item.source}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Source: {item.source}</p>
                   </div>
-                  <AlertTriangle className="size-4 text-[#b54708]" />
+                  <AlertTriangle className="size-4 text-amber-700" />
                 </div>
                 <div className="mt-3 flex items-center gap-2">
                   <Button
                     type="button"
                     size="sm"
-                    className="h-8 rounded-lg bg-[#067647] px-3 text-xs text-white hover:bg-[#05603a]"
+                    className="h-8 rounded-lg px-3 text-xs"
                     onClick={() => void onApproveSuggestion(item.id)}
                     disabled={isResolvingSuggestion}
                   >
@@ -539,7 +617,7 @@ export function ProductManagementWorkspace() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg border-[#fecaca] px-3 text-xs text-[#b42318]"
+                    className="h-8 rounded-lg border-destructive/30 px-3 text-xs text-destructive"
                     onClick={() => void onRejectSuggestion(item.id)}
                     disabled={isResolvingSuggestion}
                   >
@@ -553,204 +631,92 @@ export function ProductManagementWorkspace() {
           {suggestionError ? <p className="mt-3 text-sm text-rose-600">{suggestionError}</p> : null}
         </section>
 
-        <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <section className="dashboard-surface p-6 shadow-none">
           <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
           <div className="mt-6 space-y-6">
             {rankingItems.length > 0 ? (
-              rankingItems.map((item, index) => (
+              rankingItems.map((item) => (
                 <div key={item.name}>
                   <div className="mb-2 flex items-center justify-between text-base">
-                    <span className="font-medium text-[#344054]">{item.name}</span>
-                    <span className="font-medium text-[#d4af35]">{formatMoney(item.revenue)}</span>
+                    <span className="font-medium text-secondary-foreground">{item.name}</span>
+                    <span className="font-medium text-primary">{formatMoney(item.revenue)}</span>
                   </div>
-                  <div className="h-3 rounded-full bg-[#eceff3]">
+                  <div className="h-3 rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-[#d4af35]"
-                      style={{ width: `${item.percent}%`, opacity: 1 - index * 0.17 }}
+                      className="h-full rounded-full bg-primary"
+                      style={{ width: `${item.percent}%` }}
                     />
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#98a2b3]">No ranking data yet.</p>
+              <p className="text-sm text-muted-foreground">No ranking data yet.</p>
             )}
           </div>
         </section>
 
-        <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <section className="dashboard-surface p-6 shadow-none">
           <h3 className="dashboard-section-title">Quick Actions</h3>
-          <p className="mt-2 text-sm text-[#667085]">Low stock: {overview?.kpi.lowStockCount ?? 0} items</p>
+          <p className="mt-2 text-sm text-muted-foreground">Low stock: {overview?.kpi.lowStockCount ?? 0} items</p>
           <div className="mt-5 space-y-3">
             <button
               type="button"
               onClick={onOpenCreate}
-              className="flex w-full items-center gap-3 rounded-full border border-[#ead9a2] bg-[#fffaf0] px-4 py-3 text-left text-sm font-medium text-[#7a5e0b]"
+              className="dashboard-quick-action dashboard-quick-action-primary"
             >
-              <Plus className="size-4" />
-              Add New Product
+              <span className="inline-flex items-center gap-3">
+                <Plus className="size-4" />
+                Add New Product
+              </span>
             </button>
 
             <button
               type="button"
               onClick={exportCsv}
-              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-sm font-medium text-[#344054]"
+              className="dashboard-quick-action"
             >
-              <Download className="size-4" />
-              Export Product List
+              <span className="inline-flex items-center gap-3">
+                <Download className="size-4" />
+                Export Product List
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => refetchProducts()}
-              className="flex w-full items-center gap-3 rounded-full border border-[#e4e7ec] bg-white px-4 py-3 text-left text-sm font-medium text-[#344054]"
+              className="dashboard-quick-action"
             >
-              <Search className="size-4" />
-              Refresh Data
+              <span className="inline-flex items-center gap-3">
+                <Search className="size-4" />
+                Refresh Data
+              </span>
             </button>
           </div>
-          {actionError ? <p className="mt-4 text-sm text-rose-600">{actionError}</p> : null}
+          {actionError ? (
+            <div className="dashboard-inline-feedback dashboard-inline-feedback-danger mt-4">
+              <p>{actionError}</p>
+            </div>
+          ) : null}
         </section>
       </aside>
 
-      <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : onCloseModal())}>
-        <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-[#e4e7ec] p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
-          <DialogHeader className="flex-row items-center justify-between border-b border-[#eceff3] bg-[#f9fafb] px-6 py-4 text-left">
-            <DialogTitle className="text-[1.625rem] font-semibold tracking-tight text-[#101828]">
-              {editingProduct ? "Update Product" : "Add New Product"}
-            </DialogTitle>
-            <button
-              type="button"
-              onClick={onCloseModal}
-              className="rounded-md p-1.5 text-[#98a2b3] transition-colors hover:bg-white hover:text-[#475467]"
-              disabled={isSaving}
-            >
-              <X className="size-5" />
-            </button>
-          </DialogHeader>
-
-          <div className="grid gap-4 px-6 py-6">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-[#344054]" htmlFor="product-name">
-                Product Name
-              </label>
-              <Input
-                id="product-name"
-                value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                placeholder="e.g. Enterprise License"
-                className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054] placeholder:text-[#98a2b3]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-[#344054]" htmlFor="category-mode">
-                  Category
-                </label>
-                <Select
-                  value={form.categoryMode}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, categoryMode: value as "existing" | "new" }))}
-                >
-                  <SelectTrigger id="category-mode" className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="existing">Select Existing Category</SelectItem>
-                    <SelectItem value="new">Add New Category</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {form.categoryMode === "existing" ? (
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="category-select">
-                    Existing Category
-                  </label>
-                  <Select
-                    value={form.category}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger id="category-select" className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryOptions.map((item) => (
-                        <SelectItem key={item} value={item}>
-                          {item}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <label className="text-sm font-medium text-[#344054]" htmlFor="new-category">
-                    New Category Name
-                  </label>
-                  <Input
-                    id="new-category"
-                    value={form.newCategory}
-                    onChange={(event) => setForm((prev) => ({ ...prev, newCategory: event.target.value }))}
-                    placeholder="e.g. Bakery"
-                    className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-[#344054]" htmlFor="unit-price">
-                  Price ($)
-                </label>
-                <Input
-                  id="unit-price"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={form.unitPrice}
-                  onChange={(event) => setForm((prev) => ({ ...prev, unitPrice: event.target.value }))}
-                  className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
-                />
-              </div>
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-[#344054]" htmlFor="stock">
-                  Stock
-                </label>
-                <Input
-                  id="stock"
-                  type="number"
-                  min={0}
-                  step="1"
-                  value={form.stock}
-                  onChange={(event) => setForm((prev) => ({ ...prev, stock: event.target.value }))}
-                  className="h-11 rounded-xl border-[#dfe3e8] bg-white text-sm text-[#344054]"
-                />
-              </div>
-            </div>
-
-            {formError ? <p className="text-sm text-rose-600">{formError}</p> : null}
-
-            <div className="mt-2 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={onCloseModal}
-                className="h-10 rounded-xl border-[#dfe3e8] bg-white px-6 text-sm text-[#475467]"
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-10 rounded-xl bg-[#0f172a] px-7 text-sm text-white hover:bg-[#111d3a]"
-                onClick={submit}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : editingProduct ? "Save Product" : "Add Product"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProductEditorDialog
+        open={open}
+        isSaving={isSaving}
+        editingProductName={editingProduct?.name ?? null}
+        form={form}
+        categoryOptions={categoryOptions}
+        formError={formError}
+        onOpenChange={(value) => {
+          if (value) {
+            setOpen(true);
+            return;
+          }
+          onCloseModal();
+        }}
+        onFormChange={setForm}
+        onSubmit={submit}
+      />
     </section>
   );
 }

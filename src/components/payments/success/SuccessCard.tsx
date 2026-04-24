@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, Check } from "lucide-react";
 import TransactionDetails from "@/components/payments/success/TransactionDetails";
-import { paymentSuccessInfo, transactionDetails } from "@/data/payment-success";
+import { paymentSuccessInfo } from "@/data/payment-success";
 
 type ReceiptRecord = {
   id: string;
@@ -90,12 +91,27 @@ async function persistReceipt(record: ReceiptRecord) {
 }
 
 export default function SuccessCard() {
+  const searchParams = useSearchParams();
   const [message, setMessage] = useState("");
+  const plan = searchParams.get("plan") ?? "pro";
+  const billingCycle = searchParams.get("billingCycle") ?? "monthly";
+  const amount = searchParams.get("amount") ?? "19.00";
+  const currency = searchParams.get("currency") ?? "USD";
+
+  const formattedPlan = `${plan.charAt(0).toUpperCase()}${plan.slice(1)} Plan (${billingCycle === "annual" ? "Annual" : "Monthly"})`;
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(amount));
+  const provider = searchParams.get("provider");
+  const providerLabel = provider === "aba_payway" ? "ABA PayWay Sandbox" : "Bakong KHQR";
 
   const onDownloadReceipt = async () => {
     const now = new Date();
     const timestamp = now.toISOString().replace(/[:.]/g, "-");
-    const planSlug = transactionDetails.plan
+    const planSlug = formattedPlan
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
@@ -103,10 +119,14 @@ export default function SuccessCard() {
     const fileName = `syntrix-receipt-${planSlug || "plan"}-${timestamp}.pdf`;
     const receipt: ReceiptRecord = {
       id: `rcpt-${timestamp}`,
-      plan: transactionDetails.plan,
-      amount: transactionDetails.amount,
-      status: transactionDetails.status,
-      transactionDate: transactionDetails.date,
+      plan: formattedPlan,
+      amount: formattedAmount,
+      status: "Paid",
+      transactionDate: now.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
       downloadedAt: now.toISOString(),
       fileName,
     };
@@ -138,21 +158,25 @@ export default function SuccessCard() {
 
   return (
     <div className="payment-success-card">
-      <div className="success-icon-wrap">
+      <div className="success-icon-wrap payment-success-card-top">
         <div className="success-icon-circle">
-          <Check className="size-7 text-white" />
+          <Check className="size-6 text-white" />
+        </div>
+
+        <div className="payment-success-copy">
+          <h1 className="payment-success-title">{paymentSuccessInfo.title}</h1>
+          <p className="payment-success-description">
+            {formattedPlan} is active. {formattedAmount} was received via {providerLabel}.
+          </p>
         </div>
       </div>
-
-      <h1 className="payment-success-title">{paymentSuccessInfo.title}</h1>
-
-      <p className="payment-success-description">{paymentSuccessInfo.description}</p>
 
       <TransactionDetails />
 
       <div className="payment-success-actions">
         <Link href={paymentSuccessInfo.primaryButtonHref} className="success-primary-btn">
           {paymentSuccessInfo.primaryButtonText}
+          <ArrowRight className="size-4" />
         </Link>
 
         <button type="button" className="success-secondary-btn" onClick={onDownloadReceipt}>
@@ -160,11 +184,12 @@ export default function SuccessCard() {
         </button>
       </div>
 
-      {message ? <p className="mt-3 text-sm text-[#667085]">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-muted-foreground">{message}</p> : null}
 
-      <p className="payment-success-help">
-        {paymentSuccessInfo.helpText} <Link href={paymentSuccessInfo.helpLinkHref}>{paymentSuccessInfo.helpLinkText}</Link>
-      </p>
+      <div className="payment-success-help">
+        <span>{paymentSuccessInfo.helpText}</span>
+        <Link href={paymentSuccessInfo.helpLinkHref}>{paymentSuccessInfo.helpLinkText}</Link>
+      </div>
     </div>
   );
 }

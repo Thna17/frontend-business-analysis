@@ -1,8 +1,13 @@
 "use client";
 
-import { CalendarDays, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/shared/date-picker";
 import {
   Select,
   SelectContent,
@@ -51,20 +56,24 @@ export function RecentSalesCard({
   const to = Math.min(page * pageSize, total);
 
   return (
-    <section className="dashboard-surface overflow-hidden shadow-none">
-      <div className="flex items-center justify-between border-b border-border px-7 py-6">
-        <h3 className="dashboard-section-title">Recent Sales Transactions</h3>
-        <button type="button" className="text-sm font-medium text-primary">
+    <DashboardPanel
+      title="Recent Sales Transactions"
+      description="Review the latest transactions and narrow the list quickly with search, category, and date filters."
+      action={
+        <Button type="button" variant="outline" className="px-4">
           View all
-        </button>
-      </div>
-
-      <div className="border-b border-border px-7 py-5">
+          <ArrowRight className="size-4" />
+        </Button>
+      }
+      bodyClassName="p-0"
+    >
+      <div className="dashboard-toolbar">
         <div className="flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="h-11 rounded-xl border-border bg-background/70 pl-10 text-[15px]"
+              aria-label="Search sales records"
+              className="pl-10"
               placeholder="Search records..."
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
@@ -72,7 +81,7 @@ export function RecentSalesCard({
           </div>
 
           <Select value={category} onValueChange={onCategoryChange}>
-            <SelectTrigger className="h-11 rounded-xl border-border bg-background/70 text-[15px] text-foreground lg:w-44">
+            <SelectTrigger className="lg:w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -85,22 +94,54 @@ export function RecentSalesCard({
             </SelectContent>
           </Select>
 
-          <div className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background/70 px-3">
-            <CalendarDays className="size-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={date}
-              onChange={(event) => onDateChange(event.target.value)}
-              className="h-full border-0 bg-transparent px-0 text-[15px] text-foreground shadow-none focus-visible:ring-0"
-            />
-          </div>
-
+          <DatePicker 
+            value={date}
+            onChange={onDateChange}
+            ariaLabel="Filter sales records by date"
+          />
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[920px] text-left">
-          <thead className="bg-muted text-[13px] font-semibold tracking-[0.03em] text-muted-foreground uppercase">
+      <div className="dashboard-mobile-list">
+        {rows.map((row) => (
+          <article key={`mobile-${row.id}`} className="dashboard-mobile-card">
+            <div className="dashboard-mobile-card-header">
+              <div>
+                <p className="dashboard-table-title-cell">{row.product}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{row.date}</p>
+              </div>
+              <Badge variant="success" className="px-3 py-1 text-xs">
+                {row.status}
+              </Badge>
+            </div>
+            <div className="dashboard-mobile-card-grid">
+              <div>
+                <p className="dashboard-mobile-card-label">Category</p>
+                <p className="dashboard-mobile-card-value">{row.category}</p>
+              </div>
+              <div>
+                <p className="dashboard-mobile-card-label">Total</p>
+                <p className="dashboard-mobile-card-value">{row.total}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+        {!isLoading && rows.length === 0 ? (
+          <EmptyState
+            title="No transactions found"
+            description="Try widening the date range or removing a filter to see more transaction data."
+            className="rounded-2xl"
+          />
+        ) : null}
+      </div>
+
+      <DashboardDataTable
+        hiddenBelow="md"
+        ariaLabel="Recent sales transactions table"
+        caption="Recent sales transactions with product, category, total, date, and status"
+        tableClassName="min-w-[920px]"
+      >
+          <thead>
             <tr>
               <th className="px-7 py-4">Product</th>
               <th className="px-5 py-4">Category</th>
@@ -109,48 +150,47 @@ export function RecentSalesCard({
               <th className="px-5 py-4">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border bg-card">
+          <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td className="px-7 py-5">
-                  <p className="text-sm font-semibold text-foreground">{row.product}</p>
-                </td>
-                <td className="px-5 py-5 text-sm text-muted-foreground">{row.category}</td>
-                <td className="px-5 py-5 text-sm font-semibold text-foreground">{row.total}</td>
-                <td className="px-5 py-5 text-sm text-muted-foreground">{row.date}</td>
+                <td className="px-7 py-5 dashboard-table-title-cell">{row.product}</td>
+                <td className="px-5 py-5 dashboard-table-body-text">{row.category}</td>
+                <td className="px-5 py-5 dashboard-table-value">{row.total}</td>
+                <td className="px-5 py-5 dashboard-table-body-text">{row.date}</td>
                 <td className="px-5 py-5">
-                  <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                  <Badge variant="success" className="px-3 py-1 text-sm">
                     {row.status}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             ))}
             {!isLoading && rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-7 py-8 text-center text-sm text-muted-foreground">
-                  No transactions found for this filter.
+                <td colSpan={5} className="px-7 py-8">
+                  <EmptyState
+                    title="No transactions found"
+                    description="Try widening the date range or removing a filter to see more transaction data."
+                    className="rounded-2xl"
+                  />
                 </td>
               </tr>
             ) : null}
           </tbody>
-        </table>
-      </div>
+      </DashboardDataTable>
 
-      <div className="flex flex-col gap-4 border-t border-border px-7 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="dashboard-table-footer px-7">
         <p className="text-sm text-muted-foreground">
           Showing {from} to {to} of {total} entries
         </p>
-        <div className="flex items-center gap-2">
+        <div className="dashboard-pagination">
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-border bg-card text-[15px] text-foreground"
             onClick={onPreviousPage}
             disabled={page <= 1 || isLoading}
           >
             Previous
           </Button>
           <Button
-            className="h-10 rounded-xl bg-primary px-5 text-[15px] text-primary-foreground hover:bg-primary/90"
             onClick={onNextPage}
             disabled={!hasNextPage || isLoading}
           >
@@ -158,6 +198,6 @@ export function RecentSalesCard({
           </Button>
         </div>
       </div>
-    </section>
+    </DashboardPanel>
   );
 }

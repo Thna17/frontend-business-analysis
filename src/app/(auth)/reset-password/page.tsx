@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { KeyRound } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AuthField } from "@/components/auth/auth-field";
+import { AuthPasswordField } from "@/components/auth/auth-password-field";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useResetPasswordMutation } from "@/store/api";
@@ -58,62 +62,47 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell title="Reset Password" subtitle="Set your new password using the secure token from your email.">
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-1.5">
-          <label htmlFor="token" className="text-sm font-medium text-[#344054]">
-            Reset Token
-          </label>
+        <AuthField id="token" label="Reset Token" hint="From email" icon={<KeyRound className="size-4" />}>
           <Input
             id="token"
-            className="h-11 border-[#d0d5dd] bg-white"
+            className="auth-input"
             value={token}
             onChange={(event) => setToken(event.target.value)}
             required
           />
-        </div>
+        </AuthField>
 
-        <div className="space-y-1.5">
-          <label htmlFor="new-password" className="text-sm font-medium text-[#344054]">
-            New Password
-          </label>
-          <Input
-            id="new-password"
-            type="password"
-            className="h-11 border-[#d0d5dd] bg-white"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            required
-          />
-        </div>
+        <AuthPasswordField
+          id="new-password"
+          label="New Password"
+          value={newPassword}
+          onChange={setNewPassword}
+          autoComplete="new-password"
+        />
 
-        <div className="space-y-1.5">
-          <label htmlFor="confirm-password" className="text-sm font-medium text-[#344054]">
-            Confirm Password
-          </label>
-          <Input
-            id="confirm-password"
-            type="password"
-            className="h-11 border-[#d0d5dd] bg-white"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            required
-          />
-        </div>
+        <AuthPasswordField
+          id="confirm-password"
+          label="Confirm Password"
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+          autoComplete="new-password"
+        />
 
         {message ? (
-          <p className="rounded-lg border border-[#b7e4c7] bg-[#ecfbf2] px-3 py-2 text-sm text-[#067647]">{message}</p>
+          <StateMessage tone="success" message={message} />
         ) : null}
         {errorMessage ? (
-          <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">{errorMessage}</p>
+          <StateMessage tone="danger" message={errorMessage} />
         ) : null}
 
-        <Button className="h-11 w-full rounded-xl bg-[#0f172a] text-white hover:bg-[#1e293b]" type="submit" disabled={isLoading}>
+        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isLoading}>
           {isLoading ? "Resetting..." : "Reset Password"}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#667085]">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Back to{" "}
-        <Link href="/login" className="font-semibold text-[#8a6b0b] hover:text-[#6e5504]">
+        <Link href="/login" className="font-semibold text-primary hover:text-primary/80">
           Sign in
         </Link>
       </p>

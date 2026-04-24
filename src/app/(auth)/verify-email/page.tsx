@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { KeyRound, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
+import { AuthField } from "@/components/auth/auth-field";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -84,44 +87,38 @@ export default function VerifyEmailPage() {
   return (
     <AuthShell title="Verify Your Email" subtitle="Enter the 6-digit OTP sent to your email to activate your account.">
       <form className="space-y-4" onSubmit={handleVerify}>
-        <div className="space-y-1.5">
-          <label htmlFor="email" className="text-sm font-medium text-[#344054]">
-            Email
-          </label>
+        <AuthField id="email" label="Email" hint="Required" icon={<Mail className="size-4" />}>
           <Input
             id="email"
             type="email"
-            className="h-11 border-[#d0d5dd] bg-white"
+            className="auth-input"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-        </div>
+        </AuthField>
 
-        <div className="space-y-1.5">
-          <label htmlFor="otp-code" className="text-sm font-medium text-[#344054]">
-            Verification Code
-          </label>
+        <AuthField id="otp-code" label="Verification Code" hint="6 digits" icon={<KeyRound className="size-4" />}>
           <Input
             id="otp-code"
             inputMode="numeric"
             maxLength={6}
             placeholder="123456"
-            className="h-11 border-[#d0d5dd] bg-white tracking-[0.2em]"
+            className="auth-input tracking-[0.2em]"
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
             required
           />
-        </div>
+        </AuthField>
 
         {message ? (
-          <p className="rounded-lg border border-[#b7e4c7] bg-[#ecfbf2] px-3 py-2 text-sm text-[#067647]">{message}</p>
+          <StateMessage tone="success" message={message} />
         ) : null}
         {errorMessage ? (
-          <p className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-sm text-[#b42318]">{errorMessage}</p>
+          <StateMessage tone="danger" message={errorMessage} />
         ) : null}
 
-        <Button className="h-11 w-full rounded-xl bg-[#0f172a] text-white hover:bg-[#1e293b]" type="submit" disabled={isVerifying}>
+        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isVerifying}>
           {isVerifying ? "Verifying..." : "Verify Email"}
         </Button>
 
@@ -136,9 +133,9 @@ export default function VerifyEmailPage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-[#667085]">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Back to{" "}
-        <Link href="/login" className="font-semibold text-[#8a6b0b] hover:text-[#6e5504]">
+        <Link href="/login" className="font-semibold text-primary hover:text-primary/80">
           Sign in
         </Link>
       </p>

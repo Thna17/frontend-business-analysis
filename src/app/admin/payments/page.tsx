@@ -1,26 +1,20 @@
-import AdminTopNav from "@/components/admin/AdminTopNav";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import PaymentQRCard from "@/components/payments/PaymentQRCard";
 import OrderSummaryCard from "@/components/payments/OrderSummaryCard";
 import PaymentFooter from "@/components/payments/PaymentFooter";
 
 export default function PaymentsPage() {
   return (
-    <main className="payments-page">
-      <div className="admin-shell">
-        <AdminTopNav />
-
-        <section className="payment-content">
-          <div className="payment-left">
+    <DashboardPage className="pb-[18px]" footer={<PaymentFooter />}>
+        <section className="grid lg:grid-cols-[1fr_400px] gap-8 mt-8">
+          <div className="flex justify-center items-start">
             <PaymentQRCard />
           </div>
 
-          <div className="payment-right">
+          <div className="flex flex-col gap-6">
             <OrderSummaryCard />
           </div>
         </section>
-
-        <PaymentFooter />
-      </div>
-    </main>
+    </DashboardPage>
   );
 }

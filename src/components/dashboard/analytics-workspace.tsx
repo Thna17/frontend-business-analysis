@@ -1,9 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useGetOwnerAnalyticsDashboardQuery } from "@/store/api";
 import { FeatureGate } from "@/components/shared/feature-gate";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { StateMessage } from "@/components/shared/state-message";
+import { dashboardChartPalette, dashboardHeatmapColor } from "@/components/dashboard/chart-tokens";
 
 type PeriodKey = "6m" | "12m";
 
@@ -13,9 +26,9 @@ interface AnalyticsSeriesPoint {
 }
 
 function metricToneClass(tone: "green" | "amber" | "slate") {
-  if (tone === "green") return "bg-[#d7f2e3] text-[#067647]";
-  if (tone === "amber") return "bg-[#fef3d2] text-[#b67a08]";
-  return "bg-[#eef1f5] text-[#667085]";
+  if (tone === "green") return "dashboard-status-positive";
+  if (tone === "amber") return "dashboard-status-warning";
+  return "dashboard-status-neutral";
 }
 
 function buildPath(points: AnalyticsSeriesPoint[], width: number, height: number, curve = 0.22) {
@@ -79,7 +92,7 @@ export function AnalyticsWorkspace() {
     { key: "12m", label: "Last 12 months" },
   ];
 
-  const { data, isFetching } = useGetOwnerAnalyticsDashboardQuery({ range: period });
+  const { data, isFetching, isLoading } = useGetOwnerAnalyticsDashboardQuery({ range: period });
 
   const revenueData = useMemo(
     () => (data?.revenue.series ?? []).map((item) => ({ label: item.label, value: item.amount })),
@@ -95,14 +108,42 @@ export function AnalyticsWorkspace() {
   const customerPath = useMemo(() => buildPath(customerData, 620, 180), [customerData]);
   const customerAreaPath = `${customerPath} L 620 200 L 0 200 Z`;
 
-  const categoryShare = data?.categoryShare ?? [];
-  const topProducts = data?.topProducts ?? [];
-  const heatmap = data?.heatmap ?? [[], [], [], []];
+  const categoryShare = useMemo(() => data?.categoryShare ?? [], [data?.categoryShare]);
+  const topProducts = useMemo(() => data?.topProducts ?? [], [data?.topProducts]);
+  const heatmap = useMemo(() => data?.heatmap ?? [[], [], [], []], [data?.heatmap]);
 
   const totalCategoryRevenue = categoryShare.reduce((sum, item) => sum + item.revenue, 0);
   const donutCircumference = 2 * Math.PI * 70;
-  const firstCategoryPercent = categoryShare.length > 0 ? categoryShare[0].value / 100 : 0;
-  const firstCategoryLength = donutCircumference * firstCategoryPercent;
+
+  const getRevenueStats = (data: AnalyticsSeriesPoint[]) => {
+    if (data.length === 0) return { max: 0, min: 0 };
+    const max = Math.max(...data.map((p) => p.value));
+    const min = Math.min(...data.map((p) => p.value));
+    return { max, min };
+  };
+  const revStats = getRevenueStats(revenueData);
+  const custStats = getRevenueStats(customerData);
+  const topRevenueMonth = revenueData.reduce<AnalyticsSeriesPoint | null>(
+    (best, point) => (best === null || point.value > best.value ? point : best),
+    null,
+  );
+  const topCustomerMonth = customerData.reduce<AnalyticsSeriesPoint | null>(
+    (best, point) => (best === null || point.value > best.value ? point : best),
+    null,
+  );
+
+  const parsedCategoryShares = useMemo(() => {
+    return categoryShare.reduce(
+      (acc, item) => {
+        const percent = item.value / 100;
+        const length = donutCircumference * percent;
+        acc.items.push({ ...item, length, offset: acc.currentOffset });
+        acc.currentOffset += length;
+        return acc;
+      },
+      { currentOffset: 0, items: [] as (typeof categoryShare[0] & { length: number; offset: number })[] }
+    ).items;
+  }, [categoryShare, donutCircumference]);
 
   const metrics = [
     {
@@ -168,105 +209,226 @@ export function AnalyticsWorkspace() {
     };
   }, [downloadReport, exportAnalytics]);
 
+  if (isLoading || !data) {
+    return (
+      <div className="space-y-5 animate-pulse">
+        <section className="dashboard-surface h-[380px] w-full bg-muted/60" />
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {[1,2,3,4].map(idx => (
+            <div key={idx} className="dashboard-kpi-card h-28 bg-muted/60" />
+          ))}
+        </section>
+        <section className="grid gap-5 xl:grid-cols-[1fr_2fr]">
+          <div className="dashboard-surface h-[300px] bg-muted/60" />
+          <div className="dashboard-surface h-[300px] bg-muted/60" />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <section className="dashboard-surface border-[#e7e9ee] p-5 shadow-none md:p-7">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h3 className="dashboard-section-title">Revenue Analytics</h3>
-            <p className="mt-1 text-sm text-[#667085]">Monthly revenue trends for the current year</p>
-          </div>
-          <div className="relative">
-            <select
-              className="h-10 appearance-none rounded-xl border border-[#e4e7ec] bg-white px-4 pr-9 text-sm text-[#344054]"
-              value={period}
-              onChange={(event) => setPeriod(event.target.value as PeriodKey)}
-            >
-              {periodOptions.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#98a2b3]" />
-          </div>
-        </div>
+      <PageSummaryStrip
+        eyebrow="Analytics Snapshot"
+        title="Performance signals at a glance"
+        description="Use this page to validate revenue movement, customer behavior, and category concentration before exporting or sharing findings."
+        items={[
+          {
+            label: "Window",
+            value: period === "12m" ? "12 months" : "6 months",
+            helper: "Current analysis range",
+          },
+          {
+            label: "Peak Revenue",
+            value: topRevenueMonth ? formatMoney(topRevenueMonth.value) : "$0.00",
+            helper: topRevenueMonth ? `${topRevenueMonth.label} performed best` : "No revenue peak yet",
+          },
+          {
+            label: "Top Customer Month",
+            value: topCustomerMonth ? topCustomerMonth.label : "No data",
+            helper: topCustomerMonth ? `${topCustomerMonth.value.toLocaleString()} customer interactions` : "Customer activity is still building",
+          },
+          {
+            label: "Category Revenue",
+            value: formatMoney(totalCategoryRevenue),
+            helper: "Tracked across visible segments",
+          },
+        ]}
+      />
 
-        <div className="h-[300px] w-full">
-          <svg className="h-full w-full" viewBox="0 0 960 300" preserveAspectRatio="none">
+      <DashboardPanel
+        title="Revenue Analytics"
+        description="Monthly revenue trends for the selected reporting window."
+        action={
+          <Select value={period} onValueChange={(value) => setPeriod(value as PeriodKey)}>
+            <SelectTrigger className="min-w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {periodOptions.map((item) => (
+                <SelectItem key={item.key} value={item.key}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      >
+        <figure className="dashboard-chart-frame h-[300px] w-full" aria-labelledby="revenue-analytics-title" aria-describedby="revenue-analytics-summary">
+          <svg
+            className="h-full w-full"
+            viewBox="0 0 960 300"
+            preserveAspectRatio="none"
+            role="img"
+            aria-labelledby="revenue-analytics-title revenue-analytics-summary"
+          >
+            <title id="revenue-analytics-title">Revenue trend for the selected reporting period</title>
             <defs>
               <linearGradient id="revenueLayer1" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4af35" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#d4af35" stopOpacity="0.02" />
+                <stop offset="0%" stopColor={dashboardChartPalette.primary} stopOpacity="0.16" />
+                <stop offset="100%" stopColor={dashboardChartPalette.primary} stopOpacity="0.02" />
               </linearGradient>
               <linearGradient id="revenueLayer2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f2e9cc" stopOpacity="0.45" />
-                <stop offset="100%" stopColor="#f2e9cc" stopOpacity="0.08" />
+                <stop offset="0%" stopColor={dashboardChartPalette.primarySoftOpaque} stopOpacity="0.42" />
+                <stop offset="100%" stopColor={dashboardChartPalette.primarySoft} stopOpacity="0.08" />
               </linearGradient>
             </defs>
 
-            <line x1="0" y1="72" x2="960" y2="72" stroke="#edf0f5" strokeDasharray="6 6" />
-            <line x1="0" y1="132" x2="960" y2="132" stroke="#edf0f5" strokeDasharray="6 6" />
-            <line x1="0" y1="192" x2="960" y2="192" stroke="#edf0f5" strokeDasharray="6 6" />
+            <line x1="0" y1="72" x2="960" y2="72" className="dashboard-chart-grid-line" />
+            <line x1="0" y1="132" x2="960" y2="132" className="dashboard-chart-grid-line" />
+            <line x1="0" y1="192" x2="960" y2="192" className="dashboard-chart-grid-line" />
 
-            <path d="M 0 228 C 150 210, 210 240, 360 168 C 500 96, 650 250, 760 212 C 850 182, 900 162, 960 140 L 960 280 L 0 280 Z" fill="url(#revenueLayer2)" />
-            <path d={revenueAreaPath} fill="url(#revenueLayer1)" />
-            <path d={revenueLinePath} fill="none" stroke="#cca42d" strokeWidth="3.5" strokeLinecap="round" />
 
-            <g fill="#98a2b3" fontSize="13">
+            <path d={revenueAreaPath} fill="url(#revenueLayer1)" className="animate-in fade-in duration-1000" />
+            <motion.path 
+              d={revenueLinePath} 
+              fill="none" 
+              className="dashboard-chart-line-primary"
+              strokeWidth="3.5" 
+              strokeLinecap="round" 
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+            />
+
+            <g className="dashboard-chart-axis-label">
               {revenueData.map((item, index) => (
                 <text key={item.label} x={(index / Math.max(revenueData.length - 1, 1)) * 940 + 8} y="294">
                   {item.label}
                 </text>
               ))}
             </g>
+            <g className="dashboard-chart-axis-label" fontSize="11">
+              <text x="4" y="66">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.75)}</text>
+              <text x="4" y="126">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.50)}</text>
+              <text x="4" y="186">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.25)}</text>
+            </g>
+            <g>
+              {revenueData.map((item, index) => {
+                const x = (index / Math.max(revenueData.length - 1, 1)) * 960;
+                const range = Math.max(revStats.max - revStats.min, 1);
+                const y = 270 - ((item.value - revStats.min) / range) * 250 - 10;
+                return (
+                  <circle key={`hover-${item.label}`} cx={x} cy={y} r={16} fill="transparent" className="cursor-crosshair transition-colors duration-200 hover:fill-primary/20">
+                     <title>{item.label}: {formatMoney(item.value)}</title>
+                  </circle>
+                );
+              })}
+            </g>
           </svg>
+        </figure>
+        <div id="revenue-analytics-summary" className="dashboard-chart-summary">
+          Revenue ranges from {formatMoney(revStats.min)} to {formatMoney(revStats.max)}.
+          {topRevenueMonth ? ` ${topRevenueMonth.label} is the strongest visible month at ${formatMoney(topRevenueMonth.value)}.` : ""}
         </div>
-        {isFetching ? <p className="mt-2 text-sm text-[#98a2b3]">Refreshing analytics...</p> : null}
-      </section>
+        {isFetching ? (
+          <StateMessage
+            tone="loading"
+            title="Refreshing analytics"
+            message="Metrics and chart layers are updating in the background."
+            className="mt-3"
+          />
+        ) : null}
+      </DashboardPanel>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <motion.section 
+        className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+          }
+        }}
+      >
         {metrics.map((metric) => (
-          <article key={metric.label} className="dashboard-surface border-[#e7e9ee] p-4 shadow-none">
-            <p className="text-sm text-[#667085]">{metric.label}</p>
+          <motion.article 
+            key={metric.label} 
+            className="dashboard-kpi-card p-5"
+            variants={{
+              hidden: { opacity: 0, y: 15 },
+              show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+            }}
+          >
+            <p className="text-sm text-muted-foreground">{metric.label}</p>
             <div className="mt-1 flex items-center justify-between">
-              <p className="text-[1.95rem] font-semibold tracking-tight text-[#101828]">{metric.value}</p>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${metricToneClass(metric.tone)}`}>
+              <p className="text-[1.95rem] font-semibold tracking-tight text-foreground">{metric.value}</p>
+              <Badge className={`px-2.5 py-1 text-xs font-semibold ${metricToneClass(metric.tone)}`}>
                 {metric.delta}
-              </span>
+              </Badge>
             </div>
-          </article>
+          </motion.article>
         ))}
-      </section>
+      </motion.section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_2fr]">
         <FeatureGate feature="analytics.trend" overlay>
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Sales by Category</h3>
-          <div className="mt-6 flex justify-center">
-            <svg width="220" height="220" viewBox="0 0 220 220">
-              <circle cx="110" cy="110" r="70" fill="none" stroke="#eef1f5" strokeWidth="14" />
-              <circle
-                cx="110"
-                cy="110"
-                r="70"
-                fill="none"
-                stroke="#d4af35"
-                strokeWidth="14"
-                strokeLinecap="round"
-                strokeDasharray={`${firstCategoryLength} ${donutCircumference}`}
-                transform="rotate(-90 110 110)"
-              />
-              <circle cx="110" cy="110" r="48" fill="white" />
-              <text x="110" y="112" textAnchor="middle" className="fill-[#101828]" style={{ fontSize: 26, fontWeight: 700 }}>
+        <DashboardPanel
+          title="Sales by Category"
+          description="Distribution of revenue across your highest-contributing categories."
+        >
+          <div className="dashboard-chart-frame mt-6 flex justify-center">
+            <svg
+              width="220"
+              height="220"
+              viewBox="0 0 220 220"
+              role="img"
+              aria-labelledby="category-share-title category-share-summary"
+            >
+              <title id="category-share-title">Revenue share by category</title>
+              <circle cx="110" cy="110" r="70" fill="none" stroke={dashboardChartPalette.neutralTrack} strokeWidth="14" />
+              {parsedCategoryShares.map((item) => {
+                  const dasharray = `${item.length} ${donutCircumference}`;
+                  return (
+                    <circle
+                      key={item.label}
+                      cx="110"
+                      cy="110"
+                      r="70"
+                      fill="none"
+                      stroke={item.color}
+                      strokeWidth="14"
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      strokeDasharray={dasharray}
+                      strokeDashoffset={-item.offset}
+                      transform="rotate(-90 110 110)"
+                    >
+                      <title>{item.label}: {item.value.toFixed(1)}%</title>
+                    </circle>
+                  );
+              })}
+              <circle cx="110" cy="110" r="48" fill="var(--card)" />
+              <text x="110" y="112" textAnchor="middle" className="fill-foreground font-bold" style={{ fontSize: 26 }}>
                 {shortMoney(totalCategoryRevenue)}
               </text>
-              <text x="110" y="136" textAnchor="middle" className="fill-[#98a2b3]" style={{ fontSize: 13 }}>
+              <text x="110" y="136" textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 13 }}>
                 Total Sales
               </text>
             </svg>
           </div>
-          <div className="mt-2 grid gap-2 text-sm text-[#667085]">
+          <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
             {categoryShare.length > 0 ? (
               categoryShare.map((item) => (
                 <p key={item.label} className="flex items-center gap-2">
@@ -275,98 +437,166 @@ export function AnalyticsWorkspace() {
                 </p>
               ))
             ) : (
-              <p className="text-[#98a2b3]">No category data yet.</p>
+              <EmptyState
+                eyebrow="Category mix"
+                title="Category share appears once revenue is categorized"
+                description="Assign category-level sales consistently and this panel will show where revenue is concentrated."
+                compact
+              />
             )}
           </div>
-        </article>
+          <div id="category-share-summary" className="dashboard-chart-summary">
+            {categoryShare.length > 0
+              ? `Top category: ${categoryShare[0].label} at ${categoryShare[0].value.toFixed(1)}% of revenue.`
+              : "No category data is available for the selected reporting window."}
+          </div>
+        </DashboardPanel>
         </FeatureGate>
 
         <FeatureGate feature="analytics.top-products" overlay>
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Product Revenue Ranking</h3>
+        <DashboardPanel
+          title="Product Revenue Ranking"
+          description="Compare top-selling products by revenue contribution for the selected period."
+        >
           <div className="mt-6 space-y-6">
             {topProducts.length > 0 ? (
               topProducts.map((item, index) => (
                 <div key={item.name}>
-                  <div className="mb-2 flex items-center justify-between text-lg">
-                    <span className="font-medium text-[#344054]">{item.name}</span>
-                    <span className="font-medium text-[#d4af35]">{formatMoney(item.revenue)}</span>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">{item.name} <span className="text-muted-foreground font-normal ml-2">{item.percent.toFixed(1)}%</span></span>
+                    <span className="font-medium text-primary">{formatMoney(item.revenue)}</span>
                   </div>
-                  <div className="h-4 rounded-full bg-[#eceff3]">
-                    <div className="h-full rounded-full bg-[#d4af35]" style={{ width: `${item.percent}%`, opacity: 1 - index * 0.17 }} />
+                  <div className="h-3 overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${item.percent}%`, opacity: Math.max(0.35, 1 - index * 0.17) }} />
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#98a2b3]">No product ranking data yet.</p>
+              <EmptyState
+                eyebrow="Product ranking"
+                title="Product leaders show up after more sales activity"
+                description="Once enough product-level sales are tracked, this ranking will highlight durable revenue leaders instead of noise."
+                compact
+              />
             )}
           </div>
-        </article>
+        </DashboardPanel>
         </FeatureGate>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-2">
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Customer Activity</h3>
-          <div className="mt-5 h-[220px]">
-            <svg className="h-full w-full" viewBox="0 0 620 220" preserveAspectRatio="none">
+        <DashboardPanel
+          title="Customer Activity"
+          description="Monitor demand patterns and customer interaction changes across the reporting window."
+        >
+          <figure className="dashboard-chart-frame mt-5 h-[220px]" aria-labelledby="customer-activity-title" aria-describedby="customer-activity-summary">
+            <svg
+              className="h-full w-full"
+              viewBox="0 0 620 220"
+              preserveAspectRatio="none"
+              role="img"
+              aria-labelledby="customer-activity-title customer-activity-summary"
+            >
+              <title id="customer-activity-title">Customer activity trend for the selected reporting period</title>
               <defs>
                 <linearGradient id="customerArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#e9ddbe" stopOpacity="0.48" />
-                  <stop offset="100%" stopColor="#e9ddbe" stopOpacity="0.07" />
+                  <stop offset="0%" stopColor={dashboardChartPalette.primarySoftOpaque} stopOpacity="0.48" />
+                  <stop offset="100%" stopColor={dashboardChartPalette.primarySoft} stopOpacity="0.07" />
                 </linearGradient>
               </defs>
-              <line x1="0" y1="56" x2="620" y2="56" stroke="#edf0f5" strokeDasharray="6 6" />
-              <line x1="0" y1="108" x2="620" y2="108" stroke="#edf0f5" strokeDasharray="6 6" />
-              <line x1="0" y1="160" x2="620" y2="160" stroke="#edf0f5" strokeDasharray="6 6" />
-              <path d={customerAreaPath} fill="url(#customerArea)" />
-              <path d={customerPath} fill="none" stroke="#cca42d" strokeWidth="3" strokeLinecap="round" />
-              <g fill="#98a2b3" fontSize="12">
+              <line x1="0" y1="56" x2="620" y2="56" className="dashboard-chart-grid-line" />
+              <line x1="0" y1="108" x2="620" y2="108" className="dashboard-chart-grid-line" />
+              <line x1="0" y1="160" x2="620" y2="160" className="dashboard-chart-grid-line" />
+              <path d={customerAreaPath} fill="url(#customerArea)" className="animate-in fade-in duration-1000" />
+              <motion.path 
+                d={customerPath} 
+                fill="none" 
+                className="dashboard-chart-line-primary"
+                strokeWidth="3" 
+                strokeLinecap="round" 
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+              />
+              <g className="dashboard-chart-axis-label">
                 {customerData.map((item, index) => (
                   <text key={item.label} x={(index / Math.max(customerData.length - 1, 1)) * 596 + 12} y="214">
                     {item.label}
                   </text>
                 ))}
               </g>
+              <g className="dashboard-chart-axis-label" fontSize="11">
+                <text x="4" y="50">{custStats.min + (custStats.max - custStats.min) * 0.75}</text>
+                <text x="4" y="102">{custStats.min + (custStats.max - custStats.min) * 0.50}</text>
+                <text x="4" y="154">{custStats.min + (custStats.max - custStats.min) * 0.25}</text>
+              </g>
+              <g>
+                {customerData.map((item, index) => {
+                  const x = (index / Math.max(customerData.length - 1, 1)) * 620;
+                  const range = Math.max(custStats.max - custStats.min, 1);
+                  const y = 180 - ((item.value - custStats.min) / range) * 160 - 10;
+                return (
+                    <circle key={`hover-${item.label}`} cx={x} cy={y} r={14} fill="transparent" className="cursor-crosshair transition-colors duration-200 hover:fill-primary/20">
+                       <title>{item.label}: {item.value}</title>
+                    </circle>
+                  );
+                })}
+              </g>
             </svg>
+          </figure>
+          <div id="customer-activity-summary" className="dashboard-chart-summary">
+            Customer activity ranges from {custStats.min} to {custStats.max}.
+            {topCustomerMonth ? ` ${topCustomerMonth.label} is the most active point at ${topCustomerMonth.value}.` : ""}
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <div className="mb-4 flex items-start justify-between">
-            <h3 className="dashboard-section-title">Sales Activity Heatmap</h3>
-            <div className="text-xs text-[#98a2b3]">
+        <DashboardPanel
+          title="Sales Activity Heatmap"
+          description="Weekly intensity map showing where sales activity clusters across the business."
+          action={
+            <div className="text-xs text-muted-foreground">
               Low
               <span className="mx-2 inline-flex gap-1 align-middle">
                 {[1, 2, 3, 4, 5].map((item) => (
                   <span
                     key={item}
                     className="inline-block h-3 w-3 rounded-sm"
-                    style={{ backgroundColor: `rgba(212,175,53,${0.15 + item * 0.15})` }}
+                    style={{ backgroundColor: dashboardHeatmapColor(item) }}
                   />
                 ))}
               </span>
               High
             </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
+          }
+        >
+          <div
+            className="grid grid-cols-7 gap-2"
+            role="img"
+            aria-label="Weekly sales activity heatmap"
+            aria-describedby="sales-heatmap-summary"
+          >
             {heatmap.flat().map((cell, index) => (
               <div
                 key={`${cell.day}-${index}`}
                 className="aspect-square rounded-sm"
-                style={{ backgroundColor: `rgba(212,175,53,${0.12 + cell.value * 0.14})` }}
+                style={{ backgroundColor: dashboardHeatmapColor(cell.value) }}
                 title={`${cell.day}: intensity ${cell.value}`}
               />
             ))}
           </div>
-          <div className="mt-3 grid grid-cols-7 text-center text-xs text-[#98a2b3]">
+          <div className="mt-3 grid grid-cols-7 text-center text-xs text-muted-foreground">
             {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((item) => (
               <span key={item}>{item}</span>
             ))}
           </div>
-        </article>
+          <div id="sales-heatmap-summary" className="dashboard-chart-summary">
+            The heatmap shows relative sales intensity from low to high across the week.
+            {heatmap.flat().length > 0
+              ? ` Highest visible intensity is ${Math.max(...heatmap.flat().map((cell) => cell.value))}.`
+              : " No heatmap data is available yet."}
+          </div>
+        </DashboardPanel>
       </section>
     </div>
   );

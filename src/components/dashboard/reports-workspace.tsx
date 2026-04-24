@@ -9,9 +9,23 @@ import {
   Lightbulb,
   Plus,
   Trash2,
+  Info,
 } from "lucide-react";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { EmptyState } from "@/components/shared/empty-state";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
+import { StateMessage } from "@/components/shared/state-message";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useDeleteReportMutation,
   useGenerateReportMutation,
@@ -30,14 +44,14 @@ function normalizeError(error: unknown) {
 
 function toneClass(tone: "amber" | "slate") {
   return tone === "amber"
-    ? "border-[#ead9a2] bg-[#fffaf0]"
-    : "border-[#e4e7ec] bg-[#f8fafc]";
+    ? "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10"
+    : "border-border bg-muted/40";
 }
 
 function statusClass(status: "READY" | "PROCESSING") {
   return status === "READY"
-    ? "bg-[#d7f2e3] text-[#067647]"
-    : "bg-[#fef3d2] text-[#b67a08]";
+    ? "dashboard-status-positive"
+    : "dashboard-status-warning";
 }
 
 function formatDate(value: string) {
@@ -59,6 +73,7 @@ export function ReportsWorkspace() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [openPreview, setOpenPreview] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   const {
     data,
@@ -77,9 +92,29 @@ export function ReportsWorkspace() {
   const categories = data?.generator.categories ?? ["All Categories"];
   const dateRanges = data?.generator.dateRanges ?? ["Last 30 Days"];
   const formatOptions = data?.generator.exportFormats ?? ["PDF", "CSV", "Excel"];
+  const historyRows = data?.history ?? [];
+  const hasNextPage = historyRows.length === 5;
+  const summaryCards = [
+    {
+      label: "Generated Reports",
+      value: `${data?.summary.generatedReports ?? 0}`,
+      note: "Total export jobs tracked",
+    },
+    {
+      label: "Current Revenue Snapshot",
+      value: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(data?.summary.currentRevenue ?? 0),
+      note: "Included in reporting exports",
+    },
+    {
+      label: "Product Download Requests",
+      value: `${data?.summary.productDownloads ?? 0}`,
+      note: "High-demand export activity",
+    },
+  ];
 
   const handleGenerate = useCallback(async () => {
     setActionError(null);
+    setActionSuccess(null);
     try {
       await generateReport({
         reportType,
@@ -87,6 +122,7 @@ export function ReportsWorkspace() {
         dateRange,
         exportFormat: format,
       }).unwrap();
+      setActionSuccess(`${reportType} report queued in ${format}. You can track its status in report history.`);
     } catch (error) {
       setActionError(normalizeError(error));
     }
@@ -151,8 +187,10 @@ export function ReportsWorkspace() {
 
   const removeReport = async (reportId: string) => {
     setActionError(null);
+    setActionSuccess(null);
     try {
       await deleteReport(reportId).unwrap();
+      setActionSuccess("Report removed from history.");
     } catch (error) {
       setActionError(normalizeError(error));
     }
@@ -174,88 +212,111 @@ export function ReportsWorkspace() {
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
       <div className="space-y-6">
+        <PageSummaryStrip
+          eyebrow="Reporting Workspace"
+          title="Generate exports with less friction"
+          description="Keep report generation focused on the few choices that matter, then monitor readiness and download state from one workspace."
+          items={summaryCards.map((item) => ({
+            label: item.label,
+            value: item.value,
+            helper: item.note,
+          }))}
+        />
+
         <FeatureGate feature="reports.export" className="min-h-[200px]">
-        <article className="dashboard-surface border-[#e7e9ee] shadow-none">
-          <div className="border-b border-[#edf1f5] px-6 py-5">
-            <h3 className="dashboard-section-title">Generate New Report</h3>
-          </div>
-          <div className="grid gap-6 px-6 py-6">
+          <DashboardPanel
+            title="Generate New Report"
+            description="Create export-ready reports with a consistent structure and a smaller number of high-signal choices."
+            bodyClassName="grid gap-6 pt-5"
+          >
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <p className="mb-2 text-sm font-semibold text-[#344054]">Report Type</p>
+                <p className="dashboard-field-label">Report Type</p>
                 <div className="flex flex-wrap gap-2">
                   {reportTypes.map((type) => (
-                    <button
+                    <Button
                       key={type}
                       type="button"
+                      variant={reportType === type ? "secondary" : "outline"}
+                      size="sm"
                       onClick={() => setReportType(type)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${
-                        reportType === type
-                          ? "bg-[#d4af35] text-[#101828]"
-                          : "bg-[#eef1f5] text-[#475467]"
-                      }`}
+                      className="rounded-full px-4"
                     >
                       {type}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="mb-2 text-sm font-semibold text-[#344054]">Category Filter</p>
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  className="h-11 w-full rounded-full border border-[#dfe3e8] bg-[#f6f7f9] px-4 text-sm text-[#344054]"
-                >
+                <p className="dashboard-field-label">Category Filter</p>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
                   {categories.map((item) => (
-                    <option key={item} value={item}>
+                    <SelectItem key={item} value={item}>
                       {item}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <p className="mb-2 text-sm font-semibold text-[#344054]">Date Range</p>
-                <select
-                  value={dateRange}
-                  onChange={(event) => setDateRange(event.target.value as DateRange)}
-                  className="h-11 w-full rounded-full border border-[#dfe3e8] bg-[#f6f7f9] px-4 text-sm text-[#344054]"
-                >
+                <p className="dashboard-field-label">Date Range</p>
+                <Select value={dateRange} onValueChange={(value) => setDateRange(value as DateRange)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
                   {dateRanges.map((item) => (
-                    <option key={item} value={item}>
+                    <SelectItem key={item} value={item}>
                       {item}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold text-[#344054]">Export Format</p>
-                <div className="flex gap-2">
+                <p className="dashboard-field-label">Export Format</p>
+                <div className="flex flex-wrap gap-2">
                   {formatOptions.map((item) => (
-                    <button
+                    <Button
                       key={item}
                       type="button"
+                      variant={format === item ? "secondary" : "outline"}
+                      size="sm"
                       onClick={() => setFormat(item)}
-                      className={`h-11 rounded-full border px-8 text-sm font-semibold ${
-                        format === item
-                          ? "border-[#d4af35] bg-[#fffaf0] text-[#8a6b0b]"
-                          : "border-[#e4e7ec] bg-[#f8fafc] text-[#667085]"
-                      }`}
+                      className="rounded-full px-5"
                     >
                       {item}
-                    </button>
+                    </Button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1.2fr_auto]">
+              <div className="dashboard-inline-feedback dashboard-inline-feedback-info">
+                <Info className="mt-0.5 size-4 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">Current export setup</p>
+                  <p>{reportType} report for {category} over {dateRange}, exported as {format}.</p>
+                </div>
+              </div>
+              <div className="dashboard-soft-tile space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Delivery</p>
+                <p className="text-sm text-foreground">Exports are processed in the background and stay available in history.</p>
               </div>
             </div>
 
             <div className="flex justify-end">
               <Button
-                className="h-12 rounded-full bg-[#d4af35] px-8 text-base font-semibold text-[#101828] hover:bg-[#c39f2f]"
+                className="h-12 px-8 text-base font-semibold"
                 onClick={() => {
                   void handleGenerate();
                 }}
@@ -265,26 +326,81 @@ export function ReportsWorkspace() {
                 {isGenerating ? "Generating..." : "Generate Report"}
               </Button>
             </div>
-            {actionError ? <p className="text-sm text-rose-600">{actionError}</p> : null}
-          </div>
-        </article>
+            {actionSuccess ? <StateMessage tone="success" message={actionSuccess} /> : null}
+            {actionError ? (
+              <StateMessage tone="danger" title="Unable to generate report" message={actionError} />
+            ) : null}
+          </DashboardPanel>
         </FeatureGate>
 
-        <article className="dashboard-surface border-[#e7e9ee] shadow-none">
-          <div className="flex items-center justify-between border-b border-[#edf1f5] px-6 py-5">
-            <h3 className="dashboard-section-title">Report History</h3>
-            <button
-              type="button"
-              className="text-sm font-medium text-[#d4af35]"
-              onClick={() => setPage((prev) => prev + 1)}
-              disabled={isFetching}
-            >
-              View All
-            </button>
+        <DashboardPanel
+          title="Report History"
+          description="Track generated exports, check status, and re-open prior reports without leaving the reporting workspace."
+          action={<p className="text-sm text-muted-foreground">{isFetching ? "Refreshing history..." : `${historyRows.length} items loaded`}</p>}
+          bodyClassName="p-0"
+        >
+          <div className="dashboard-mobile-list">
+            {historyRows.map((row) => (
+              <article key={`mobile-${row.id}`} className="dashboard-mobile-card">
+                <div className="dashboard-mobile-card-header">
+                  <div className="min-w-0">
+                    <p className="dashboard-table-title-cell">{row.name}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatDate(row.dateGenerated)}</p>
+                  </div>
+                  <Badge className={`px-3 py-1 text-xs font-semibold ${statusClass(row.status)}`}>
+                    {row.status}
+                  </Badge>
+                </div>
+                <div className="dashboard-mobile-card-grid">
+                  <div>
+                    <p className="dashboard-mobile-card-label">Type</p>
+                    <p className="dashboard-mobile-card-value">{row.type}</p>
+                  </div>
+                  <div>
+                    <p className="dashboard-mobile-card-label">Format</p>
+                    <p className="dashboard-mobile-card-value">{row.format}</p>
+                  </div>
+                </div>
+                <div className="dashboard-row-actions pt-1">
+                  <button type="button" onClick={() => onDownloadHistory(row)} className="dashboard-row-action">
+                    <Download className="size-4" />
+                    Download
+                  </button>
+                  <button type="button" onClick={() => openReportPreview(row.id)} className="dashboard-row-action">
+                    <Eye className="size-4" />
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void removeReport(row.id);
+                    }}
+                    disabled={isDeleting}
+                    className="dashboard-row-action dashboard-row-action-danger"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+            {historyRows.length === 0 ? (
+              <EmptyState
+                eyebrow="Report history"
+                title="No reports yet"
+                description="Generate your first report to start building a reusable history of exports and business summaries."
+                className="rounded-2xl"
+              />
+            ) : null}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left">
-              <thead className="bg-[#f5f6f8] text-xs font-semibold tracking-[0.06em] text-[#667085] uppercase">
+
+          <DashboardDataTable
+            hiddenBelow="md"
+            ariaLabel="Report history table"
+            caption="Report history with report name, type, generation date, status, and actions"
+            tableClassName="min-w-[780px]"
+          >
+              <thead>
                 <tr>
                   <th className="px-4 py-4">Report Name</th>
                   <th className="px-4 py-4">Type</th>
@@ -293,117 +409,150 @@ export function ReportsWorkspace() {
                   <th className="px-4 py-4">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#eef1f4] bg-white">
-                {(data?.history ?? []).map((row) => (
+              <tbody>
+                {historyRows.map((row) => (
                   <tr key={row.id}>
-                    <td className="px-4 py-4 text-base font-semibold text-[#101828]">
+                    <td className="px-4 py-4">
                       <span className="inline-flex items-center gap-2">
-                        <FileText className="size-4 text-[#d4af35]" />
-                        {row.name}
+                        <FileText className="size-4 text-primary" />
+                        <span className="dashboard-table-title-cell">{row.name}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-[#475467]">{row.type}</td>
-                    <td className="px-4 py-4 text-sm text-[#475467]">{formatDate(row.dateGenerated)}</td>
+                    <td className="px-4 py-4 dashboard-table-body-text">{row.type}</td>
+                    <td className="px-4 py-4 dashboard-table-body-text">{formatDate(row.dateGenerated)}</td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusClass(row.status)}`}>
+                      <Badge className={`px-3 py-1 text-xs font-semibold ${statusClass(row.status)}`}>
                         {row.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-3 text-[#98a2b3]">
-                        <button type="button" onClick={() => onDownloadHistory(row)}>
+                      <div className="dashboard-row-actions">
+                        <button type="button" onClick={() => onDownloadHistory(row)} className="dashboard-row-action">
                           <Download className="size-4" />
+                          Download
                         </button>
-                        <button type="button" onClick={() => openReportPreview(row.id)}>
+                        <button type="button" onClick={() => openReportPreview(row.id)} className="dashboard-row-action">
                           <Eye className="size-4" />
+                          Preview
                         </button>
                         <button
                           type="button"
                           onClick={() => {
                             void removeReport(row.id);
-                          }}
+                        }}
                           disabled={isDeleting}
+                          className="dashboard-row-action dashboard-row-action-danger"
                         >
                           <Trash2 className="size-4" />
+                          Delete
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {(data?.history ?? []).length === 0 ? (
+                {historyRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-[#667085]">
-                      No reports yet. Generate your first report.
+                    <td colSpan={5} className="px-4 py-8">
+                      <EmptyState
+                        eyebrow="Report history"
+                        title="No reports yet"
+                        description="Generate your first report to start building a reusable history of exports and business summaries."
+                        className="rounded-2xl"
+                      />
                     </td>
                   </tr>
                 ) : null}
               </tbody>
-            </table>
+          </DashboardDataTable>
+          <div className="dashboard-table-footer">
+            <p className="text-sm text-muted-foreground">
+              Page {page} {hasNextPage ? "with more history available" : "of current report history"}
+            </p>
+            <div className="dashboard-pagination">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setPage((prev) => prev + 1)}
+                disabled={!hasNextPage || isFetching}
+              >
+                Next
+              </Button>
+            </div>
           </div>
-        </article>
+        </DashboardPanel>
       </div>
 
       <aside className="space-y-6">
-        <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
-          <div className="mb-4 flex items-center gap-2">
-            <Lightbulb className="size-5 text-[#d4af35]" />
-            <h3 className="dashboard-section-title">Business Insights</h3>
-          </div>
+        <DashboardPanel
+          title="Business Insights"
+          description="Surface guidance and anomalies next to the reporting workflow so insights remain actionable."
+          bodyClassName="space-y-3 pt-5"
+        >
           <div className="space-y-3">
             {(data?.insights ?? []).map((insight) => (
-              <div key={insight.title} className={`rounded-3xl border p-4 ${toneClass(insight.tone)}`}>
-                <p className="text-base font-semibold text-[#1f2937]">{insight.title}</p>
-                <p className="mt-1 text-sm text-[#667085]">{insight.description}</p>
+              <div key={insight.title} className={`rounded-[calc(var(--radius-panel)-4px)] border p-4 ${toneClass(insight.tone)}`}>
+                <div className="mb-3 flex items-center gap-2">
+                  <Lightbulb className="size-4 text-primary" />
+                  <p className="dashboard-table-title-cell">{insight.title}</p>
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{insight.description}</p>
               </div>
             ))}
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
-          <h3 className="dashboard-section-title">Quick Data Export</h3>
+        <DashboardPanel
+          title="Quick Data Export"
+          description="Common export shortcuts for teams that need fast access to operational data."
+          bodyClassName="space-y-3 pt-5"
+        >
           <div className="mt-4 space-y-3">
             {(data?.quickExports ?? []).map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => exportShortcut(item)}
-                className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-base font-medium text-[#344054]"
+                className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-4px)] border border-border/80 bg-[color:var(--surface-subtle)] px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/60"
               >
                 {item}
-                <ChevronRight className="size-4 text-[#98a2b3]" />
+                <ChevronRight className="size-4 text-muted-foreground" />
               </button>
             ))}
           </div>
-          <p className="mt-6 text-sm text-[#98a2b3]">
+          <p className="mt-6 text-sm leading-6 text-muted-foreground">
             Exports are typically processed within 5-10 minutes. You will receive an email once your data is ready.
           </p>
-        </article>
+        </DashboardPanel>
       </aside>
 
       <Dialog open={openPreview} onOpenChange={setOpenPreview}>
-        <DialogContent className="max-w-[520px] rounded-2xl border-[#e4e7ec]">
+        <DialogContent className="max-w-[520px] rounded-[var(--radius-panel)] border border-border/80 shadow-[var(--shadow-overlay)]">
           <DialogHeader>
-            <DialogTitle>Report Preview</DialogTitle>
+            <DialogTitle className="dashboard-panel-title">Report Preview</DialogTitle>
           </DialogHeader>
           {selectedReport ? (
-            <div className="space-y-3 text-sm text-[#475467]">
+            <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                <strong className="text-[#101828]">Name:</strong> {selectedReport.name}
+                <strong className="text-foreground">Name:</strong> {selectedReport.name}
               </p>
               <p>
-                <strong className="text-[#101828]">Type:</strong> {selectedReport.type}
+                <strong className="text-foreground">Type:</strong> {selectedReport.type}
               </p>
               <p>
-                <strong className="text-[#101828]">Generated:</strong> {formatDate(selectedReport.dateGenerated)}
+                <strong className="text-foreground">Generated:</strong> {formatDate(selectedReport.dateGenerated)}
               </p>
               <p>
-                <strong className="text-[#101828]">Status:</strong> {selectedReport.status}
+                <strong className="text-foreground">Status:</strong> {selectedReport.status}
               </p>
               <div className="pt-2">
-                <Button
-                  className="h-10 rounded-xl bg-[#d4af35] text-[#101828] hover:bg-[#c39f2f]"
-                  onClick={() => onDownloadHistory(selectedReport)}
-                >
+                <Button onClick={() => onDownloadHistory(selectedReport)}>
                   Download
                 </Button>
               </div>

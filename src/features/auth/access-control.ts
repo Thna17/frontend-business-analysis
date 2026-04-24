@@ -16,6 +16,9 @@ const WORKSPACE_PREFIXES = [
   "/analytics",
   "/report",
   "/settings",
+  "/profile",
+  "/notification",
+  "/telegram-records",
 ] as const;
 
 const ADMIN_ONLY_PREFIXES = [
@@ -25,6 +28,8 @@ const ADMIN_ONLY_PREFIXES = [
   "/admin/subscriptions",
   "/admin/payments",
   "/admin/payments/success",
+  "/admin/profile",
+  "/admin/notification",
 ] as const;
 
 const AUTH_PATHS = [

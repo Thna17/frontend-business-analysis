@@ -19,8 +19,10 @@ interface RouteGuardProps {
 
 function GuardFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-sm text-[#667085]">Checking session...</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-[var(--shadow-control)]">
+        Checking session...
+      </div>
     </div>
   );
 }
@@ -39,6 +41,7 @@ export function ProtectedRouteGuard({ children }: RouteGuardProps) {
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
@@ -75,6 +78,7 @@ export function AuthPageGuard({ children }: RouteGuardProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 

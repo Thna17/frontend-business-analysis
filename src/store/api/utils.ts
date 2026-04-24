@@ -7,6 +7,7 @@ import type {
   SalesListMeta,
   UnknownRecord,
 } from "@/store/api/types";
+import { shouldSkipAutoRefresh } from "@/store/api/auth-rules";
 
 export function asRecord(value: unknown): UnknownRecord {
   if (typeof value === "object" && value !== null) {
@@ -67,12 +68,4 @@ export function extractRouteFromArgs(args: string | FetchArgs): string {
   return typeof args === "string" ? args : args.url;
 }
 
-export function shouldSkipAutoRefresh(route: string): boolean {
-  return route.startsWith("/auth/login")
-    || route.startsWith("/auth/register")
-    || route.startsWith("/auth/refresh")
-    || route.startsWith("/auth/verify-email-otp")
-    || route.startsWith("/auth/resend-verification-otp")
-    || route.startsWith("/auth/forgot-password")
-    || route.startsWith("/auth/reset-password");
-}
+export { shouldSkipAutoRefresh };

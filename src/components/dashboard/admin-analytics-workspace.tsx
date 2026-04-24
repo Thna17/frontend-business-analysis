@@ -5,16 +5,17 @@ import {
   BarChart3,
   Building2,
   ChevronRight,
-  CircleAlert,
-  DollarSign,
   GraduationCap,
   Sparkles,
   Store,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import { DashboardChartFigure, DashboardChartRail, DashboardChartStat } from "@/components/dashboard/dashboard-chart-primitives";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { useGetAdminAnalyticsQuery } from "@/store/api";
+import { dashboardChartPalette } from "@/components/dashboard/chart-tokens";
 
 type TrendKey = "6m" | "yearly";
 
@@ -77,10 +78,10 @@ function buildCurvePath(values: number[], width: number, height: number) {
 }
 
 function SegmentIcon({ icon }: { icon: SegmentIconType }) {
-  if (icon === "building") return <Building2 className="size-4 text-[#475467]" />;
-  if (icon === "sparkles") return <Sparkles className="size-4 text-[#475467]" />;
-  if (icon === "store") return <Store className="size-4 text-[#475467]" />;
-  return <GraduationCap className="size-4 text-[#475467]" />;
+  if (icon === "building") return <Building2 className="size-4 text-muted-foreground" />;
+  if (icon === "sparkles") return <Sparkles className="size-4 text-muted-foreground" />;
+  if (icon === "store") return <Store className="size-4 text-muted-foreground" />;
+  return <GraduationCap className="size-4 text-muted-foreground" />;
 }
 
 const defaultData: AnalyticsResponse = {
@@ -131,19 +132,19 @@ export function AdminAnalyticsWorkspace() {
       tier: "FREE",
       percent: totalPlans > 0 ? Math.round((data.plans.Free / totalPlans) * 100) : 0,
       valueLabel: data.plans.Free.toString(),
-      color: "#d6dbe4",
+      color: dashboardChartPalette.neutralTrack,
     },
     {
       tier: "PRO",
       percent: totalPlans > 0 ? Math.round((data.plans.Pro / totalPlans) * 100) : 0,
       valueLabel: data.plans.Pro.toString(),
-      color: "#d4af35",
+      color: dashboardChartPalette.primary,
     },
     {
       tier: "BUSINESS",
       percent: totalPlans > 0 ? Math.round((data.plans.Business / totalPlans) * 100) : 0,
       valueLabel: data.plans.Business.toString(),
-      color: "#7a6200",
+      color: dashboardChartPalette.highlight,
     },
   ];
 
@@ -192,40 +193,33 @@ export function AdminAnalyticsWorkspace() {
     {
       title: "Annual Revenue",
       value: `$${data.stats.annualRevenue.toLocaleString()}`,
-      subtitle: "Estimated yearly revenue",
-      icon: <DollarSign className="size-5 text-[#b08a12]" />,
+      compareLabel: "Estimated yearly revenue",
+      icon: "revenue" as const,
     },
     {
       title: "Monthly Revenue",
       value: `$${data.stats.monthlyRevenue.toLocaleString()}`,
-      subtitle: "Current monthly recurring revenue",
-      icon: <TrendingUp className="size-5 text-[#b08a12]" />,
+      compareLabel: "Current monthly recurring revenue",
+      icon: "today" as const,
     },
     {
       title: "Total Subscribers",
       value: data.stats.totalSubscribers.toLocaleString(),
-      subtitle: "Active subscribers on the platform",
-      icon: <Users className="size-5 text-[#b08a12]" />,
+      compareLabel: "Active subscribers on the platform",
+      icon: "users" as const,
     },
     {
       title: "Churn Rate",
       value: `${data.stats.churnRate}%`,
-      subtitle: "Based on cancelled subscriptions",
-      icon: <CircleAlert className="size-5 text-[#b08a12]" />,
+      compareLabel: "Based on cancelled subscriptions",
+      icon: "alert" as const,
     },
   ];
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <section>
-          <h1 className="dashboard-title">Welcome in, Admin!</h1>
-          <p className="dashboard-subtitle mt-2">
-            Here&apos;s what&apos;s happening across your platform today.
-          </p>
-        </section>
-
-        <div className="dashboard-surface border-[#e7e9ee] p-6 shadow-none text-[#667085]">
+      return (
+        <div className="space-y-6">
+        <div className="dashboard-surface p-6 text-muted-foreground shadow-none">
           Loading analytics...
         </div>
       </div>
@@ -234,50 +228,60 @@ export function AdminAnalyticsWorkspace() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <h1 className="dashboard-title">Welcome in, Admin!</h1>
-        <p className="dashboard-subtitle mt-2">
-          Here&apos;s what&apos;s happening across your platform today.
-        </p>
-      </section>
+      <PageSummaryStrip
+        eyebrow="Platform Analytics"
+        title="Subscription and revenue intelligence"
+        description="Review platform-level growth, plan distribution, and recent commercial activity from a single admin analytics surface."
+        items={[
+          {
+            label: "Annual Revenue",
+            value: `$${data.stats.annualRevenue.toLocaleString()}`,
+            helper: "Estimated yearly platform revenue",
+          },
+          {
+            label: "Monthly Revenue",
+            value: `$${data.stats.monthlyRevenue.toLocaleString()}`,
+            helper: "Current recurring revenue cadence",
+          },
+          {
+            label: "Subscribers",
+            value: data.stats.totalSubscribers.toLocaleString(),
+            helper: "Active subscribers across plans",
+          },
+          {
+            label: "Churn",
+            value: `${data.stats.churnRate}%`,
+            helper: "Cancellation-driven attrition rate",
+          },
+        ]}
+      />
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {analyticsMetrics.map((metric) => (
-          <article
+          <KpiCard
             key={metric.title}
-            className="dashboard-surface border-[#e7e9ee] p-5 shadow-none"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm text-[#667085]">{metric.title}</p>
-              {metric.icon}
-            </div>
-            <h3 className="text-3xl font-semibold tracking-tight text-[#101828]">
-              {metric.value}
-            </h3>
-            <p className="mt-2 text-sm text-[#98a2b3]">{metric.subtitle}</p>
-          </article>
+            item={{
+              title: metric.title,
+              value: metric.value,
+              compareLabel: metric.compareLabel,
+              icon: metric.icon,
+              change: "",
+              changeDirection: "up",
+            }}
+          />
         ))}
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[2.2fr_1fr]">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="dashboard-section-title">Revenue Trends</h3>
-              <p className="mt-1 text-sm text-[#667085]">
-                Subscription revenue performance over time
-              </p>
-            </div>
-
-            <div className="inline-flex rounded-full bg-[#f2f4f7] p-1">
+        <DashboardPanel
+          title="Revenue Trends"
+          description="Subscription revenue performance over time."
+          action={
+            <div className="dashboard-filter-segment">
               <button
                 type="button"
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                  trendKey === "6m"
-                    ? "bg-white text-[#101828] shadow-sm"
-                    : "text-[#667085]"
-                )}
+                className="dashboard-filter-segment-button"
+                data-active={trendKey === "6m"}
                 onClick={() => setTrendKey("6m")}
               >
                 Last 6 Months
@@ -285,25 +289,24 @@ export function AdminAnalyticsWorkspace() {
 
               <button
                 type="button"
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-                  trendKey === "yearly"
-                    ? "bg-white text-[#101828] shadow-sm"
-                    : "text-[#667085]"
-                )}
+                className="dashboard-filter-segment-button"
+                data-active={trendKey === "yearly"}
                 onClick={() => setTrendKey("yearly")}
               >
                 Yearly
               </button>
             </div>
-          </div>
-
-          <div className="h-[300px] w-full">
+          }
+          className="shadow-none"
+          bodyClassName="pt-5"
+        >
+          <div className="dashboard-chart-shell">
+          <DashboardChartFigure ariaLabel="Admin revenue trends chart" frameClassName="h-[300px] w-full">
             <svg className="h-full w-full" viewBox="0 0 860 300" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="adminAnalyticsArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#d4af35" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#d4af35" stopOpacity="0.02" />
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
                 </linearGradient>
               </defs>
 
@@ -314,7 +317,7 @@ export function AdminAnalyticsWorkspace() {
                   y1={y}
                   x2="860"
                   y2={y}
-                  stroke="#edf0f5"
+                  stroke="var(--chart-grid)"
                   strokeDasharray="5 6"
                 />
               ))}
@@ -325,14 +328,14 @@ export function AdminAnalyticsWorkspace() {
                   <path
                     d={trendPath}
                     fill="none"
-                    stroke="#c69d24"
+                    stroke="var(--primary)"
                     strokeWidth="3.5"
                     strokeLinecap="round"
                   />
                 </>
               ) : null}
 
-              <g fill="#98a2b3" fontSize="12">
+              <g fill="var(--muted-foreground)" fontSize="12">
                 {trendData.map((point, index) => (
                   <text
                     key={point.month}
@@ -344,7 +347,7 @@ export function AdminAnalyticsWorkspace() {
                 ))}
               </g>
 
-              <g fill="#98a2b3" fontSize="11">
+              <g fill="var(--muted-foreground)" fontSize="11">
                 {yTicks.map((tick, index) => (
                   <text key={tick} x="4" y={278 - index * 56}>
                     {tick}
@@ -352,40 +355,49 @@ export function AdminAnalyticsWorkspace() {
                 ))}
               </g>
             </svg>
+          </DashboardChartFigure>
+          <DashboardChartRail>
+            <DashboardChartStat label="Annual revenue" value={`$${data.stats.annualRevenue.toLocaleString()}`} copy="Estimated yearly platform revenue." />
+            <DashboardChartStat label="Monthly revenue" value={`$${data.stats.monthlyRevenue.toLocaleString()}`} copy="Current recurring revenue pace." />
+            <DashboardChartStat label="Subscribers" value={data.stats.totalSubscribers.toLocaleString()} copy="Active accounts across visible plans." />
+          </DashboardChartRail>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Revenue Velocity</h3>
-          <p className="mt-1 text-sm text-[#667085]">Performance per fiscal month</p>
-
+        <DashboardPanel
+          title="Revenue Velocity"
+          description="Performance per fiscal month."
+          action={<BarChart3 className="size-5 text-primary" />}
+          className="shadow-none"
+          bodyClassName="pt-5"
+        >
           <div className="mt-6 space-y-5">
             {revenueVelocity.map((item) => (
               <div key={item.month}>
                 <div className="mb-2 flex items-center justify-between text-[15px]">
                   <span
                     className={cn(
-                      "font-medium text-[#344054]",
-                      item.highlight && "text-[#8a6b0b]"
+                      "font-medium text-secondary-foreground",
+                      item.highlight && "text-primary"
                     )}
                   >
                     {item.month}
                   </span>
                   <span
                     className={cn(
-                      "font-semibold text-[#101828]",
-                      item.highlight && "text-[#8a6b0b]"
+                      "font-semibold text-foreground",
+                      item.highlight && "text-primary"
                     )}
                   >
                     {item.valueLabel}
                   </span>
                 </div>
 
-                <div className="h-3 rounded-full bg-[#eceff3]">
+                <div className="h-3 rounded-full bg-muted">
                   <div
                     className={cn(
-                      "h-full rounded-full bg-[#d4af35]",
-                      item.highlight && "bg-[#7a6200]"
+                      "h-full rounded-full bg-primary",
+                      item.highlight && "bg-amber-700"
                     )}
                     style={{ width: `${item.width}%` }}
                   />
@@ -394,22 +406,22 @@ export function AdminAnalyticsWorkspace() {
             ))}
           </div>
 
-          <div className="mt-6 rounded-xl border border-[#ece6d2] bg-[#fbf9f2] p-4">
-            <p className="text-sm font-semibold text-[#8a6b0b]">Projection Insight</p>
-            <p className="mt-1 text-sm text-[#667085]">
+          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/10 p-4">
+            <p className="text-sm font-semibold text-primary">Projection Insight</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Current annualized revenue is projected from active subscription performance.
             </p>
           </div>
-        </article>
+        </DashboardPanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+        <DashboardPanel className="shadow-none" bodyClassName="pt-5">
           <div className="mb-6 flex items-start justify-between">
             <h3 className="dashboard-section-title">Subscription Distribution</h3>
             <button
               type="button"
-              className="text-sm font-semibold text-[#8a6b0b] transition-colors hover:text-[#6f5606]"
+              className="text-sm font-semibold text-primary transition-colors hover:text-primary/80"
             >
               Full Audit
             </button>
@@ -428,7 +440,7 @@ export function AdminAnalyticsWorkspace() {
                       cy="62"
                       r="43"
                       fill="none"
-                      stroke="#ecf0f5"
+                      stroke="var(--chart-grid)"
                       strokeWidth="9"
                     />
                     <circle
@@ -446,27 +458,25 @@ export function AdminAnalyticsWorkspace() {
                       x="62"
                       y="67"
                       textAnchor="middle"
-                      className="fill-[#101828]"
+                      className="fill-foreground"
                       style={{ fontSize: 22, fontWeight: 700 }}
                     >
                       {item.percent}%
                     </text>
                   </svg>
-                  <p className="mt-3 text-xs font-semibold tracking-wider text-[#98a2b3]">
+                  <p className="mt-3 text-xs font-semibold tracking-wider text-muted-foreground">
                     {item.tier}
                   </p>
-                  <p className="mt-1 text-4xl font-semibold tracking-tight text-[#101828]">
+                  <p className="mt-1 text-4xl font-semibold tracking-tight text-foreground">
                     {item.valueLabel}
                   </p>
                 </div>
               );
             })}
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Active User Segments</h3>
-
+        <DashboardPanel title="Active User Segments" className="shadow-none" bodyClassName="pt-5">
           <div className="mt-4 space-y-2.5">
             {userSegments.map((segment) => (
               <button
@@ -475,61 +485,61 @@ export function AdminAnalyticsWorkspace() {
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
                   activeSegmentId === segment.id
-                    ? "border-[#d7bf6f] bg-[#fffaf0]"
-                    : "border-[#eceff3] bg-white hover:bg-[#f8fafc]"
+                    ? "border-primary/30 bg-primary/10"
+                    : "border-border bg-card hover:bg-accent/35"
                 )}
                 onClick={() => setActiveSegmentId(segment.id)}
               >
-                <span className="inline-flex size-9 items-center justify-center rounded-full bg-[#f2f4f7]">
+                <span className="inline-flex size-9 items-center justify-center rounded-full bg-surface-subtle">
                   <SegmentIcon icon={segment.icon} />
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-[#101828]">
+                  <span className="block truncate text-sm font-semibold text-foreground">
                     {segment.title}
                   </span>
-                  <span className="block truncate text-xs text-[#98a2b3]">
+                  <span className="block truncate text-xs text-muted-foreground">
                     {segment.description}
                   </span>
                 </span>
 
-                <ChevronRight className="size-4 text-[#98a2b3]" />
+                <ChevronRight className="size-4 text-muted-foreground" />
               </button>
             ))}
           </div>
-        </article>
+        </DashboardPanel>
       </section>
 
-      <section className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
+      <DashboardPanel className="shadow-none" bodyClassName="pt-5">
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h3 className="dashboard-section-title">Recent Activity</h3>
-            <p className="mt-1 text-sm text-[#667085]">
+            <p className="mt-1 text-sm text-muted-foreground">
               Latest subscription-related platform updates
             </p>
           </div>
-          <BarChart3 className="size-5 text-[#b08a12]" />
+          <BarChart3 className="size-5 text-primary" />
         </div>
 
         <div className="space-y-4">
           {data.recentActivities.length === 0 ? (
-            <p className="text-sm text-[#98a2b3]">No recent activity yet.</p>
+            <p className="text-sm text-muted-foreground">No recent activity yet.</p>
           ) : (
             data.recentActivities.map((item) => (
               <div
                 key={item.id}
-                className="rounded-2xl border border-[#f0ece2] px-4 py-4"
+                className="rounded-[calc(var(--radius-panel)-6px)] border border-border/80 bg-card/88 px-4 py-4 shadow-[var(--shadow-control)]"
               >
-                <h3 className="font-medium text-[#101828]">{item.title}</h3>
-                <p className="mt-1 text-sm text-[#667085]">{item.description}</p>
-                <p className="mt-2 text-xs text-[#98a2b3]">
+                <h3 className="font-medium text-foreground">{item.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
                   {new Date(item.date).toLocaleString()}
                 </p>
               </div>
             ))
           )}
         </div>
-      </section>
+      </DashboardPanel>
     </div>
   );
 }

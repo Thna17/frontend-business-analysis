@@ -1,7 +1,15 @@
+import { BrandLogo } from "@/components/shared/brand-logo";
+
 export default function PaymentFooter() {
   return (
     <footer className="payment-footer">
-      <div className="payment-footer-brand">Syntrix</div>
+      <BrandLogo
+        href="/"
+        size="sm"
+        className="payment-footer-brand"
+        iconClassName="rounded-[14px]"
+        nameClassName="text-[1rem] text-foreground"
+      />
 
       <div className="payment-footer-links">
         <a href="#">Terms of Service</a>

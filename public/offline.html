@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#d4af35" />
+    <title>Syntrix is offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Poppins", "Avenir Next", "Segoe UI", sans-serif;
+        background: #0b1220;
+        color: #f8fafc;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 20% 10%, rgba(212, 175, 53, 0.2), transparent 30%),
+          linear-gradient(135deg, #0b1220, #101a2c);
+      }
+
+      main {
+        width: min(92vw, 420px);
+        padding: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 28px;
+        background: rgba(16, 26, 44, 0.86);
+        box-shadow: 0 24px 64px rgba(2, 8, 23, 0.44);
+      }
+
+      img {
+        width: 58px;
+        height: 58px;
+        object-fit: contain;
+        border-radius: 18px;
+      }
+
+      h1 {
+        margin: 22px 0 10px;
+        font-size: clamp(2rem, 8vw, 2.75rem);
+        line-height: 1;
+        letter-spacing: -0.05em;
+      }
+
+      p {
+        margin: 0;
+        color: rgba(248, 250, 252, 0.68);
+        line-height: 1.7;
+      }
+
+      button {
+        margin-top: 24px;
+        min-height: 46px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 20px;
+        background: #d4af35;
+        color: #1f1605;
+        font-weight: 800;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/logo-syntrix.png" alt="Syntrix" />
+      <h1>You are offline</h1>
+      <p>Syntrix could not reach the network. Reconnect and refresh to continue working with live business data.</p>
+      <button type="button" onclick="window.location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

@@ -1,11 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Camera, Mail, Phone, ShieldUser, UserRound } from "lucide-react";
-import { TopNavigation } from "@/components/dashboard/top-navigation";
-import { adminTopNavItems } from "@/features/owner-dashboard/dashboard-mock";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { StateMessage } from "@/components/shared/state-message";
 import { getProfileImageStorageKey } from "@/lib/profile-image-storage";
 import { useGetAdminProfileQuery, useGetCurrentUserQuery, useUpdateAdminProfileMutation } from "@/store/api";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 function humanRole(role: string) {
   if (role === "admin") return "Administrator";
@@ -20,6 +24,7 @@ export default function AdminProfilePage() {
 
   const [fullNameDraft, setFullNameDraft] = useState<string | null>(null);
   const [phoneDraft, setPhoneDraft] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const profileImageStorageKey = getProfileImageStorageKey(currentUser);
   const [uploadedImage, setUploadedImage] = useState<string>("");
 
@@ -32,6 +37,7 @@ export default function AdminProfilePage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setMessage(null);
 
     const reader = new FileReader();
 
@@ -51,6 +57,8 @@ export default function AdminProfilePage() {
   };
 
   const handleSave = async () => {
+    setMessage(null);
+
     try {
       await updateAdminProfile({
         fullName,
@@ -63,9 +71,9 @@ export default function AdminProfilePage() {
 
       window.dispatchEvent(new Event("admin-profile-updated"));
       window.dispatchEvent(new Event("owner-profile-updated"));
-      alert("Profile updated successfully!");
+      setMessage({ tone: "success", text: "Profile updated successfully." });
     } catch {
-      alert("Failed to update profile.");
+      setMessage({ tone: "danger", text: "Failed to update profile. Please try again." });
     }
   };
 
@@ -79,182 +87,152 @@ export default function AdminProfilePage() {
     [persistedImage, uploadedImage],
   );
 
-  if (loading) {
-    return (
-      <main className="admin-profile-page">
-        <div className="admin-shell">
-          <TopNavigation
-            items={adminTopNavItems}
-            settingsHref="/admin-settings"
-            profileHref="/admin/profile"
-            notificationHref="/admin/notification"
-            notificationCount={1}
-          />
-
-          <section className="admin-profile-header">
-            <h1>Profile</h1>
-            <p>Manage your admin profile information.</p>
-          </section>
-
-          <div className="admin-profile-loading">Loading profile...</div>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="admin-profile-page">
-      <div className="admin-shell">
-        <TopNavigation
-          items={adminTopNavItems}
-          settingsHref="/admin-settings"
-          profileHref="/admin/profile"
-          notificationHref="/admin/notification"
-          notificationCount={1}
-        />
+    <DashboardPage
+      title="Profile"
+      description="Manage your admin profile information."
+      footer="(c) 2026 Syntrix Admin Console. All rights reserved."
+    >
+      <PageSummaryStrip
+        eyebrow="Admin Identity"
+        title="Profile details used across the admin console"
+        description="Keep administrator information clear and current so ownership, approvals, and security activity stay attributable."
+        items={[
+          {
+            label: "Name",
+            value: fullName || "Admin",
+            helper: "Displayed across admin activity surfaces",
+          },
+          {
+            label: "Email",
+            value: email || "Not set",
+            helper: "Primary login and security contact",
+          },
+          {
+            label: "Phone",
+            value: phone || "Not set",
+            helper: "Optional escalation contact",
+          },
+          {
+            label: "Role",
+            value: roleLabel,
+            helper: "Current console permission level",
+          },
+        ]}
+      />
 
-        <section className="admin-profile-header">
-          <h1>Profile</h1>
-          <p>Manage your admin profile information.</p>
-        </section>
+        {loading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">Loading profile...</div>
+        ) : (
+          <section className="grid md:grid-cols-[1fr_2fr] gap-6">
+            <div className="dashboard-surface p-6 flex flex-col items-center text-center space-y-4 shadow-sm">
+              <div className="relative isolate flex justify-center group w-fit">
+                <div className="w-32 h-32 rounded-full overflow-hidden border border-border shadow-sm bg-background flex items-center justify-center relative">
+                  {avatarSrc ? (
+                    <Image src={avatarSrc} alt="Admin profile" fill unoptimized className="object-cover" />
+                  ) : (
+                    <UserRound className="w-10 h-10 text-muted-foreground" />
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full shadow-md cursor-pointer hover:bg-primary/90 transition-transform active:scale-95 group-hover:scale-110">
+                  <Camera className="w-4 h-4" />
+                  <input type="file" accept="image/*" className="hidden" aria-hidden="true" onChange={handleImageUpload} />
+                </label>
+              </div>
 
-        <section className="admin-profile-content">
-          <div className="admin-profile-left-card">
-            <div className="admin-profile-avatar-wrap">
-              <div className="admin-profile-avatar">
-                {avatarSrc ? (
-                  <img
-                    src={avatarSrc}
-                    alt="Admin profile"
+              <div className="space-y-1 mt-2">
+                <h2 className="text-xl font-bold text-foreground">{fullName || "Admin"}</h2>
+                <p className="text-sm text-muted-foreground">{roleLabel}</p>
+              </div>
+
+              <div className="w-full pt-4">
+                <Button variant="outline" className="w-full rounded-md gap-2" asChild>
+                  <label className="cursor-pointer">
+                    Change Photo
+                    <input type="file" accept="image/*" className="hidden" aria-hidden="true" onChange={handleImageUpload} />
+                  </label>
+                </Button>
+              </div>
+            </div>
+
+            <div className="dashboard-surface p-6 shadow-sm">
+              <div className="flex justify-between items-start mb-6 pb-6 border-b border-border">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Personal Information</h2>
+                  <p className="border-border text-sm text-muted-foreground">Update your account details below</p>
+                </div>
+                <span className="px-3 py-1 bg-accent/50 text-accent-foreground text-xs font-bold uppercase tracking-wider rounded-md border border-border">
+                  Admin Account
+                </span>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-5 mb-8">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="admin-full-name" className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <UserRound className="w-4 h-4 text-muted-foreground" />
+                    Full Name
+                  </label>
+                  <Input
+                    id="admin-full-name"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullNameDraft(e.target.value);
+                      setMessage(null);
+                    }}
                   />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                    <UserRound className="size-10 text-[#98a2b3]" />
-                  </div>
-                )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="admin-email" className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
+                    Email Address
+                  </label>
+                  <Input id="admin-email" type="email" value={email} readOnly disabled className="bg-muted/30" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="admin-phone" className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    Phone Number
+                  </label>
+                  <Input
+                    id="admin-phone"
+                    type="text"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhoneDraft(e.target.value);
+                      setMessage(null);
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="admin-role" className="text-sm font-medium flex items-center gap-2 text-foreground">
+                    <ShieldUser className="w-4 h-4 text-muted-foreground" />
+                    Role
+                  </label>
+                  <Input id="admin-role" type="text" value={roleLabel} readOnly disabled className="bg-muted/30" />
+                </div>
               </div>
 
-              <label
-                className="admin-profile-camera-btn"
-                aria-label="Change photo"
-              >
-                <Camera className="admin-profile-camera-icon" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden-file-input"
-                  onChange={handleImageUpload}
-                />
-              </label>
-            </div>
-
-            <h2>{fullName || "Admin"}</h2>
-            <p>{roleLabel}</p>
-
-            <label className="admin-profile-photo-btn">
-              Change Photo
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden-file-input"
-                onChange={handleImageUpload}
-              />
-            </label>
-          </div>
-
-          <div className="admin-profile-right-card">
-            <div className="admin-profile-card-header">
-              <div>
-                <h2>Personal Information</h2>
-                <p>Update your account details below</p>
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-8 text-primary-foreground max-w-xl">
+                <h3 className="font-semibold text-sm mb-1 text-foreground">Profile Tip</h3>
+                <p className="text-sm text-muted-foreground">
+                  Keep your personal details updated so your account remains easy to identify and professional inside the Syntrix admin platform.
+                </p>
               </div>
 
-              <span className="admin-account-badge">Admin Account</span>
-            </div>
-
-            <div className="admin-profile-form-grid">
-              <div className="admin-profile-field">
-                <label>
-                  <UserRound className="field-icon" />
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={fullName}
-                  onChange={(event) => setFullNameDraft(event.target.value)}
-                  className="admin-profile-input editable"
-                />
+              <div className="min-h-6">
+                {message ? <StateMessage tone={message.tone} compact message={message.text} /> : null}
               </div>
 
-              <div className="admin-profile-field">
-                <label>
-                  <Mail className="field-icon" />
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={email}
-                  readOnly
-                  className="admin-profile-input"
-                />
-              </div>
-
-              <div className="admin-profile-field">
-                <label>
-                  <Phone className="field-icon" />
-                  Phone Number
-                </label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={phone}
-                  onChange={(event) => setPhoneDraft(event.target.value)}
-                  className="admin-profile-input editable"
-                />
-              </div>
-
-              <div className="admin-profile-field">
-                <label>
-                  <ShieldUser className="field-icon" />
-                  Role
-                </label>
-                <input
-                  type="text"
-                  name="role"
-                  value={roleLabel}
-                  readOnly
-                  className="admin-profile-input"
-                />
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button variant="gold" className="min-w-[140px]" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </Button>
               </div>
             </div>
+          </section>
+        )}
 
-            <div className="admin-profile-tip-box">
-              <h3>Profile Tip</h3>
-              <p>
-                Keep your personal details updated so your account remains easy
-                to identify and professional inside the Syntrix admin platform.
-              </p>
-            </div>
-
-            <div className="admin-profile-actions">
-              <button
-                type="button"
-                className="admin-profile-save-btn"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <footer className="admin-profile-footer">
-          <p>(c) 2026 Syntrix Admin Platform. All rights reserved.</p>
-        </footer>
-      </div>
-    </main>
+    </DashboardPage>
   );
 }

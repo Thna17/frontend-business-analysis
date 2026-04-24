@@ -24,6 +24,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { StateMessage } from "@/components/shared/state-message";
 import {
   useCancelSubscriptionMutation,
   useGetSubscriptionDashboardQuery,
@@ -46,7 +49,7 @@ interface UsageCard {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function usageIcon(icon: UsageIcon) {
-  const cls = "size-4 text-[#d4af35]";
+  const cls = "size-4 text-primary";
   if (icon === "users") return <Users className={cls} />;
   if (icon === "reports") return <FileText className={cls} />;
   if (icon === "queries") return <Search className={cls} />;
@@ -88,10 +91,10 @@ function normalizeError(error: unknown) {
 function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
   if (!data) {
     return [
-      { title: "Active Users", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "users" },
-      { title: "Reports Generated", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "reports" },
-      { title: "Analytics Queries", value: "0", note: "No data", progress: 0, progressColor: "#d4af35", icon: "queries" },
-      { title: "Storage Used", value: "0 GB", note: "No data", progress: 0, progressColor: "#d4af35", icon: "storage" },
+      { title: "Active Users", value: "0", note: "No data", progress: 0, progressColor: "var(--primary)", icon: "users" },
+      { title: "Reports Generated", value: "0", note: "No data", progress: 0, progressColor: "var(--primary)", icon: "reports" },
+      { title: "Analytics Queries", value: "0", note: "No data", progress: 0, progressColor: "var(--primary)", icon: "queries" },
+      { title: "Storage Used", value: "0 GB", note: "No data", progress: 0, progressColor: "var(--primary)", icon: "storage" },
     ];
   }
 
@@ -103,9 +106,9 @@ function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
   }
 
   function progressColor(p: number): string {
-    if (p >= 90) return "#ef4444";
-    if (p >= 70) return "#f59e0b";
-    return "#d4af35";
+    if (p >= 90) return "rgb(239 68 68)";
+    if (p >= 70) return "rgb(245 158 11)";
+    return "var(--primary)";
   }
 
   const usersProgress = pct(u.activeUsers.used, u.activeUsers.limit, u.activeUsers.unlimited);
@@ -156,9 +159,9 @@ function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
 }
 
 function statusBadge(status: "active" | "expired" | "canceled") {
-  if (status === "active") return "bg-[#d7f2e3] text-[#067647]";
-  if (status === "expired") return "bg-[#fef3d2] text-[#b67a08]";
-  return "bg-[#fff5f5] text-[#dc2626]";
+  if (status === "active") return "dashboard-status-positive";
+  if (status === "expired") return "dashboard-status-warning";
+  return "dashboard-inline-feedback-danger";
 }
 
 const PLAN_RANK: Record<string, number> = {
@@ -285,41 +288,68 @@ export function SubscriptionsWorkspace() {
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
       {/* ── LEFT COLUMN ───────────────────────────────────────────────────── */}
       <div className="space-y-6">
+        <PageSummaryStrip
+          eyebrow="Billing Overview"
+          title="Subscription health and billing status"
+          description="See what plan is active, how you are billed, and whether your current usage is approaching plan limits before making changes."
+          items={[
+            {
+              label: "Current Plan",
+              value: `${data?.currentPlan.name ?? "Free"} Plan`,
+              helper: data?.currentPlan.description ?? "Current subscription tier",
+            },
+            {
+              label: "Status",
+              value: (data?.currentPlan.status ?? "active").toUpperCase(),
+              helper: data?.currentPlan.billingCycle === "annual" ? "Annual billing" : "Monthly billing",
+            },
+            {
+              label: "Next Billing",
+              value: formatDate(data?.currentPlan.nextBillingDate ?? null),
+              helper: "Scheduled renewal date",
+            },
+            {
+              label: "Payment Method",
+              value: data?.paymentMethod.provider?.toUpperCase?.() ?? "Bakong",
+              helper: `${data?.paymentMethod.currency ?? "USD"} checkout`,
+            },
+          ]}
+        />
 
         {/* Current Plan Card */}
-        <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none md:p-6">
+        <article className="billing-plan-hero">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-24 w-36 items-center justify-center rounded-2xl bg-gradient-to-br from-[#d4af35] to-[#9d7a10] text-white">
+              <div className="billing-plan-icon">
                 {planIcon(activePlanId)}
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-2xl font-semibold text-[#101828]">
+                  <h3 className="text-2xl font-semibold text-foreground">
                     {data?.currentPlan.name ?? "—"} Plan
                   </h3>
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${statusBadge(data?.currentPlan.status ?? "active")}`}>
                     {(data?.currentPlan.status ?? "active").toUpperCase()}
                   </span>
                   {data?.currentPlan.billingCycle === "annual" && (
-                    <span className="rounded-full bg-[#f0fdf4] px-2 py-1 text-xs font-semibold text-[#15803d]">
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                       ANNUAL
                     </span>
                   )}
                 </div>
-                <p className="mt-1.5 max-w-2xl text-sm text-[#475467]">
+                <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
                   {data?.currentPlan.description ?? "Loading plan details..."}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#d4af35]">
+                <p className="mt-2 text-3xl font-semibold text-primary">
                   {data
                     ? formatMoney(data.currentPlan.effectivePrice, data.paymentMethod.currency)
                     : "—"}
-                  <span className="ml-2 text-sm font-medium text-[#667085]">
+                  <span className="ml-2 text-sm font-medium text-muted-foreground">
                     / {data?.currentPlan.billingCycle === "annual" ? "year" : "month"}
                   </span>
                 </p>
                 {data?.currentPlan.nextBillingDate ? (
-                  <p className="mt-1.5 flex items-center gap-1 text-sm text-[#667085]">
+                  <p className="mt-1.5 flex items-center gap-1 text-sm text-muted-foreground">
                     <CalendarDays className="size-4" />
                     Next billing:{" "}
                     <span className="font-semibold">{formatDate(data.currentPlan.nextBillingDate)}</span>
@@ -331,7 +361,7 @@ export function SubscriptionsWorkspace() {
             {activePlanId !== "business" && (
               <Button
                 variant="outline"
-                className="h-11 rounded-full border-[#d4af35] px-5 text-sm text-[#9d7a10] hover:bg-[#fffaf0]"
+                className="h-11 px-5 text-sm text-primary hover:bg-primary/10"
                 onClick={() => handleUpgradePlan(
                   (["free", "pro", "business"] as SubscriptionPlanKey[]).find(
                     (p) => PLAN_RANK[p] === activePlanRank + 1,
@@ -342,7 +372,14 @@ export function SubscriptionsWorkspace() {
               </Button>
             )}
           </div>
-          {actionError ? <p className="mt-3 rounded-xl bg-[#fff5f5] px-4 py-2 text-sm text-rose-600">{actionError}</p> : null}
+          {actionError ? (
+            <StateMessage
+              tone="danger"
+              title="Billing action was not completed"
+              message={actionError}
+              className="mt-4"
+            />
+          ) : null}
         </article>
 
         {/* Usage Metrics */}
@@ -350,21 +387,28 @@ export function SubscriptionsWorkspace() {
           <h3 className="mb-4 dashboard-section-title">Usage Metrics</h3>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {usage.map((item) => (
-              <article key={item.title} className="dashboard-surface border-[#e7e9ee] p-4 shadow-none">
-                <p className="text-sm font-semibold tracking-[0.08em] text-[#667085] uppercase">{item.title}</p>
+              <article key={item.title} className="billing-usage-card">
+                <p className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">{item.title}</p>
                 <div className="mt-2 flex items-center justify-between">
-                  <p className="text-2xl font-semibold text-[#101828]">{item.value}</p>
+                  <p className="text-2xl font-semibold text-foreground">{item.value}</p>
                   {usageIcon(item.icon)}
                 </div>
-                <div className="mt-2 h-2 rounded-full bg-[#edf1f5]">
+                <div className="billing-progress-track">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${item.progress}%`, background: item.progressColor }}
                   />
                 </div>
-                <p className="mt-2 text-sm text-[#667085]">{item.note}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{item.note}</p>
               </article>
             ))}
+          </div>
+          <div className="mt-4">
+            <StateMessage
+              tone="info"
+              compact
+              message="Use these limits as the operational threshold for seats, reporting volume, query load, and storage growth before upgrading."
+            />
           </div>
         </section>
 
@@ -373,36 +417,32 @@ export function SubscriptionsWorkspace() {
           {/* Header + billing toggle */}
           <div className="plan-tier-header flex items-center justify-between gap-4 flex-wrap mb-5">
             <div>
-              <h2 className="text-2xl font-semibold text-[#101828]">Subscription Plans</h2>
-              <p className="mt-1 text-sm text-[#667085]">
+              <h2 className="text-2xl font-semibold text-foreground">Subscription Plans</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Upgrade anytime. Annual billing saves up to 2 months.
               </p>
             </div>
 
             {/* Monthly / Annual Toggle */}
-            <div className="flex items-center gap-1 rounded-full border border-[#e4e7ec] bg-[#f9fafb] p-1">
+            <div className="billing-plan-toggle">
               <button
                 type="button"
                 onClick={() => setBillingToggle("monthly")}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
-                  billingToggle === "monthly"
-                    ? "bg-white shadow-sm text-[#101828]"
-                    : "text-[#667085] hover:text-[#344054]"
-                }`}
+                className="billing-plan-toggle-button"
+                data-active={billingToggle === "monthly"}
+                aria-pressed={billingToggle === "monthly"}
               >
                 Monthly
               </button>
               <button
                 type="button"
                 onClick={() => setBillingToggle("annual")}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                  billingToggle === "annual"
-                    ? "bg-white shadow-sm text-[#101828]"
-                    : "text-[#667085] hover:text-[#344054]"
-                }`}
+                className="billing-plan-toggle-button inline-flex items-center gap-1.5"
+                data-active={billingToggle === "annual"}
+                aria-pressed={billingToggle === "annual"}
               >
                 Annual
-                <span className="rounded-full bg-[#d7f2e3] px-2 py-0.5 text-[10px] font-bold text-[#067647] tracking-wide">
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                   SAVE UP TO 17%
                 </span>
               </button>
@@ -429,7 +469,7 @@ export function SubscriptionsWorkspace() {
                   {showBadge ? <div className="plan-tier-badge">{showBadge}</div> : null}
 
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f3efe2] text-[#8a6a00]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       {planIcon(tier.id)}
                     </div>
                     <h3>{tier.name}</h3>
@@ -443,8 +483,8 @@ export function SubscriptionsWorkspace() {
 
                   {billingToggle === "annual" && savings > 0 ? (
                     <div className="mt-1 flex items-center gap-1.5">
-                      <Star className="size-3 text-[#067647]" fill="currentColor" />
-                      <span className="text-xs font-semibold text-[#067647]">
+                      <Star className="size-3 text-emerald-700 dark:text-emerald-300" fill="currentColor" />
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                         Save {formatMoney(savings, "USD")} per year
                       </span>
                     </div>
@@ -467,10 +507,10 @@ export function SubscriptionsWorkspace() {
                       >
                         <span className="feature-dot" aria-hidden="true">
                           {feature.disabled ? (
-                            <span className="inline-block size-2.5 rounded-full bg-[#d0d5dd]" />
+                            <span className="inline-block size-2.5 rounded-full bg-border" />
                           ) : (
                             <CheckCircle2
-                              className={`size-4 ${isActive || tier.highlighted ? "text-[#8d7007]" : "text-[#067647]"}`}
+                              className={`size-4 ${isActive || tier.highlighted ? "text-primary" : "text-emerald-700 dark:text-emerald-300"}`}
                             />
                           )}
                         </span>
@@ -482,7 +522,7 @@ export function SubscriptionsWorkspace() {
                   <button
                     type="button"
                     className={`plan-tier-manage-btn ${isActive || tier.highlighted ? "gold" : "light"} ${
-                      isUpgrade ? "ring-2 ring-[#d4af35] ring-offset-2" : ""
+                      isUpgrade ? "ring-2 ring-primary ring-offset-2" : ""
                     }`}
                     onClick={() => {
                       if (isActive) return;
@@ -512,7 +552,7 @@ export function SubscriptionsWorkspace() {
           </div>
 
           {billingToggle === "annual" ? (
-            <p className="mt-4 text-center text-xs text-[#98a2b3]">
+            <p className="mt-4 text-center text-xs text-muted-foreground">
               <Lock className="inline size-3 mr-1" />
               Annual plans are billed upfront. Cancel within 14 days for a full refund.
             </p>
@@ -525,17 +565,21 @@ export function SubscriptionsWorkspace() {
             <h3 className="dashboard-section-title">Billing History</h3>
             <button
               type="button"
-              className="text-sm font-medium text-[#d4af35]"
+              className="text-sm font-medium text-primary"
               onClick={() => setPage((prev) => prev + 1)}
               disabled={isFetching}
+              aria-label="Load more billing history rows"
             >
               View more →
             </button>
           </div>
-          <article className="dashboard-surface overflow-hidden border-[#e7e9ee] shadow-none">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left">
-                <thead className="bg-[#f5f6f8] text-xs font-semibold tracking-[0.06em] text-[#667085] uppercase">
+          <article className="dashboard-surface overflow-hidden shadow-none">
+            <DashboardDataTable
+              ariaLabel="Billing history table"
+              caption="Billing history with invoice id, plan, amount, date, status, and download action"
+              tableClassName="min-w-[760px]"
+            >
+                <thead>
                   <tr>
                     <th className="px-4 py-4">Invoice ID</th>
                     <th className="px-4 py-4">Plan</th>
@@ -545,24 +589,24 @@ export function SubscriptionsWorkspace() {
                     <th className="px-4 py-4">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#eef1f4] bg-white">
+                <tbody>
                   {(data?.billingHistory ?? []).map((row) => (
                     <tr key={row.id}>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">
+                      <td className="px-4 py-4 text-sm font-semibold text-foreground">
                         #{row.id.slice(0, 8)}
                       </td>
-                      <td className="px-4 py-4 text-sm text-[#475467] capitalize">{row.plan}</td>
-                      <td className="px-4 py-4 text-sm font-semibold text-[#101828]">
+                      <td className="px-4 py-4 text-sm text-muted-foreground capitalize">{row.plan}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-foreground">
                         {formatMoney(row.amount, row.currency)}
                       </td>
-                      <td className="px-4 py-4 text-sm text-[#475467]">{formatDate(row.date)}</td>
+                      <td className="px-4 py-4 text-sm text-muted-foreground">{formatDate(row.date)}</td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                           row.status === "succeeded"
-                            ? "bg-[#d7f2e3] text-[#067647]"
+                            ? "dashboard-status-positive"
                             : row.status === "pending"
-                              ? "bg-[#fef3d2] text-[#b67a08]"
-                              : "bg-[#fff5f5] text-[#dc2626]"
+                              ? "dashboard-status-warning"
+                              : "dashboard-inline-feedback-danger"
                         }`}>
                           {row.status}
                         </span>
@@ -571,7 +615,8 @@ export function SubscriptionsWorkspace() {
                         <button
                           type="button"
                           onClick={() => onDownloadInvoice(row)}
-                          className="text-[#d4af35] hover:text-[#9d7a10]"
+                          className="text-primary hover:text-primary/70"
+                          aria-label={`Download invoice ${row.id.slice(0, 8)}`}
                         >
                           <Download className="size-5" />
                         </button>
@@ -580,59 +625,65 @@ export function SubscriptionsWorkspace() {
                   ))}
                   {(data?.billingHistory ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#667085]">
+                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         No billing transactions yet.
                       </td>
                     </tr>
                   ) : null}
                 </tbody>
-              </table>
-            </div>
+            </DashboardDataTable>
           </article>
         </section>
       </div>
 
       {/* ── RIGHT COLUMN (Sidebar) ─────────────────────────────────────────── */}
       <aside className="space-y-6">
+        {isFetching ? (
+          <StateMessage
+            tone="loading"
+            title="Refreshing subscription data"
+            message="Plan status, invoices, and usage metrics are updating in the background."
+          />
+        ) : null}
 
         {/* Quick Actions */}
-        <article className="dashboard-surface border-[#e7e9ee] p-5 shadow-none">
+        <article className="dashboard-surface p-5 shadow-none">
           <h3 className="dashboard-section-title">Quick Actions</h3>
           <div className="mt-4 space-y-3">
             <button
               type="button"
               onClick={onDownloadTaxForm}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
+              className="billing-quick-action"
             >
               <span className="inline-flex items-center gap-2">
                 <FileSpreadsheet className="size-4" />
                 Download Tax Form
               </span>
-              <ChevronRight className="size-4 text-[#98a2b3]" />
+              <ChevronRight className="size-4 text-muted-foreground" />
             </button>
 
             <button
               type="button"
               onClick={onContactBilling}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
+              className="billing-quick-action"
             >
               <span className="inline-flex items-center gap-2">
                 <CircleHelp className="size-4" />
                 Contact Billing Support
               </span>
-              <ChevronRight className="size-4 text-[#98a2b3]" />
+              <ChevronRight className="size-4 text-muted-foreground" />
             </button>
 
             <button
               type="button"
               onClick={() => setEmailNotifications((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-full border border-[#e4e7ec] bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1f2937] hover:bg-[#f1f3f6]"
+              className="billing-quick-action"
             >
               <span className="inline-flex items-center gap-2">
                 <Mail className="size-4" />
                 Email Notifications
               </span>
-              <span className={`text-xs font-bold ${emailNotifications ? "text-[#067647]" : "text-[#667085]"}`}>
+              <span className={`text-xs font-bold ${emailNotifications ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}>
                 {emailNotifications ? "ON" : "OFF"}
               </span>
             </button>
@@ -642,43 +693,43 @@ export function SubscriptionsWorkspace() {
                 type="button"
                 onClick={() => { void onReactivate(); }}
                 disabled={isReactivating}
-                className="flex w-full items-center justify-between rounded-full border border-[#d4af35] bg-[#fffaf0] px-4 py-3 text-left text-sm font-medium text-[#8a6b0b] hover:bg-[#fff6e6]"
+                className="billing-quick-action dashboard-quick-action-primary"
               >
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="size-4" />
                   Reactivate Subscription
                 </span>
-                <ChevronRight className="size-4 text-[#d4af35]" />
+                <ChevronRight className="size-4 text-primary" />
               </button>
             ) : activePlanId !== "free" ? (
               <button
                 type="button"
                 onClick={() => { void onCancelSubscription(); }}
                 disabled={isCanceling}
-                className="flex w-full items-center justify-between rounded-full border border-[#f7c7c7] bg-[#fff5f5] px-4 py-3 text-left text-sm font-medium text-[#dc2626] hover:bg-[#fef0f0]"
+                className="billing-quick-action dashboard-quick-action-danger"
               >
                 <span className="inline-flex items-center gap-2">
                   <XCircle className="size-4" />
                   Cancel Subscription
                 </span>
-                <ChevronRight className="size-4 text-[#f87171]" />
+                <ChevronRight className="size-4 text-destructive" />
               </button>
             ) : null}
           </div>
         </article>
 
         {/* Help Box */}
-        <article className="dashboard-surface border-[#eadbb0] bg-[#f8f3e4] p-5 shadow-none">
-          <CircleHelp className="size-8 text-[#b98a05]" />
-          <h4 className="mt-4 text-xl font-semibold text-[#111827]">Need help?</h4>
-          <p className="mt-2 text-sm text-[#667085]">
+        <article className="billing-help-card">
+          <CircleHelp className="size-8 text-primary" />
+          <h4 className="mt-4 text-xl font-semibold text-foreground">Need help?</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
             Check our knowledge base for billing FAQ, plan comparisons, and payment guides.
           </p>
-          <button type="button" className="mt-4 text-sm font-semibold text-[#b98a05] underline">
+          <button type="button" className="mt-4 text-sm font-semibold text-primary underline">
             Visit Help Center →
           </button>
           {isFetching ? (
-            <p className="mt-3 text-xs text-[#98a2b3]">Syncing subscription data...</p>
+            <p className="mt-3 text-xs text-muted-foreground">Syncing subscription data...</p>
           ) : null}
         </article>
       </aside>

@@ -1,10 +1,17 @@
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { paymentSuccessFooter } from "@/data/payment-success";
 
 export default function SuccessFooter() {
   return (
     <footer className="payment-success-footer">
       <div className="payment-success-footer-left">
-        <h3>{paymentSuccessFooter.brand}</h3>
+        <BrandLogo
+          href="/"
+          size="sm"
+          className="payment-success-footer-brand"
+          iconClassName="rounded-[14px]"
+          nameClassName="text-[1rem] text-foreground"
+        />
         <p>{paymentSuccessFooter.copyright}</p>
       </div>
 

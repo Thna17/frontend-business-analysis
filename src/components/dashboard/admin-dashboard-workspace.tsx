@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Activity, ChevronRight, Trash2 } from "lucide-react";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { DashboardChartFigure, DashboardChartRail, DashboardChartStat } from "@/components/dashboard/dashboard-chart-primitives";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
+import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGetAdminDashboardQuery } from "@/store/api";
@@ -45,21 +49,41 @@ export function AdminDashboardWorkspace() {
 
   return (
     <div className="space-y-6">
-      <section>
-        <h1 className="dashboard-title">Welcome in, Admin!</h1>
-        <p className="dashboard-subtitle mt-2">Here&apos;s what&apos;s happening across your platform today.</p>
-      </section>
+      <PageSummaryStrip
+        eyebrow="Platform Command"
+        title="Admin operating overview"
+        description="Use this page to watch platform momentum, keep an eye on account activity, and quickly jump on anything that needs admin attention."
+        items={[
+          {
+            label: "Platform Health",
+            value: `${data?.platformHealth.value ?? 0}%`,
+            helper: "Real-time infrastructure readiness",
+          },
+          {
+            label: "Directory",
+            value: `${users.length}`,
+            helper: "Visible user profiles in the active list",
+          },
+          {
+            label: "Audit Events",
+            value: `${data?.auditLogs.length ?? 0}`,
+            helper: "Recent logs available for review",
+          },
+        ]}
+      />
 
       {isError ? (
-        <section className="dashboard-surface border border-[#f4caca] bg-[#fff4f4] p-4 text-sm text-[#b42318]">
-          Unable to load admin dashboard data. Please make sure you are logged in as admin.
-        </section>
+        <StateMessage
+          tone="danger"
+          title="Unable to load admin dashboard"
+          message="Admin metrics could not be loaded. Verify the admin session and try refreshing the page."
+        />
       ) : null}
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, index) => (
-            <div key={`admin-metric-skeleton-${index}`} className="dashboard-kpi-card border-[#e7e9ee]">
+            <div key={`admin-metric-skeleton-${index}`} className="dashboard-kpi-card">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="mt-7 h-10 w-36" />
               <Skeleton className="mt-4 h-4 w-24" />
@@ -69,33 +93,30 @@ export function AdminDashboardWorkspace() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[2fr_1fr]">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <div className="mb-4 flex items-start justify-between">
-            <div>
-              <h3 className="dashboard-section-title">Growth Projection</h3>
-              <p className="mt-1 text-sm text-[#667085]">Platform scaling performance (last 6 months)</p>
-            </div>
-            <span className="rounded-full border border-[#ead9a2] bg-[#fffaf0] px-3 py-1 text-xs font-semibold text-[#8a6b0b]">
-              Live dashboard data
-            </span>
-          </div>
-
-          <div className="h-[250px]">
+        <DashboardPanel
+          title="Growth Projection"
+          description="Platform scaling performance over the last 6 months."
+          action={<span className="dashboard-eyebrow">Live dashboard data</span>}
+          className="shadow-none"
+          bodyClassName="pt-5"
+        >
+          <div className="dashboard-chart-shell">
+          <DashboardChartFigure ariaLabel="Platform growth projection chart" frameClassName="h-[250px]">
             <svg viewBox="0 0 760 250" className="h-full w-full" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="admin-growth-area" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#d4af35" stopOpacity="0.24" />
-                  <stop offset="100%" stopColor="#d4af35" stopOpacity="0.02" />
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.24" />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
                 </linearGradient>
               </defs>
-              <line x1="0" y1="56" x2="760" y2="56" stroke="#edf0f5" strokeDasharray="6 6" />
-              <line x1="0" y1="116" x2="760" y2="116" stroke="#edf0f5" strokeDasharray="6 6" />
-              <line x1="0" y1="176" x2="760" y2="176" stroke="#edf0f5" strokeDasharray="6 6" />
+              <line x1="0" y1="56" x2="760" y2="56" stroke="var(--chart-grid)" strokeDasharray="6 6" />
+              <line x1="0" y1="116" x2="760" y2="116" stroke="var(--chart-grid)" strokeDasharray="6 6" />
+              <line x1="0" y1="176" x2="760" y2="176" stroke="var(--chart-grid)" strokeDasharray="6 6" />
 
               {growthPath ? <path d={growthAreaPath} fill="url(#admin-growth-area)" /> : null}
-              {growthPath ? <path d={growthPath} fill="none" stroke="#cca42d" strokeWidth="3.5" strokeLinecap="round" /> : null}
+              {growthPath ? <path d={growthPath} fill="none" stroke="var(--primary)" strokeWidth="3.5" strokeLinecap="round" /> : null}
 
-              <g fill="#98a2b3" fontSize="12">
+              <g fill="var(--muted-foreground)" fontSize="12">
                 {(data?.growthProjection ?? []).map((item, index) => (
                   <text key={item.month} x={(index / Math.max((data?.growthProjection?.length ?? 1) - 1, 1)) * 730 + 10} y="242">
                     {item.month.toUpperCase()}
@@ -103,27 +124,37 @@ export function AdminDashboardWorkspace() {
                 ))}
               </g>
             </svg>
+          </DashboardChartFigure>
+          <DashboardChartRail>
+            <DashboardChartStat label="Directory" value={users.length} copy="Profiles visible in the active list." />
+            <DashboardChartStat label="Audit events" value={data?.auditLogs.length ?? 0} copy="Recent logs ready for review." />
+            <DashboardChartStat label="Health" value={`${data?.platformHealth.value ?? 0}%`} copy="Current infrastructure readiness." />
+          </DashboardChartRail>
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">User Directory</h3>
+        <DashboardPanel
+          title="User Directory"
+          description="A quick operational slice of the current active user list."
+          className="shadow-none"
+          bodyClassName="pt-5"
+        >
           <div className="mt-4 space-y-3">
             {users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between rounded-xl border border-[#e4e7ec] bg-white px-3 py-3">
+              <div key={user.id} className="flex items-center justify-between rounded-[calc(var(--radius-panel)-6px)] border border-border bg-card/88 px-3 py-3 shadow-[var(--shadow-control)]">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-[#344054]" style={{ backgroundColor: user.color }}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-secondary-foreground" style={{ backgroundColor: user.color }}>
                     {user.initials}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#101828]">{user.name}</p>
-                    <p className="text-xs text-[#667085]">{user.tier}</p>
+                    <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.tier}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${user.status === "online" ? "bg-[#a16207]" : "bg-[#d4af37]"}`} />
-                  <button type="button" onClick={() => setDismissedUserIds((prev) => [...prev, user.id])}>
-                    <Trash2 className="size-4 text-[#98a2b3]" />
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${user.status === "online" ? "bg-amber-700" : "bg-primary"}`} />
+                  <button type="button" className="dashboard-icon-button dashboard-icon-button-danger" onClick={() => setDismissedUserIds((prev) => [...prev, user.id])}>
+                    <Trash2 className="size-4" />
                   </button>
                 </div>
               </div>
@@ -133,28 +164,29 @@ export function AdminDashboardWorkspace() {
           <Button variant="outline" className="mt-4 h-11 w-full rounded-xl text-sm" onClick={() => setDismissedUserIds([])}>
             View All Users
           </Button>
-        </article>
+        </DashboardPanel>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-        <article className="dashboard-surface border-[#e7e9ee] p-6 shadow-none">
-          <h3 className="dashboard-section-title">Deep Audit Logs</h3>
-          <p className="mt-2 text-sm text-[#667085]">
-            Review low-level system events and security access logs filtered by your current regional permissions.
-          </p>
+        <DashboardPanel
+          title="Deep Audit Logs"
+          description="Review low-level system events and security access logs filtered by your current regional permissions."
+          className="shadow-none"
+          bodyClassName="pt-5"
+        >
           <div className="mt-4 space-y-2">
             {(data?.auditLogs ?? []).map((log) => (
-              <div key={log.id} className="flex items-center justify-between rounded-lg border border-[#eef1f4] bg-white px-3 py-3">
-                <span className="text-sm text-[#1f2937]">{log.title}</span>
-                <span className="text-xs text-[#98a2b3]">{new Date(log.timeAgo).toLocaleString()}</span>
+              <div key={log.id} className="flex items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-border bg-card/88 px-3 py-3">
+                <span className="text-sm text-secondary-foreground">{log.title}</span>
+                <span className="text-xs text-muted-foreground">{new Date(log.timeAgo).toLocaleString()}</span>
               </div>
             ))}
           </div>
-        </article>
+        </DashboardPanel>
 
-        <article className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0f172a] via-[#101927] to-[#111827] p-6 shadow-[0_10px_30px_rgba(15,23,42,0.22)]">
-          <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full border-[18px] border-[#d4af35]/20" />
-          <h3 className="text-4xl font-semibold text-white">Platform Health</h3>
+        <article className="relative overflow-hidden rounded-[calc(var(--radius-panel)+2px)] border border-white/10 bg-[linear-gradient(120deg,#101827_0%,#111c2f_48%,#162640_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.24)]">
+          <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full border-[18px] border-primary/20" />
+          <h3 className="font-heading text-4xl font-semibold tracking-[-0.04em] text-white">Platform Health</h3>
           <p className="mt-2 text-base text-white/75">Real-time infrastructure status across availability zones.</p>
 
           <div className="mt-8">
@@ -163,7 +195,7 @@ export function AdminDashboardWorkspace() {
               <span className="text-2xl font-semibold text-white">{data?.platformHealth.value ?? 0}%</span>
             </div>
             <div className="h-3 rounded-full bg-white/15">
-              <div className="h-full rounded-full bg-[#d4af35]" style={{ width: `${data?.platformHealth.value ?? 0}%` }} />
+              <div className="h-full rounded-full bg-primary" style={{ width: `${data?.platformHealth.value ?? 0}%` }} />
             </div>
           </div>
 
