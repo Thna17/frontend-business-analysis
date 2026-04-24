@@ -69,7 +69,9 @@ function appendLocalReceipt(record: ReceiptRecord) {
 }
 
 async function persistReceipt(record: ReceiptRecord) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://business-analytics-backend-5w1g.onrender.com";
   const endpoints = [`${apiBase}/api/receipts`, `${apiBase}/receipts`];
 
   for (const endpoint of endpoints) {

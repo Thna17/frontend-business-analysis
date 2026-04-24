@@ -9,8 +9,12 @@ import { logout as clearAuthState, setCredentials } from "@/store/slices/authSli
 import type { ApiEnvelope } from "@/store/api/types";
 import { extractRouteFromArgs, shouldSkipAutoRefresh, transformAuthSession } from "@/store/api/utils";
 
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://business-analytics-backend-5w1g.onrender.com/api";
+
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
+  baseUrl: apiBaseUrl,
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as { auth?: { token?: string | null } };
     const token = state.auth?.token;
