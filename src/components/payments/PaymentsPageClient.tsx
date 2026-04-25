@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   useCheckBakongPaymentMutation,
   useCreatePaymentCheckoutMutation,
@@ -102,11 +103,6 @@ function providerMethods(provider: PaymentProvider): string[] {
   return provider === "aba_payway"
     ? ["ABA PayWay", "Sandbox", "QR Panel"]
     : ["KHQR", "ABA", "Bakong"];
-}
-
-function normalizeError(error: unknown, fallback: string): string {
-  const payload = error as { data?: { message?: string } };
-  return payload?.data?.message ?? fallback;
 }
 
 export default function PaymentsPageClient() {
@@ -239,7 +235,7 @@ export default function PaymentsPageClient() {
       }
     } catch (error) {
       setErrorMsg(
-        normalizeError(error, "Failed to create checkout. Please try again."),
+        getApiErrorMessage(error, "Failed to create checkout. Please try again."),
       );
       setStatus("failed");
     }
@@ -581,7 +577,7 @@ export default function PaymentsPageClient() {
                           .catch((error) => {
                             setStatus("failed");
                             setErrorMsg(
-                              normalizeError(
+                              getApiErrorMessage(
                                 error,
                                 "Failed to simulate ABA PayWay payment.",
                               ),

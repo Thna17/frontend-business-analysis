@@ -19,6 +19,7 @@ import { StateMessage } from "@/components/shared/state-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   Select,
   SelectContent,
@@ -36,11 +37,6 @@ import { FeatureGate } from "@/components/shared/feature-gate";
 type ReportType = "Sales" | "Revenue" | "Product" | "Customer";
 type ExportFormat = "PDF" | "CSV" | "Excel";
 type DateRange = "Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year";
-
-function normalizeError(error: unknown) {
-  const payload = error as { data?: { message?: string } };
-  return payload?.data?.message ?? "Something went wrong. Please try again.";
-}
 
 function toneClass(tone: "amber" | "slate") {
   return tone === "amber"
@@ -124,7 +120,7 @@ export function ReportsWorkspace() {
       }).unwrap();
       setActionSuccess(`${reportType} report queued in ${format}. You can track its status in report history.`);
     } catch (error) {
-      setActionError(normalizeError(error));
+      setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   }, [generateReport, reportType, category, dateRange, format]);
 
@@ -192,7 +188,7 @@ export function ReportsWorkspace() {
       await deleteReport(reportId).unwrap();
       setActionSuccess("Report removed from history.");
     } catch (error) {
-      setActionError(normalizeError(error));
+      setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 

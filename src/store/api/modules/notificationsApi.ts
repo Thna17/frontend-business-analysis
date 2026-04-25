@@ -36,7 +36,7 @@ export const notificationsApi = api.injectEndpoints({
           },
         };
       },
-      providesTags: ["Admin"],
+      providesTags: ["User", "Admin"],
     }),
     markNotificationRead: builder.mutation<NotificationItem, string>({
       query: (id) => ({
@@ -44,7 +44,7 @@ export const notificationsApi = api.injectEndpoints({
         method: "PATCH",
       }),
       transformResponse: (response: ApiEnvelope<NotificationItem>) => response.data,
-      invalidatesTags: ["Admin"],
+      invalidatesTags: ["User", "Admin"],
     }),
     markAllNotificationsRead: builder.mutation<{ modifiedCount: number }, void>({
       query: () => ({
@@ -52,7 +52,7 @@ export const notificationsApi = api.injectEndpoints({
         method: "PATCH",
       }),
       transformResponse: (response: ApiEnvelope<{ modifiedCount: number }>) => response.data,
-      invalidatesTags: ["Admin"],
+      invalidatesTags: ["User", "Admin"],
     }),
     archiveNotification: builder.mutation<NotificationItem, string>({
       query: (id) => ({
@@ -60,7 +60,7 @@ export const notificationsApi = api.injectEndpoints({
         method: "PATCH",
       }),
       transformResponse: (response: ApiEnvelope<NotificationItem>) => response.data,
-      invalidatesTags: ["Admin"],
+      invalidatesTags: ["User", "Admin"],
     }),
     archiveAllNotifications: builder.mutation<{ modifiedCount: number }, void>({
       query: () => ({
@@ -68,15 +68,15 @@ export const notificationsApi = api.injectEndpoints({
         method: "PATCH",
       }),
       transformResponse: (response: ApiEnvelope<{ modifiedCount: number }>) => response.data,
-      invalidatesTags: ["Admin"],
+      invalidatesTags: ["User", "Admin"],
     }),
     deleteNotification: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/notifications/${id}`,
         method: "DELETE",
       }),
-      transformResponse: (response: ApiEnvelope<{ message: string }>) => response.data,
-      invalidatesTags: ["Admin"],
+      transformResponse: (response: ApiEnvelope<null>) => ({ message: response.message }),
+      invalidatesTags: ["User", "Admin"],
     }),
   }),
 });

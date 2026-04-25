@@ -118,6 +118,11 @@ export function TopNavigation({
 
     return true;
   });
+  const commandLinks = visibleItems
+    .filter((item): item is DashboardNavItem & { href: string } => Boolean(item.href))
+    .filter((item) => item.href !== settingsHref)
+    .slice(0, 3)
+    .map((item) => ({ label: item.label, href: item.href }));
   useEffect(() => {
     let ticking = false;
 
@@ -192,7 +197,12 @@ export function TopNavigation({
           </div>
 
           <div className="hidden min-w-0 flex-1 items-center justify-end gap-3 xl:flex">
-            <CommandMenu />
+            <CommandMenu
+              quickLinks={commandLinks}
+              settingsHref={settingsHref}
+              onLogout={handleLogout}
+              isLoggingOut={isLoggingOut}
+            />
             <div className="dashboard-topbar-tools">
               {notificationHref ? (
                 <Button
@@ -301,7 +311,12 @@ export function TopNavigation({
 
 
                 <div className="sm:hidden">
-                  <CommandMenu />
+                  <CommandMenu
+                    quickLinks={commandLinks}
+                    settingsHref={settingsHref}
+                    onLogout={handleLogout}
+                    isLoggingOut={isLoggingOut}
+                  />
                 </div>
 
                 <nav aria-label="Mobile navigation" className="dashboard-mobile-nav">

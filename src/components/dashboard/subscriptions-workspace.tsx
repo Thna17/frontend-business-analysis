@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
 import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { StateMessage } from "@/components/shared/state-message";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   useCancelSubscriptionMutation,
   useGetSubscriptionDashboardQuery,
@@ -81,11 +82,6 @@ function formatDate(value: string | null) {
     month: "short",
     day: "numeric",
   }).format(date);
-}
-
-function normalizeError(error: unknown) {
-  const payload = error as { data?: { message?: string } };
-  return payload?.data?.message ?? "Something went wrong. Please try again.";
 }
 
 function mapUsageCards(data?: SubscriptionDashboardResponse): UsageCard[] {
@@ -219,7 +215,7 @@ export function SubscriptionsWorkspace() {
     try {
       await cancelSubscription().unwrap();
     } catch (error) {
-      setActionError(normalizeError(error));
+      setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -228,7 +224,7 @@ export function SubscriptionsWorkspace() {
     try {
       await reactivateSubscription().unwrap();
     } catch (error) {
-      setActionError(normalizeError(error));
+      setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 

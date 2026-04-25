@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -22,12 +22,14 @@ interface PageHeaderProps {
 const pageHeaderEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function PageHeader({ title, description, actions, eyebrow, breadcrumbs, className }: PageHeaderProps) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.header
       className={cn("dashboard-page-header", className)}
-      initial={{ opacity: 0, y: 14 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.44, ease: pageHeaderEase }}
+      transition={reduceMotion ? { duration: 0.01 } : { duration: 0.44, ease: pageHeaderEase }}
     >
       <div className="dashboard-page-header-copy">
         {breadcrumbs?.length ? (
@@ -42,7 +44,7 @@ export function PageHeader({ title, description, actions, eyebrow, breadcrumbs, 
                 ) : (
                   <span className="dashboard-breadcrumb-current">{item.label}</span>
                 )}
-                {index < breadcrumbs.length - 1 ? <span aria-hidden="true">/</span> : null}
+                {index < breadcrumbs.length - 1 ? <span aria-hidden="true" className="text-muted-foreground/70">/</span> : null}
               </li>
             ))}
             </ol>

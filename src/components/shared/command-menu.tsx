@@ -4,7 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarIcon,
-  EnvelopeClosedIcon,
   FaceIcon,
   GearIcon,
   PersonIcon,
@@ -22,16 +21,28 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { useTheme } from "next-themes";
-import { useDispatch } from "react-redux";
-import { useLogoutMutation } from "@/store/api";
-import { logout as clearAuthState } from "@/store/slices/authSlice";
 
-export function CommandMenu() {
+type CommandLink = {
+  label: string;
+  href: string;
+};
+
+interface CommandMenuProps {
+  quickLinks: CommandLink[];
+  settingsHref: string;
+  onLogout: () => Promise<void> | void;
+  isLoggingOut?: boolean;
+}
+
+export function CommandMenu({
+  quickLinks,
+  settingsHref,
+  onLogout,
+  isLoggingOut = false,
+}: CommandMenuProps) {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const { setTheme } = useTheme();
-  const dispatch = useDispatch();
-  const [triggerLogout] = useLogoutMutation();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -68,15 +79,20 @@ export function CommandMenu() {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Navigation">
-            <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
-              <RocketIcon className="mr-2 h-4 w-4" />
-              <span>Dashboard</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/sales"))}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              <span>Sales Records</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/settings"))}>
+            {quickLinks.map((link, index) => (
+              <CommandItem
+                key={link.href}
+                onSelect={() => runCommand(() => router.push(link.href))}
+              >
+                {index === 0 ? (
+                  <RocketIcon className="mr-2 h-4 w-4" />
+                ) : (
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                )}
+                <span>{link.label}</span>
+              </CommandItem>
+            ))}
+            <CommandItem onSelect={() => runCommand(() => router.push(settingsHref))}>
               <GearIcon className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </CommandItem>
@@ -98,16 +114,10 @@ export function CommandMenu() {
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Actions">
-            <CommandItem onSelect={() => runCommand(() => alert("Exporting..."))}>
-              <EnvelopeClosedIcon className="mr-2 h-4 w-4" />
-              <span>Export CSV Data</span>
-              <CommandShortcut>⌘E</CommandShortcut>
-            </CommandItem>
             <CommandItem
               onSelect={() => runCommand(async () => {
-                await triggerLogout().unwrap();
-                dispatch(clearAuthState());
-                router.replace("/login");
+                if (isLoggingOut) return;
+                await onLogout();
               })}
             >
               <PersonIcon className="mr-2 h-4 w-4" />

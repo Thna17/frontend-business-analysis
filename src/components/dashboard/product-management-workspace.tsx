@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
 import { ProductEditorDialog, type ProductFormState } from "@/components/dashboard/product-editor-dialog";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   Select,
   SelectContent,
@@ -93,11 +94,6 @@ function dateBoundsByPreset(preset: DateFilter): { startDate?: string; endDate?:
     startDate: start.toISOString(),
     endDate: end.toISOString(),
   };
-}
-
-function normalizeError(error: unknown) {
-  const payload = error as { data?: { message?: string } };
-  return payload?.data?.message ?? "Something went wrong. Please try again.";
 }
 
 const formDefaults: ProductFormState = {
@@ -288,7 +284,7 @@ export function ProductManagementWorkspace() {
       setFormError(null);
       onCloseModal();
     } catch (error) {
-      setFormError(normalizeError(error));
+      setFormError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -299,7 +295,7 @@ export function ProductManagementWorkspace() {
       await deleteProduct(id).unwrap();
       setActionSuccess("Product removed from the catalog.");
     } catch (error) {
-      setActionError(normalizeError(error));
+      setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -308,7 +304,7 @@ export function ProductManagementWorkspace() {
     try {
       await approveSuggestion(id).unwrap();
     } catch (error) {
-      setSuggestionError(normalizeError(error));
+      setSuggestionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -317,7 +313,7 @@ export function ProductManagementWorkspace() {
     try {
       await rejectSuggestion(id).unwrap();
     } catch (error) {
-      setSuggestionError(normalizeError(error));
+      setSuggestionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 

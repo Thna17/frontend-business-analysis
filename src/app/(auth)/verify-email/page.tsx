@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound, Mail } from "lucide-react";
+import { KeyRound, Loader2, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { AuthField } from "@/components/auth/auth-field";
@@ -15,22 +15,10 @@ import {
   isPathAllowedForRole,
   sanitizeNextPath,
 } from "@/features/auth/access-control";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { setCredentials } from "@/store/slices/authSlice";
 import { type AppDispatch } from "@/store";
 import { useResendVerificationOtpMutation, useVerifyEmailOtpMutation } from "@/store/api";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const maybeError = error as { data?: { message?: string } };
-  if (
-    typeof maybeError === "object" &&
-    maybeError !== null &&
-    typeof maybeError.data?.message === "string"
-  ) {
-    return maybeError.data.message;
-  }
-
-  return fallback;
-}
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -68,7 +56,7 @@ export default function VerifyEmailPage() {
 
       router.replace(getHomeRouteByRole(result.user.role));
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Unable to verify code."));
+      setErrorMessage(getApiErrorMessage(error, "Unable to verify code."));
     }
   };
 
@@ -80,7 +68,7 @@ export default function VerifyEmailPage() {
       const result = await resendOtp({ email }).unwrap();
       setMessage(result.message);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Unable to resend code."));
+      setErrorMessage(getApiErrorMessage(error, "Unable to resend code."));
     }
   };
 
@@ -116,10 +104,21 @@ export default function VerifyEmailPage() {
         ) : null}
         {errorMessage ? (
           <StateMessage tone="danger" message={errorMessage} />
-        ) : null}
+        ) : (
+          <StateMessage
+            tone="info"
+            compact
+            message="Enter the most recent 6-digit code we sent. If the code expires, request a new one below."
+          />
+        )}
 
         <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isVerifying}>
-          {isVerifying ? "Verifying..." : "Verify Email"}
+          {isVerifying ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Verifying...
+            </>
+          ) : "Verify Email"}
         </Button>
 
         <Button
@@ -127,9 +126,14 @@ export default function VerifyEmailPage() {
           variant="outline"
           className="h-11 w-full rounded-xl"
           onClick={handleResend}
-          disabled={isResending}
+          disabled={isResending || email.trim().length === 0}
         >
-          {isResending ? "Sending..." : "Resend Code"}
+          {isResending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Sending...
+            </>
+          ) : "Resend Code"}
         </Button>
       </form>
 

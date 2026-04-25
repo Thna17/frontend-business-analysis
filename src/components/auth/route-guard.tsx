@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
+import { LoadingScreen } from "@/components/shared/loading-screen";
 import {
   getHomeRouteByRole,
   isPathAllowedForRole,
@@ -19,11 +20,10 @@ interface RouteGuardProps {
 
 function GuardFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-[var(--shadow-control)]">
-        Checking session...
-      </div>
-    </div>
+    <LoadingScreen
+      title="Checking your session"
+      description="Restoring access and routing you to the right workspace."
+    />
   );
 }
 

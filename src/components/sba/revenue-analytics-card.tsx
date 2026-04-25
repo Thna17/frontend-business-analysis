@@ -6,7 +6,8 @@ interface RevenueAnalyticsCardProps {
 }
 
 export function RevenueAnalyticsCard({ analytics }: RevenueAnalyticsCardProps) {
-  const max = Math.max(...analytics.monthlyComparison.map((item) => item.amount));
+  const rows = analytics.monthlyComparison ?? [];
+  const max = Math.max(...rows.map((item) => item.amount), 1);
 
   return (
     <Card className="bg-white/90">
@@ -14,7 +15,11 @@ export function RevenueAnalyticsCard({ analytics }: RevenueAnalyticsCardProps) {
         <CardTitle className="text-base font-semibold">Monthly Revenue Comparison</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {analytics.monthlyComparison.map((item) => {
+        {rows.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            Revenue data will appear once monthly results are available.
+          </p>
+        ) : rows.map((item) => {
           const width = `${Math.round((item.amount / max) * 100)}%`;
           return (
             <div key={item.month}>

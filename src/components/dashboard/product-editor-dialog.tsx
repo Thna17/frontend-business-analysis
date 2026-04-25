@@ -45,7 +45,10 @@ export function ProductEditorDialog({
 }: ProductEditorDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[640px] overflow-hidden rounded-2xl border border-border p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]">
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[96vh] max-w-[800px] overflow-y-auto rounded-2xl border border-border p-0 shadow-[0_20px_48px_rgba(15,23,42,0.18)]"
+      >
         <DialogHeader className="flex-row items-center justify-between border-b border-border bg-surface-subtle px-6 py-4 text-left">
           <div className="space-y-1">
             <DialogTitle className="text-[1.625rem] font-semibold tracking-tight text-foreground">

@@ -23,6 +23,7 @@ import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
 import { StateMessage } from "@/components/shared/state-message";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   Select,
   SelectContent,
@@ -45,11 +46,6 @@ import {
   useUpdateSettingsSecurityMutation,
 } from "@/store/api";
 import { selectCurrentUser } from "@/store/slices/authSlice";
-
-function normalizeError(error: unknown) {
-  const payload = error as { data?: { message?: string } };
-  return payload?.data?.message ?? "Something went wrong. Please try again.";
-}
 
 function currencyCode(label: string): string {
   if (!label) return "USD";
@@ -277,8 +273,9 @@ export function SettingsWorkspace() {
       );
       setInlineStatus({ tone: "success", message: "Settings saved successfully. Your workspace preferences and account controls are up to date." });
     } catch (error) {
-      toast.error(normalizeError(error));
-      setInlineStatus({ tone: "danger", message: normalizeError(error) });
+      const message = getApiErrorMessage(error, "Something went wrong. Please try again.");
+      toast.error(message);
+      setInlineStatus({ tone: "danger", message });
     }
   }, [
     account.fullName,
@@ -315,7 +312,7 @@ export function SettingsWorkspace() {
       toast.success("Deactivation request submitted");
       setOpenDeactivate(false);
     } catch (error) {
-      toast.error(normalizeError(error));
+      toast.error(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -325,7 +322,7 @@ export function SettingsWorkspace() {
       toast.success("Deletion request submitted");
       setOpenDelete(false);
     } catch (error) {
-      toast.error(normalizeError(error));
+      toast.error(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -338,8 +335,11 @@ export function SettingsWorkspace() {
       toast.success("Account profile updated");
       setInlineStatus({ tone: "success", message: "Account information updated." });
     } catch (error) {
-      toast.error(normalizeError(error));
-      setInlineStatus({ tone: "danger", message: normalizeError(error) });
+      {
+        const message = getApiErrorMessage(error, "Something went wrong. Please try again.");
+        toast.error(message);
+        setInlineStatus({ tone: "danger", message });
+      }
     }
   };
 
@@ -357,8 +357,11 @@ export function SettingsWorkspace() {
       toast.success("Business profile updated");
       setInlineStatus({ tone: "success", message: "Business profile updated." });
     } catch (error) {
-      toast.error(normalizeError(error));
-      setInlineStatus({ tone: "danger", message: normalizeError(error) });
+      {
+        const message = getApiErrorMessage(error, "Something went wrong. Please try again.");
+        toast.error(message);
+        setInlineStatus({ tone: "danger", message });
+      }
     }
   };
 
@@ -374,8 +377,11 @@ export function SettingsWorkspace() {
       toast.success("Team member added");
       setInlineStatus({ tone: "success", message: "Team member added and seat allocation updated." });
     } catch (error) {
-      toast.error(normalizeError(error));
-      setInlineStatus({ tone: "danger", message: normalizeError(error) });
+      {
+        const message = getApiErrorMessage(error, "Something went wrong. Please try again.");
+        toast.error(message);
+        setInlineStatus({ tone: "danger", message });
+      }
     }
   };
 
@@ -385,8 +391,11 @@ export function SettingsWorkspace() {
       toast.success("Team member removed");
       setInlineStatus({ tone: "success", message: "Team member removed from the workspace." });
     } catch (error) {
-      toast.error(normalizeError(error));
-      setInlineStatus({ tone: "danger", message: normalizeError(error) });
+      {
+        const message = getApiErrorMessage(error, "Something went wrong. Please try again.");
+        toast.error(message);
+        setInlineStatus({ tone: "danger", message });
+      }
     }
   };
 

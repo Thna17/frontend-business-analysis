@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, Check } from "lucide-react";
 import TransactionDetails from "@/components/payments/success/TransactionDetails";
 import { paymentSuccessInfo } from "@/data/payment-success";
+import { getPaymentSuccessDetails } from "@/lib/payment-success";
 
 type ReceiptRecord = {
   id: string;
@@ -61,54 +62,36 @@ function buildPdfDocument(lines: string[]) {
   return pdf;
 }
 
-function appendLocalReceipt(record: ReceiptRecord) {
-  const storageKey = "syntrix.receiptHistory";
-  const existingRaw = localStorage.getItem(storageKey);
-  const existing: ReceiptRecord[] = existingRaw ? JSON.parse(existingRaw) : [];
-  localStorage.setItem(storageKey, JSON.stringify([record, ...existing]));
-}
+const RECEIPT_HISTORY_STORAGE_KEY = "syntrix.receiptHistory";
 
-async function persistReceipt(record: ReceiptRecord) {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_URL ||
-    "https://business-analytics-backend-5w1g.onrender.com";
-  const endpoints = [`${apiBase}/api/receipts`, `${apiBase}/receipts`];
+function readLocalReceipts(): ReceiptRecord[] {
+  const existingRaw = localStorage.getItem(RECEIPT_HISTORY_STORAGE_KEY);
 
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(record),
-      });
-
-      if (response.ok) return true;
-    } catch {
-      // Continue trying the next endpoint and fallback.
-    }
+  if (!existingRaw) {
+    return [];
   }
 
-  appendLocalReceipt(record);
-  return false;
+  try {
+    const parsed = JSON.parse(existingRaw) as unknown;
+    return Array.isArray(parsed) ? (parsed as ReceiptRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function appendLocalReceipt(record: ReceiptRecord) {
+  const existing = readLocalReceipts();
+  localStorage.setItem(
+    RECEIPT_HISTORY_STORAGE_KEY,
+    JSON.stringify([record, ...existing]),
+  );
 }
 
 export default function SuccessCard() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("");
-  const plan = searchParams.get("plan") ?? "pro";
-  const billingCycle = searchParams.get("billingCycle") ?? "monthly";
-  const amount = searchParams.get("amount") ?? "19.00";
-  const currency = searchParams.get("currency") ?? "USD";
-
-  const formattedPlan = `${plan.charAt(0).toUpperCase()}${plan.slice(1)} Plan (${billingCycle === "annual" ? "Annual" : "Monthly"})`;
-  const formattedAmount = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(amount));
-  const provider = searchParams.get("provider");
-  const providerLabel = provider === "aba_payway" ? "ABA PayWay Sandbox" : "Bakong KHQR";
+  const { formattedPlan, formattedAmount, providerLabel } =
+    getPaymentSuccessDetails(searchParams);
 
   const onDownloadReceipt = async () => {
     const now = new Date();
@@ -154,8 +137,8 @@ export default function SuccessCard() {
     link.click();
     URL.revokeObjectURL(url);
 
-    const savedToBackend = await persistReceipt(receipt);
-    setMessage(savedToBackend ? "Receipt downloaded and saved to backend." : "Receipt downloaded and saved locally.");
+    appendLocalReceipt(receipt);
+    setMessage("Receipt downloaded and saved locally on this device.");
   };
 
   return (

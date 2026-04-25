@@ -4,10 +4,11 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { AuthField } from "@/components/auth/auth-field";
 import { AuthPasswordField } from "@/components/auth/auth-password-field";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,23 +16,11 @@ import {
   isPathAllowedForRole,
   sanitizeNextPath,
 } from "@/features/auth/access-control";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { setCredentials } from "@/store/slices/authSlice";
 import { type AppDispatch } from "@/store";
 import { useLoginMutation } from "@/store/api";
 import { toast } from "sonner";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const maybeError = error as { data?: { message?: string } };
-  if (
-    typeof maybeError === "object" &&
-    maybeError !== null &&
-    typeof maybeError.data?.message === "string"
-  ) {
-    return maybeError.data.message;
-  }
-
-  return fallback;
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,14 +28,16 @@ export default function LoginPage() {
   const dispatch = useDispatch<AppDispatch>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [login, { isLoading }] = useLoginMutation();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage(null);
 
     try {
-      const result = await login({ email, password }).unwrap();
+      const result = await login({ email: email.trim(), password }).unwrap();
       dispatch(
         setCredentials({
           user: result.user,
@@ -62,13 +53,14 @@ export default function LoginPage() {
 
       router.replace(getHomeRouteByRole(result.user.role));
     } catch (error) {
-      const message = getErrorMessage(error, "Unable to sign in. Please try again.");
+      const message = getApiErrorMessage(error, "Unable to sign in. Please try again.");
       if (message.toLowerCase().includes("verification")) {
         const requestedNext = sanitizeNextPath(searchParams.get("next"));
         const nextQuery = requestedNext ? `&next=${encodeURIComponent(requestedNext)}` : "";
         router.push(`/verify-email?email=${encodeURIComponent(email)}${nextQuery}`);
         return;
       }
+      setErrorMessage(message);
       toast.error(message);
     }
   };
@@ -78,7 +70,7 @@ export default function LoginPage() {
       title="Welcome back"
       subtitle="Good to see you again. Your dashboard is ready."
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <AuthField id="email" label="Work email" icon={<Mail className="size-4" />}>
           <Input
             id="email"
@@ -86,6 +78,7 @@ export default function LoginPage() {
             className="auth-input"
             value={email}
             autoComplete="email"
+            inputMode="email"
             onChange={(event) => setEmail(event.target.value)}
             required
           />
@@ -100,6 +93,20 @@ export default function LoginPage() {
           hint="Case sensitive"
         />
 
+        {errorMessage ? (
+          <StateMessage
+            tone="danger"
+            title="Sign-in failed"
+            message={errorMessage}
+          />
+        ) : (
+          <StateMessage
+            tone="info"
+            compact
+            message="Use the same email you registered with. If your account is not verified yet, we will route you to email verification."
+          />
+        )}
+
         <div className="flex items-center justify-end py-1">
           <Link href="/forgot-password" className="auth-inline-link">
             Forgot password?
@@ -107,7 +114,12 @@ export default function LoginPage() {
         </div>
 
         <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign in"}
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Signing in...
+            </>
+          ) : "Sign in"}
         </Button>
 
         <div className="auth-form-footer">
@@ -117,7 +129,6 @@ export default function LoginPage() {
           </Link>
         </div>
       </form>
-
     </AuthShell>
   );
 }
