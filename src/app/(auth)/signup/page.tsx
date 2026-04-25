@@ -4,29 +4,18 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { Building2, Mail, UserRound } from "lucide-react";
+import { Building2, Loader2, Mail, UserRound } from "lucide-react";
 import { AuthField } from "@/components/auth/auth-field";
 import { AuthPasswordField } from "@/components/auth/auth-password-field";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { logout as clearAuthState } from "@/store/slices/authSlice";
 import { type AppDispatch } from "@/store";
 import { useRegisterMutation } from "@/store/api";
 import { toast } from "sonner";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const maybeError = error as { data?: { message?: string } };
-  if (
-    typeof maybeError === "object" &&
-    maybeError !== null &&
-    typeof maybeError.data?.message === "string"
-  ) {
-    return maybeError.data.message;
-  }
-
-  return fallback;
-}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -37,6 +26,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [register, { isLoading }] = useRegisterMutation();
 
@@ -49,14 +39,19 @@ export default function SignupPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage(null);
 
     if (!agreeTerms) {
-      toast.error("Please accept terms and conditions.");
+      const message = "Please accept terms and conditions.";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Password and confirm password do not match.");
+      const message = "Password and confirm password do not match.";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
@@ -64,14 +59,16 @@ export default function SignupPage() {
       dispatch(clearAuthState());
 
       await register({
-        fullName: businessName ? `${fullName} (${businessName})` : fullName,
-        email,
+        fullName: businessName ? `${fullName.trim()} (${businessName.trim()})` : fullName.trim(),
+        email: email.trim(),
         password,
       }).unwrap();
 
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error) {
-      toast.error(getErrorMessage(error, "Unable to create account."));
+      const message = getApiErrorMessage(error, "Unable to create account.");
+      setErrorMessage(message);
+      toast.error(message);
     }
   };
 
@@ -80,7 +77,7 @@ export default function SignupPage() {
       title="Create your account"
       subtitle="Join hundreds of business owners who track their growth with Syntrix."
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <AuthField id="full-name" label="Full name" icon={<UserRound className="size-4" />}>
             <Input
@@ -145,18 +142,37 @@ export default function SignupPage() {
           <p className="text-xs text-muted-foreground">Password strength: {passwordStrength.label}</p>
         </div>
 
-        <label className="inline-flex items-center gap-3 text-sm text-muted-foreground">
+        {errorMessage ? (
+          <StateMessage
+            tone="danger"
+            title="Unable to create account"
+            message={errorMessage}
+          />
+        ) : (
+          <StateMessage
+            tone="info"
+            compact
+            message="Use a secure password and a work email you can access now. We will send a verification code before your account becomes active."
+          />
+        )}
+
+        <label className="inline-flex items-start gap-3 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={agreeTerms}
             onChange={(event) => setAgreeTerms(event.target.checked)}
-            className="size-4 rounded border-border accent-primary"
+            className="mt-0.5 size-4 rounded border-border accent-primary"
           />
           <span>I agree to the terms and privacy policy.</span>
         </label>
 
         <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
-          {isLoading ? "Creating account..." : "Create account"}
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Creating account...
+            </>
+          ) : "Create account"}
         </Button>
 
         <div className="auth-form-footer">
@@ -166,7 +182,6 @@ export default function SignupPage() {
           </Link>
         </div>
       </form>
-
     </AuthShell>
   );
 }

@@ -626,7 +626,7 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
       <Dialog open={voiceJobModalOpen} onOpenChange={setVoiceJobModalOpen}>
         <DialogContent
           showCloseButton={false}
-          className="max-h-[92vh] max-w-[920px] overflow-auto rounded-[var(--radius-panel)] border border-border/80 bg-card p-0 shadow-[var(--shadow-overlay)]"
+          className="max-h-[96vh] max-w-[960px] overflow-y-auto rounded-[var(--radius-panel)] border border-border/80 bg-card p-0 shadow-[var(--shadow-overlay)]"
         >
           <DialogHeader className="flex-row items-center justify-between border-b border-border/80 bg-[color:var(--surface-subtle)] px-6 py-4 text-left">
             <DialogTitle className="dashboard-panel-title">Voice Conversion Job</DialogTitle>
@@ -760,7 +760,10 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
       </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[640px] overflow-hidden rounded-[var(--radius-panel)] border border-border/80 bg-card p-0 shadow-[var(--shadow-overlay)]">
+        <DialogContent
+          showCloseButton={false}
+          className="max-h-[96vh] max-w-[800px] overflow-y-auto rounded-[var(--radius-panel)] border border-border/80 bg-card p-0 shadow-[var(--shadow-overlay)]"
+        >
           <DialogHeader className="flex-row items-center justify-between border-b border-border/80 bg-[color:var(--surface-subtle)] px-6 py-4 text-left">
             <DialogTitle className="dashboard-panel-title text-[1.45rem]">
               {editingSale ? "Update Sales Record" : "Add New Sales Record"}

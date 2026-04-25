@@ -3,9 +3,23 @@ import "./globals.css";
 import { ReduxProvider } from "@/store/provider";
 import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 import { PwaServiceWorker } from "@/components/pwa/pwa-service-worker";
+import { normalizeHttpUrl } from "@/lib/url-config";
+
+function resolveMetadataBase(): URL | undefined {
+  const normalized = normalizeHttpUrl(process.env.NEXT_PUBLIC_APP_URL);
+  if (normalized) {
+    return new URL(normalized);
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return undefined;
+  }
+
+  return new URL("http://localhost:3000");
+}
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: resolveMetadataBase(),
   applicationName: "Syntrix",
   title: {
     default: "Syntrix Business Analytics",

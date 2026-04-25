@@ -36,25 +36,11 @@ export function AuthBootstrap() {
         );
         return;
       } catch {
-        // Fall back to refresh when current user cannot be fetched with existing session state.
+        // getCurrentUser already attempts token refresh through the shared baseQuery.
       }
 
-      try {
-        const refreshed = await dispatch(authApi.endpoints.refresh.initiate(undefined)).unwrap();
-
-        if (!alive) return;
-
-        dispatch(
-          setCredentials({
-            token: refreshed.accessToken,
-            user: refreshed.user,
-          }),
-        );
-
-      } catch {
-        if (!alive) return;
-        dispatch(logout());
-      }
+      if (!alive) return;
+      dispatch(logout());
     };
 
     void bootstrapAuth();

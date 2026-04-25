@@ -2,34 +2,25 @@
 
 import { useSearchParams } from "next/navigation";
 import { transactionDetails } from "@/data/payment-success";
+import { getPaymentSuccessDetails } from "@/lib/payment-success";
 
 export default function TransactionDetails() {
   const searchParams = useSearchParams();
-  const plan = searchParams.get("plan");
-  const billingCycle = searchParams.get("billingCycle");
-  const amount = searchParams.get("amount");
-  const currency = searchParams.get("currency") ?? "USD";
-  const provider = searchParams.get("provider");
-  const transactionId = searchParams.get("transactionId");
+  const {
+    formattedPlan,
+    formattedAmount,
+    providerLabel,
+    transactionId,
+  } = getPaymentSuccessDetails(searchParams);
 
-  const resolvedPlan = plan
-    ? `${plan.charAt(0).toUpperCase()}${plan.slice(1)} Plan${billingCycle ? ` (${billingCycle === "annual" ? "Annual" : "Monthly"})` : ""}`
-    : transactionDetails.plan;
-  const resolvedAmount = amount
-    ? new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(Number(amount))
-    : transactionDetails.amount;
+  const resolvedPlan = formattedPlan || transactionDetails.plan;
+  const resolvedAmount = formattedAmount || transactionDetails.amount;
   const resolvedDate = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
   const resolvedStatus = "Paid";
-  const providerLabel = provider === "aba_payway" ? "ABA PayWay Sandbox" : "Bakong KHQR";
 
   return (
     <div className="transaction-card">

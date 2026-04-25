@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthField } from "@/components/auth/auth-field";
 import { AuthPasswordField } from "@/components/auth/auth-password-field";
@@ -10,20 +10,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useResetPasswordMutation } from "@/store/api";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const maybeError = error as { data?: { message?: string } };
-  if (
-    typeof maybeError === "object" &&
-    maybeError !== null &&
-    typeof maybeError.data?.message === "string"
-  ) {
-    return maybeError.data.message;
-  }
-
-  return fallback;
-}
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -55,7 +43,7 @@ export default function ResetPasswordPage() {
         router.push("/login");
       }, 1200);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Unable to reset password."));
+      setErrorMessage(getApiErrorMessage(error, "Unable to reset password."));
     }
   };
 
@@ -93,10 +81,21 @@ export default function ResetPasswordPage() {
         ) : null}
         {errorMessage ? (
           <StateMessage tone="danger" message={errorMessage} />
-        ) : null}
+        ) : (
+          <StateMessage
+            tone="info"
+            compact
+            message="Paste the reset token from your email, then choose a new password you have not used before."
+          />
+        )}
 
-        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isLoading}>
-          {isLoading ? "Resetting..." : "Reset Password"}
+        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isLoading || token.trim().length === 0}>
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Resetting...
+            </>
+          ) : "Reset Password"}
         </Button>
       </form>
 

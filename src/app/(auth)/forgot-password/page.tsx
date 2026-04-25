@@ -2,26 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { AuthField } from "@/components/auth/auth-field";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { StateMessage } from "@/components/shared/state-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useForgotPasswordMutation } from "@/store/api";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  const maybeError = error as { data?: { message?: string } };
-  if (
-    typeof maybeError === "object" &&
-    maybeError !== null &&
-    typeof maybeError.data?.message === "string"
-  ) {
-    return maybeError.data.message;
-  }
-
-  return fallback;
-}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -39,7 +27,7 @@ export default function ForgotPasswordPage() {
       const result = await forgotPassword({ email }).unwrap();
       setMessage(result.message);
     } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Unable to submit reset request."));
+      setErrorMessage(getApiErrorMessage(error, "Unable to submit reset request."));
     }
   };
 
@@ -62,10 +50,21 @@ export default function ForgotPasswordPage() {
         ) : null}
         {errorMessage ? (
           <StateMessage tone="danger" message={errorMessage} />
-        ) : null}
+        ) : (
+          <StateMessage
+            tone="info"
+            compact
+            message="We will email a reset link if an account exists for this address."
+          />
+        )}
 
-        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isLoading}>
-          {isLoading ? "Sending..." : "Send Reset Link"}
+        <Button className="h-11 w-full rounded-xl" variant="dark" type="submit" disabled={isLoading || email.trim().length === 0}>
+          {isLoading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Sending...
+            </>
+          ) : "Send Reset Link"}
         </Button>
       </form>
 

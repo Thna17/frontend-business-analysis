@@ -5,13 +5,16 @@ import {
   createApi,
   fetchBaseQuery,
 } from "@reduxjs/toolkit/query/react";
+import { normalizeApiBaseUrl } from "@/lib/url-config";
 import { logout as clearAuthState, setCredentials } from "@/store/slices/authSlice";
 import type { ApiEnvelope } from "@/store/api/types";
 import { extractRouteFromArgs, shouldSkipAutoRefresh, transformAuthSession } from "@/store/api/utils";
 
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://business-analytics-backend-5w1g.onrender.com/api";
+function resolveApiBaseUrl(): string {
+  return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,

@@ -61,7 +61,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[min(92vh,calc(100vh-1rem))] w-full max-w-[calc(100vw-1rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto overscroll-contain rounded-[var(--radius-panel)] border border-border/80 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-overlay)] duration-200 outline-none sm:max-w-lg sm:p-6 sm:pb-6",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[min(96vh,calc(100vh-0.5rem))] w-full max-w-[calc(100vw-0.5rem)] translate-x-[-50%] translate-y-[-50%] gap-3 overflow-y-auto overscroll-contain rounded-[var(--radius-panel)] border border-border/80 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-overlay)] duration-200 outline-none sm:max-w-2xl sm:p-5 sm:pb-5",
           className
         )}
         {...props}
