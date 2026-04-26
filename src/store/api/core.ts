@@ -10,8 +10,10 @@ import { logout as clearAuthState, setCredentials } from "@/store/slices/authSli
 import type { ApiEnvelope } from "@/store/api/types";
 import { extractRouteFromArgs, shouldSkipAutoRefresh, transformAuthSession } from "@/store/api/utils";
 
+const DEFAULT_PUBLIC_API_URL = "https://business-analytics-backend-5w1g.onrender.com/api";
+
 function resolveApiBaseUrl(): string {
-  return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+  return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_PUBLIC_API_URL);
 }
 
 const apiBaseUrl = resolveApiBaseUrl();
