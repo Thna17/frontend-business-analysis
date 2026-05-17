@@ -313,10 +313,10 @@ export function SubscriptionsWorkspace() {
         />
 
         {/* Current Plan Card */}
-        <article className="billing-plan-hero">
+        <article className="dashboard-surface p-6 md:p-7">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-4">
-              <div className="billing-plan-icon">
+              <div className="flex h-16 w-16 items-center justify-center rounded-[calc(var(--radius-panel)-4px)] border border-border/70 bg-primary/12 text-primary shadow-[var(--shadow-control)]">
                 {planIcon(activePlanId)}
               </div>
               <div>
@@ -357,7 +357,7 @@ export function SubscriptionsWorkspace() {
             {activePlanId !== "business" && (
               <Button
                 variant="outline"
-                className="h-11 px-5 text-sm text-primary hover:bg-primary/10"
+                className="h-11 rounded-full border-border/80 bg-card px-5 text-sm text-foreground hover:bg-accent/35"
                 onClick={() => handleUpgradePlan(
                   (["free", "pro", "business"] as SubscriptionPlanKey[]).find(
                     (p) => PLAN_RANK[p] === activePlanRank + 1,
@@ -379,17 +379,29 @@ export function SubscriptionsWorkspace() {
         </article>
 
         {/* Usage Metrics */}
-        <section>
-          <h3 className="mb-4 dashboard-section-title">Usage Metrics</h3>
+        <section className="dashboard-surface p-5 md:p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Usage Metrics
+            </p>
+            <h3 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.03em] text-foreground">
+              Capacity across your current plan
+            </h3>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {usage.map((item) => (
-              <article key={item.title} className="billing-usage-card">
+              <article
+                key={item.title}
+                className="rounded-[calc(var(--radius-panel)-6px)] border border-border/70 bg-card/80 p-4 shadow-[var(--shadow-control)]"
+              >
                 <p className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">{item.title}</p>
                 <div className="mt-2 flex items-center justify-between">
                   <p className="text-2xl font-semibold text-foreground">{item.value}</p>
-                  {usageIcon(item.icon)}
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-[calc(var(--radius-control)-4px)] border border-border/70 bg-surface-subtle">
+                    {usageIcon(item.icon)}
+                  </span>
                 </div>
-                <div className="billing-progress-track">
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-border/60">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${item.progress}%`, background: item.progressColor }}
@@ -409,23 +421,31 @@ export function SubscriptionsWorkspace() {
         </section>
 
         {/* Subscription Plans */}
-        <section className="plan-tier-section">
+        <section className="dashboard-surface p-5 md:p-6">
           {/* Header + billing toggle */}
           <div className="plan-tier-header flex items-center justify-between gap-4 flex-wrap mb-5">
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">Subscription Plans</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Plans
+              </p>
+              <h2 className="mt-2 text-[1.7rem] font-semibold tracking-[-0.04em] text-foreground">
+                Subscription plans
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Upgrade anytime. Annual billing saves up to 2 months.
               </p>
             </div>
 
             {/* Monthly / Annual Toggle */}
-            <div className="billing-plan-toggle">
+            <div className="inline-flex rounded-full border border-border/70 bg-card p-1 shadow-[var(--shadow-control)]">
               <button
                 type="button"
                 onClick={() => setBillingToggle("monthly")}
-                className="billing-plan-toggle-button"
-                data-active={billingToggle === "monthly"}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  billingToggle === "monthly"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
                 aria-pressed={billingToggle === "monthly"}
               >
                 Monthly
@@ -433,8 +453,11 @@ export function SubscriptionsWorkspace() {
               <button
                 type="button"
                 onClick={() => setBillingToggle("annual")}
-                className="billing-plan-toggle-button inline-flex items-center gap-1.5"
-                data-active={billingToggle === "annual"}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  billingToggle === "annual"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
                 aria-pressed={billingToggle === "annual"}
               >
                 Annual
@@ -460,21 +483,33 @@ export function SubscriptionsWorkspace() {
               return (
                 <article
                   key={tier.id}
-                  className={`plan-tier-card ${isActive || tier.highlighted ? "highlighted" : ""}`}
+                  className={`flex h-full flex-col rounded-[calc(var(--radius-panel)-4px)] border p-5 shadow-[var(--shadow-control)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-surface-soft)] ${
+                    isActive || tier.highlighted
+                      ? "border-primary/35 bg-primary/8"
+                      : "border-border/80 bg-card/80"
+                  }`}
                 >
-                  {showBadge ? <div className="plan-tier-badge">{showBadge}</div> : null}
+                  {showBadge ? (
+                    <div className="mb-4 inline-flex w-fit rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
+                      {showBadge}
+                    </div>
+                  ) : null}
 
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[calc(var(--radius-control)-4px)] border border-border/70 bg-card/80 text-primary">
                       {planIcon(tier.id)}
                     </div>
-                    <h3>{tier.name}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{tier.name}</h3>
                   </div>
-                  <p className="plan-tier-subtitle">{tier.subtitle}</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{tier.subtitle}</p>
 
-                  <div className="plan-tier-price-row">
-                    <span className="plan-tier-price">{displayPrice(tier)}</span>
-                    <span className="plan-tier-suffix">{displaySuffix(tier)}</span>
+                  <div className="mt-5 flex items-end gap-2">
+                    <span className="text-[2rem] font-semibold tracking-[-0.05em] text-foreground">
+                      {displayPrice(tier)}
+                    </span>
+                    <span className="mb-1 text-sm font-semibold text-muted-foreground">
+                      {displaySuffix(tier)}
+                    </span>
                   </div>
 
                   {billingToggle === "annual" && savings > 0 ? (
@@ -486,22 +521,24 @@ export function SubscriptionsWorkspace() {
                     </div>
                   ) : null}
 
-                  <div className="plan-tier-users">
+                  <div className="mt-5 flex items-center justify-between gap-4 rounded-[calc(var(--radius-panel)-8px)] border border-border/70 bg-surface-subtle px-3 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     <span>
                       {tier.limits.seats === -1 ? "Unlimited" : tier.limits.seats} seat{tier.limits.seats !== 1 ? "s" : ""}
                     </span>
-                    <strong>
+                    <strong className="text-foreground">
                       {tier.limits.storageGb} GB storage
                     </strong>
                   </div>
 
-                  <ul className="plan-tier-features">
+                  <ul className="mt-5 flex flex-col gap-3">
                     {tier.features.map((feature) => (
                       <li
                         key={`${tier.id}-${feature.text}`}
-                        className={feature.disabled ? "disabled" : ""}
+                        className={`flex items-center gap-3 text-sm ${
+                          feature.disabled ? "text-muted-foreground/60" : "text-foreground"
+                        }`}
                       >
-                        <span className="feature-dot" aria-hidden="true">
+                        <span className="flex-shrink-0" aria-hidden="true">
                           {feature.disabled ? (
                             <span className="inline-block size-2.5 rounded-full bg-border" />
                           ) : (
@@ -517,7 +554,11 @@ export function SubscriptionsWorkspace() {
 
                   <button
                     type="button"
-                    className={`plan-tier-manage-btn ${isActive || tier.highlighted ? "gold" : "light"} ${
+                    className={`mt-auto inline-flex min-h-[52px] w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition-[background-color,color,transform,box-shadow] duration-200 hover:-translate-y-0.5 ${
+                      isActive || tier.highlighted
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border/80 bg-card text-foreground hover:bg-accent/35"
+                    } ${
                       isUpgrade ? "ring-2 ring-primary ring-offset-2" : ""
                     }`}
                     onClick={() => {
@@ -643,13 +684,18 @@ export function SubscriptionsWorkspace() {
         ) : null}
 
         {/* Quick Actions */}
-        <article className="dashboard-surface p-5 shadow-none">
-          <h3 className="dashboard-section-title">Quick Actions</h3>
+        <article className="dashboard-surface p-5 md:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Quick Actions
+          </p>
+          <h3 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.03em] text-foreground">
+            Billing tools
+          </h3>
           <div className="mt-4 space-y-3">
             <button
               type="button"
               onClick={onDownloadTaxForm}
-              className="billing-quick-action"
+              className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-border/70 bg-card/80 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
             >
               <span className="inline-flex items-center gap-2">
                 <FileSpreadsheet className="size-4" />
@@ -661,7 +707,7 @@ export function SubscriptionsWorkspace() {
             <button
               type="button"
               onClick={onContactBilling}
-              className="billing-quick-action"
+              className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-border/70 bg-card/80 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
             >
               <span className="inline-flex items-center gap-2">
                 <CircleHelp className="size-4" />
@@ -673,7 +719,7 @@ export function SubscriptionsWorkspace() {
             <button
               type="button"
               onClick={() => setEmailNotifications((prev) => !prev)}
-              className="billing-quick-action"
+              className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-border/70 bg-card/80 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/20"
             >
               <span className="inline-flex items-center gap-2">
                 <Mail className="size-4" />
@@ -689,7 +735,7 @@ export function SubscriptionsWorkspace() {
                 type="button"
                 onClick={() => { void onReactivate(); }}
                 disabled={isReactivating}
-                className="billing-quick-action dashboard-quick-action-primary"
+                className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-primary/25 bg-primary/8 px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-primary/12"
               >
                 <span className="inline-flex items-center gap-2">
                   <CheckCircle2 className="size-4" />
@@ -702,7 +748,7 @@ export function SubscriptionsWorkspace() {
                 type="button"
                 onClick={() => { void onCancelSubscription(); }}
                 disabled={isCanceling}
-                className="billing-quick-action dashboard-quick-action-danger"
+                className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-8px)] border border-destructive/25 bg-destructive/8 px-4 py-3 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/12"
               >
                 <span className="inline-flex items-center gap-2">
                   <XCircle className="size-4" />
@@ -715,15 +761,17 @@ export function SubscriptionsWorkspace() {
         </article>
 
         {/* Help Box */}
-        <article className="billing-help-card">
-          <CircleHelp className="size-8 text-primary" />
+        <article className="dashboard-surface p-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[calc(var(--radius-control)-4px)] border border-border/70 bg-primary/12 text-primary">
+            <CircleHelp className="size-6" />
+          </div>
           <h4 className="mt-4 text-xl font-semibold text-foreground">Need help?</h4>
           <p className="mt-2 text-sm text-muted-foreground">
             Check our knowledge base for billing FAQ, plan comparisons, and payment guides.
           </p>
-          <button type="button" className="mt-4 text-sm font-semibold text-primary underline">
-            Visit Help Center →
-          </button>
+          <Button type="button" variant="outline" className="mt-4 rounded-full border-border/80 bg-card px-5">
+            Visit Help Center
+          </Button>
           {isFetching ? (
             <p className="mt-3 text-xs text-muted-foreground">Syncing subscription data...</p>
           ) : null}

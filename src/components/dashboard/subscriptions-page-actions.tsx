@@ -12,7 +12,7 @@ export function SubscriptionsPageActions() {
       <Button
         variant="outline"
         disabled
-        className="h-11 rounded-full px-5 text-sm text-muted-foreground disabled:opacity-100"
+        className="h-11 rounded-full border-border/80 bg-card px-5 text-sm text-muted-foreground disabled:opacity-100"
       >
         <Settings className="size-4" />
         Manage Billing

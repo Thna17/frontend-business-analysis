@@ -25,6 +25,12 @@ interface AnalyticsSeriesPoint {
   value: number;
 }
 
+interface ChartStats {
+  max: number;
+  min: number;
+  isFlat: boolean;
+}
+
 function metricToneClass(tone: "green" | "amber" | "slate") {
   if (tone === "green") return "dashboard-status-positive";
   if (tone === "amber") return "dashboard-status-warning";
@@ -33,13 +39,11 @@ function metricToneClass(tone: "green" | "amber" | "slate") {
 
 function buildPath(points: AnalyticsSeriesPoint[], width: number, height: number, curve = 0.22) {
   if (points.length === 0) return "";
-  const max = Math.max(...points.map((p) => p.value));
-  const min = Math.min(...points.map((p) => p.value));
-  const range = Math.max(max - min, 1);
+  const stats = getSeriesStats(points);
 
   const coords = points.map((point, index) => {
     const x = (index / Math.max(points.length - 1, 1)) * width;
-    const y = height - ((point.value - min) / range) * (height - 20) - 10;
+    const y = getChartY(point.value, stats, height, 10, 20);
     return { x, y };
   });
 
@@ -57,6 +61,52 @@ function buildPath(points: AnalyticsSeriesPoint[], width: number, height: number
   }
 
   return d;
+}
+
+function getSeriesStats(points: AnalyticsSeriesPoint[]): ChartStats {
+  if (points.length === 0) {
+    return { min: 0, max: 0, isFlat: true };
+  }
+
+  const max = Math.max(...points.map((point) => point.value));
+  const min = Math.min(...points.map((point) => point.value));
+  return {
+    min,
+    max,
+    isFlat: max === min,
+  };
+}
+
+function getChartY(
+  value: number,
+  stats: ChartStats,
+  height: number,
+  topPadding: number,
+  bottomPadding: number,
+) {
+  if (stats.isFlat) {
+    if (stats.max <= 0) {
+      return height - bottomPadding;
+    }
+
+    return height * 0.62;
+  }
+
+  const range = Math.max(stats.max - stats.min, 1);
+  return height - ((value - stats.min) / range) * (height - topPadding - bottomPadding) - topPadding;
+}
+
+function buildChartTicks(stats: ChartStats): number[] {
+  if (stats.isFlat) {
+    if (stats.max <= 0) {
+      return [0, 0, 0];
+    }
+
+    return [stats.max, stats.max * 0.66, stats.max * 0.33];
+  }
+
+  const step = (stats.max - stats.min) / 4;
+  return [stats.min + step * 3, stats.min + step * 2, stats.min + step];
 }
 
 function formatMoney(value: number) {
@@ -115,14 +165,10 @@ export function AnalyticsWorkspace() {
   const totalCategoryRevenue = categoryShare.reduce((sum, item) => sum + item.revenue, 0);
   const donutCircumference = 2 * Math.PI * 70;
 
-  const getRevenueStats = (data: AnalyticsSeriesPoint[]) => {
-    if (data.length === 0) return { max: 0, min: 0 };
-    const max = Math.max(...data.map((p) => p.value));
-    const min = Math.min(...data.map((p) => p.value));
-    return { max, min };
-  };
-  const revStats = getRevenueStats(revenueData);
-  const custStats = getRevenueStats(customerData);
+  const revStats = getSeriesStats(revenueData);
+  const custStats = getSeriesStats(customerData);
+  const revenueTicks = buildChartTicks(revStats);
+  const customerTicks = buildChartTicks(custStats);
   const topRevenueMonth = revenueData.reduce<AnalyticsSeriesPoint | null>(
     (best, point) => (best === null || point.value > best.value ? point : best),
     null,
@@ -155,20 +201,20 @@ export function AnalyticsWorkspace() {
     {
       label: "Average Order Value",
       value: formatMoney(data?.kpis.averageOrderValue ?? 0),
-      delta: `~${formatMoney(data?.kpis.averageOrderValue ?? 0)}`,
-      tone: "green" as const,
+      delta: formatDelta(data?.kpis.averageOrderValueDelta ?? 0),
+      tone: deltaTone(data?.kpis.averageOrderValueDelta ?? 0),
     },
     {
-      label: "Customer Growth",
+      label: "Activity Growth",
       value: formatDelta(data?.kpis.customerGrowth ?? 0),
-      delta: `~${Math.abs(data?.kpis.customerGrowth ?? 0).toFixed(1)}%`,
+      delta: `${Math.abs(data?.kpis.salesCount ?? 0).toFixed(0)} sales`,
       tone: deltaTone(data?.kpis.customerGrowth ?? 0),
     },
     {
-      label: "Conversion Rate",
-      value: `${(data?.kpis.conversionRate ?? 0).toFixed(1)}%`,
-      delta: `${formatDelta(data?.kpis.conversionRate ?? 0)}`,
-      tone: deltaTone(data?.kpis.conversionRate ?? 0),
+      label: "Sales Count",
+      value: (data?.kpis.salesCount ?? 0).toLocaleString(),
+      delta: `${formatDelta(data?.kpis.customerGrowth ?? 0)} vs prev`,
+      tone: deltaTone(data?.kpis.customerGrowth ?? 0),
     },
   ];
 
@@ -244,9 +290,9 @@ export function AnalyticsWorkspace() {
             helper: topRevenueMonth ? `${topRevenueMonth.label} performed best` : "No revenue peak yet",
           },
           {
-            label: "Top Customer Month",
+            label: "Peak Activity Day",
             value: topCustomerMonth ? topCustomerMonth.label : "No data",
-            helper: topCustomerMonth ? `${topCustomerMonth.value.toLocaleString()} customer interactions` : "Customer activity is still building",
+            helper: topCustomerMonth ? `${topCustomerMonth.value.toLocaleString()} sales interactions` : "Activity data is still building",
           },
           {
             label: "Category Revenue",
@@ -319,15 +365,14 @@ export function AnalyticsWorkspace() {
               ))}
             </g>
             <g className="dashboard-chart-axis-label" fontSize="11">
-              <text x="4" y="66">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.75)}</text>
-              <text x="4" y="126">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.50)}</text>
-              <text x="4" y="186">{shortMoney(revStats.min + (revStats.max - revStats.min) * 0.25)}</text>
+              <text x="4" y="66">{shortMoney(revenueTicks[0] ?? 0)}</text>
+              <text x="4" y="126">{shortMoney(revenueTicks[1] ?? 0)}</text>
+              <text x="4" y="186">{shortMoney(revenueTicks[2] ?? 0)}</text>
             </g>
             <g>
               {revenueData.map((item, index) => {
                 const x = (index / Math.max(revenueData.length - 1, 1)) * 960;
-                const range = Math.max(revStats.max - revStats.min, 1);
-                const y = 270 - ((item.value - revStats.min) / range) * 250 - 10;
+                const y = getChartY(item.value, revStats, 270, 10, 20);
                 return (
                   <circle key={`hover-${item.label}`} cx={x} cy={y} r={16} fill="transparent" className="cursor-crosshair transition-colors duration-200 hover:fill-primary/20">
                      <title>{item.label}: {formatMoney(item.value)}</title>
@@ -527,15 +572,14 @@ export function AnalyticsWorkspace() {
                 ))}
               </g>
               <g className="dashboard-chart-axis-label" fontSize="11">
-                <text x="4" y="50">{custStats.min + (custStats.max - custStats.min) * 0.75}</text>
-                <text x="4" y="102">{custStats.min + (custStats.max - custStats.min) * 0.50}</text>
-                <text x="4" y="154">{custStats.min + (custStats.max - custStats.min) * 0.25}</text>
-              </g>
-              <g>
+              <text x="4" y="50">{Math.round(customerTicks[0] ?? 0)}</text>
+              <text x="4" y="102">{Math.round(customerTicks[1] ?? 0)}</text>
+              <text x="4" y="154">{Math.round(customerTicks[2] ?? 0)}</text>
+            </g>
+            <g>
                 {customerData.map((item, index) => {
                   const x = (index / Math.max(customerData.length - 1, 1)) * 620;
-                  const range = Math.max(custStats.max - custStats.min, 1);
-                  const y = 180 - ((item.value - custStats.min) / range) * 160 - 10;
+                  const y = getChartY(item.value, custStats, 180, 10, 20);
                 return (
                     <circle key={`hover-${item.label}`} cx={x} cy={y} r={14} fill="transparent" className="cursor-crosshair transition-colors duration-200 hover:fill-primary/20">
                        <title>{item.label}: {item.value}</title>

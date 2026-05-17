@@ -34,8 +34,9 @@ export interface OwnerAnalyticsDashboardResponse {
   kpis: {
     revenueGrowth: number;
     averageOrderValue: number;
+    averageOrderValueDelta: number;
     customerGrowth: number;
-    conversionRate: number;
+    salesCount: number;
   };
   revenue: {
     totalRevenue: number;

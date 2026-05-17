@@ -105,6 +105,16 @@ function providerMethods(provider: PaymentProvider): string[] {
     : ["KHQR", "ABA", "Bakong"];
 }
 
+function isQrImageSource(value: string): boolean {
+  const normalizedValue = value.trim();
+
+  return (
+    normalizedValue.startsWith("data:image/") ||
+    normalizedValue.startsWith("http://") ||
+    normalizedValue.startsWith("https://")
+  );
+}
+
 export default function PaymentsPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -438,18 +448,20 @@ export default function PaymentsPageClient() {
 
                 {showInteractiveState && provider === "bakong" && (
                   <div className="relative mt-4">
-                    <Image
-                      src={
-                        qrCode.startsWith("data:") || qrCode.startsWith("http")
-                          ? qrCode
-                          : `data:image/png;base64,${qrCode}`
-                      }
-                      alt="Bakong KHQR payment code"
-                      className="qr-image rounded-xl"
-                      width={230}
-                      height={230}
-                      unoptimized
-                    />
+                    {isQrImageSource(qrCode) ? (
+                      <Image
+                        src={qrCode}
+                        alt="Bakong KHQR payment code"
+                        className="qr-image rounded-xl"
+                        width={230}
+                        height={230}
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex justify-center rounded-[calc(var(--radius-panel)-8px)] border border-border bg-white p-4">
+                        <QRCodeSVG value={qrCode} size={230} includeMargin />
+                      </div>
+                    )}
                     {status === "polling" && (
                       <div className="absolute right-2 top-2 rounded-full bg-primary p-1.5 shadow">
                         <RefreshCw className="size-3 animate-spin text-white" />
