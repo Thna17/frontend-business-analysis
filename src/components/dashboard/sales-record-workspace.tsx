@@ -466,7 +466,13 @@ export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceP
       recorder.start(300);
       setIsRecording(true);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Microphone permission denied.";
+      const message = error instanceof DOMException
+        ? error.name === "NotAllowedError"
+          ? "Microphone access was blocked. Allow microphone permission for this site and try again."
+          : error.message
+        : error instanceof Error
+          ? error.message
+          : "Microphone permission denied.";
       toast.error(message);
       stopRecordingStream();
       setIsRecording(false);
