@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
-import { KpiCard } from "@/components/dashboard/kpi-card";
 import { DashboardChartFigure, DashboardChartRail, DashboardChartStat } from "@/components/dashboard/dashboard-chart-primitives";
 import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { useGetAdminAnalyticsQuery } from "@/store/api";
@@ -189,33 +188,6 @@ export function AdminAnalyticsWorkspace() {
 
   const [activeSegmentId, setActiveSegmentId] = useState("free-users");
 
-  const analyticsMetrics = [
-    {
-      title: "Annual Revenue",
-      value: `$${data.stats.annualRevenue.toLocaleString()}`,
-      compareLabel: "Estimated yearly revenue",
-      icon: "revenue" as const,
-    },
-    {
-      title: "Monthly Revenue",
-      value: `$${data.stats.monthlyRevenue.toLocaleString()}`,
-      compareLabel: "Current monthly recurring revenue",
-      icon: "today" as const,
-    },
-    {
-      title: "Total Subscribers",
-      value: data.stats.totalSubscribers.toLocaleString(),
-      compareLabel: "Active subscribers on the platform",
-      icon: "users" as const,
-    },
-    {
-      title: "Churn Rate",
-      value: `${data.stats.churnRate}%`,
-      compareLabel: "Based on cancelled subscriptions",
-      icon: "alert" as const,
-    },
-  ];
-
   if (isLoading) {
       return (
         <div className="space-y-6">
@@ -255,22 +227,6 @@ export function AdminAnalyticsWorkspace() {
           },
         ]}
       />
-
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {analyticsMetrics.map((metric) => (
-          <KpiCard
-            key={metric.title}
-            item={{
-              title: metric.title,
-              value: metric.value,
-              compareLabel: metric.compareLabel,
-              icon: metric.icon,
-              change: "",
-              changeDirection: "up",
-            }}
-          />
-        ))}
-      </section>
 
       <section className="grid gap-5 xl:grid-cols-[2.2fr_1fr]">
         <DashboardPanel
