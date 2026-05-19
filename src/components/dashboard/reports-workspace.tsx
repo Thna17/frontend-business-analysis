@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   ChevronRight,
   Download,
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getApiErrorMessage } from "@/lib/api-error";
+import { normalizeApiBaseUrl } from "@/lib/url-config";
 import {
   Select,
   SelectContent,
@@ -32,11 +34,32 @@ import {
   useGenerateReportMutation,
   useGetReportsDashboardQuery,
 } from "@/store/api";
+import type { RootState } from "@/store";
 import { FeatureGate } from "@/components/shared/feature-gate";
 
 type ReportType = "Sales" | "Revenue" | "Product" | "Customer";
+type GeneratorReportType = "Sales" | "Revenue" | "Product";
 type ExportFormat = "PDF" | "CSV" | "Excel";
 type DateRange = "Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year";
+type QuickExport = {
+  id: string;
+  label: string;
+  description: string;
+  reportType: GeneratorReportType;
+  dateRange: DateRange;
+  categoryFilter: string;
+  format: ExportFormat;
+};
+type HistoryRow = {
+  id: string;
+  name: string;
+  type: ReportType;
+  status: "READY" | "PROCESSING";
+  dateGenerated: string;
+  format: ExportFormat;
+};
+
+const apiBaseUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api");
 
 function toneClass(tone: "amber" | "slate") {
   return tone === "amber"
@@ -62,14 +85,17 @@ function formatDate(value: string) {
 
 export function ReportsWorkspace() {
   const [page, setPage] = useState(1);
-  const [reportType, setReportType] = useState<ReportType>("Sales");
+  const [reportType, setReportType] = useState<GeneratorReportType>("Sales");
   const [category, setCategory] = useState("All Categories");
   const [dateRange, setDateRange] = useState<DateRange>("Last 30 Days");
   const [format, setFormat] = useState<ExportFormat>("PDF");
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [openPreview, setOpenPreview] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const token = useSelector((state: RootState) => state.auth.token);
 
   const {
     data,
@@ -84,7 +110,7 @@ export function ReportsWorkspace() {
     [data?.history, selectedReportId],
   );
 
-  const reportTypes = data?.generator.reportTypes ?? ["Sales", "Revenue", "Product", "Customer"];
+  const reportTypes = data?.generator.reportTypes ?? ["Sales", "Revenue", "Product"];
   const categories = data?.generator.categories ?? ["All Categories"];
   const dateRanges = data?.generator.dateRanges ?? ["Last 30 Days"];
   const formatOptions = data?.generator.exportFormats ?? ["PDF", "CSV", "Excel"];
@@ -102,9 +128,9 @@ export function ReportsWorkspace() {
       note: "Included in reporting exports",
     },
     {
-      label: "Product Download Requests",
+      label: "Products Sold Recently",
       value: `${data?.summary.productDownloads ?? 0}`,
-      note: "High-demand export activity",
+      note: "Distinct products recorded in the recent reporting window",
     },
   ];
 
@@ -118,38 +144,92 @@ export function ReportsWorkspace() {
         dateRange,
         exportFormat: format,
       }).unwrap();
-      setActionSuccess(`${reportType} report queued in ${format}. You can track its status in report history.`);
+      setActionSuccess(`${reportType} report saved to history in ${format}. Download the real export file from history or use Export Data for an immediate file export.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   }, [generateReport, reportType, category, dateRange, format]);
 
-  const exportData = useCallback(() => {
-    const content = [
-      `Report Type: ${reportType}`,
-      `Category: ${category}`,
-      `Date Range: ${dateRange}`,
-      `Export Format: ${format}`,
-      "",
-      `Business: ${data?.summary.businessName ?? "Syntrix"}`,
-      `Generated Reports: ${data?.summary.generatedReports ?? 0}`,
-    ].join("\n");
-
-    const extension = format === "Excel" ? "xlsx" : format.toLowerCase();
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
+  const downloadResponseFile = useCallback(async (response: Response) => {
+    const blob = await response.blob();
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const match = disposition.match(/filename=\"([^\"]+)\"/i);
+    const filename = match?.[1] ?? "syntrix-report";
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `syntrix-report.${extension}`;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-  }, [reportType, category, dateRange, format, data?.summary.businessName, data?.summary.generatedReports]);
+  }, []);
+
+  const readDownloadError = useCallback(async (response: Response) => {
+    try {
+      const payload = await response.json() as { message?: string };
+      return payload.message ?? "Unable to export the report.";
+    } catch {
+      return "Unable to export the report.";
+    }
+  }, []);
+
+  const exportData = useCallback(async (selection?: {
+    reportType: GeneratorReportType;
+    categoryFilter: string;
+    dateRange: DateRange;
+    format: ExportFormat;
+  }) => {
+    if (!token) {
+      setActionError("Your session is missing an access token. Please sign in again.");
+      return;
+    }
+
+    const nextSelection = selection ?? {
+      reportType,
+      categoryFilter: category,
+      dateRange,
+      format,
+    };
+
+    setActionError(null);
+    setActionSuccess(null);
+    setIsExporting(true);
+
+    try {
+      const params = new URLSearchParams({
+        format: nextSelection.format.toLowerCase(),
+        reportType: nextSelection.reportType,
+        categoryFilter: nextSelection.categoryFilter,
+        dateRange: nextSelection.dateRange,
+      });
+
+      const response = await fetch(`${apiBaseUrl}/reports/export/sales-summary?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await readDownloadError(response));
+      }
+
+      await downloadResponseFile(response);
+      setActionSuccess(`${nextSelection.format} export downloaded successfully.`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to export the report.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [token, format, reportType, category, dateRange, readDownloadError, downloadResponseFile]);
 
   useEffect(() => {
     const onGenerate = () => {
       void handleGenerate();
     };
-    const onExport = () => exportData();
+    const onExport = () => {
+      void exportData();
+    };
     window.addEventListener("report:generate", onGenerate);
     window.addEventListener("report:export", onExport);
     return () => {
@@ -158,23 +238,41 @@ export function ReportsWorkspace() {
     };
   }, [handleGenerate, exportData]);
 
-  const onDownloadHistory = (row: { name: string; type: string; dateGenerated: string; status: string; format: string }) => {
-    if (row.status !== "READY") return;
-    const text = [
-      `Report: ${row.name}`,
-      `Type: ${row.type}`,
-      `Generated: ${formatDate(row.dateGenerated)}`,
-      `Status: ${row.status}`,
-      `Format: ${row.format}`,
-    ].join("\n");
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${row.name.replace(/\s+/g, "-").toLowerCase()}.${row.format.toLowerCase() === "excel" ? "xlsx" : row.format.toLowerCase()}`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  const onDownloadHistory = useCallback(async (row: HistoryRow) => {
+    if (row.status !== "READY") {
+      return;
+    }
+
+    if (!token) {
+      setActionError("Your session is missing an access token. Please sign in again.");
+      return;
+    }
+
+    setActionError(null);
+    setActionSuccess(null);
+    setDownloadingReportId(row.id);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/reports/${row.id}/download`, {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await readDownloadError(response));
+      }
+
+      await downloadResponseFile(response);
+      setActionSuccess(`${row.name} downloaded successfully.`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Unable to download the report.");
+    } finally {
+      setDownloadingReportId(null);
+    }
+  }, [token, readDownloadError, downloadResponseFile]);
 
   const openReportPreview = (reportId: string) => {
     setSelectedReportId(reportId);
@@ -192,18 +290,14 @@ export function ReportsWorkspace() {
     }
   };
 
-  const exportShortcut = (label: string) => {
-    const blob = new Blob(
-      [`${label}\nGenerated at ${new Date().toISOString()}\nBusiness: ${data?.summary.businessName ?? "Syntrix"}`],
-      { type: "text/plain;charset=utf-8;" },
-    );
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${label.toLowerCase().replace(/\s+/g, "-")}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportShortcut = useCallback(async (item: QuickExport) => {
+    await exportData({
+      reportType: item.reportType,
+      categoryFilter: item.categoryFilter,
+      dateRange: item.dateRange,
+      format: item.format,
+    });
+  }, [exportData]);
 
   return (
     <section className="grid gap-6 xl:grid-cols-[2fr_1fr]">
@@ -306,11 +400,23 @@ export function ReportsWorkspace() {
               </div>
               <div className="dashboard-soft-tile space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Delivery</p>
-                <p className="text-sm text-foreground">Exports are processed in the background and stay available in history.</p>
+                <p className="text-sm text-foreground">Generate Report saves a tracked history entry. Export Data downloads the real file immediately.</p>
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 px-8 text-base font-semibold"
+                onClick={() => {
+                  void exportData();
+                }}
+                disabled={isExporting}
+              >
+                <Download className="size-4" />
+                {isExporting ? "Exporting..." : "Export Data"}
+              </Button>
               <Button
                 className="h-12 px-8 text-base font-semibold"
                 onClick={() => {
@@ -358,9 +464,15 @@ export function ReportsWorkspace() {
                   </div>
                 </div>
                 <div className="dashboard-row-actions pt-1">
-                  <button type="button" onClick={() => onDownloadHistory(row)} className="dashboard-row-action">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void onDownloadHistory(row);
+                    }}
+                    className="dashboard-row-action"
+                  >
                     <Download className="size-4" />
-                    Download
+                    {downloadingReportId === row.id ? "Downloading..." : "Download"}
                   </button>
                   <button type="button" onClick={() => openReportPreview(row.id)} className="dashboard-row-action">
                     <Eye className="size-4" />
@@ -423,9 +535,15 @@ export function ReportsWorkspace() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="dashboard-row-actions">
-                        <button type="button" onClick={() => onDownloadHistory(row)} className="dashboard-row-action">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void onDownloadHistory(row);
+                          }}
+                          className="dashboard-row-action"
+                        >
                           <Download className="size-4" />
-                          Download
+                          {downloadingReportId === row.id ? "Downloading..." : "Download"}
                         </button>
                         <button type="button" onClick={() => openReportPreview(row.id)} className="dashboard-row-action">
                           <Eye className="size-4" />
@@ -506,24 +624,30 @@ export function ReportsWorkspace() {
 
         <DashboardPanel
           title="Quick Data Export"
-          description="Common export shortcuts for teams that need fast access to operational data."
+          description="Real export shortcuts for the most common report deliveries."
           bodyClassName="space-y-3 pt-5"
         >
           <div className="mt-4 space-y-3">
             {(data?.quickExports ?? []).map((item) => (
               <button
-                key={item}
+                key={item.id}
                 type="button"
-                onClick={() => exportShortcut(item)}
+                onClick={() => {
+                  void exportShortcut(item);
+                }}
+                disabled={isExporting}
                 className="flex w-full items-center justify-between rounded-[calc(var(--radius-panel)-4px)] border border-border/80 bg-[color:var(--surface-subtle)] px-4 py-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent/60"
               >
-                {item}
-                <ChevronRight className="size-4 text-muted-foreground" />
+                <div className="space-y-1">
+                  <p>{item.label}</p>
+                  <p className="text-xs font-normal text-muted-foreground">{item.description}</p>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
               </button>
             ))}
           </div>
           <p className="mt-6 text-sm leading-6 text-muted-foreground">
-            Exports are typically processed within 5-10 minutes. You will receive an email once your data is ready.
+            These shortcuts call the same export endpoints as the main generator and download real files immediately.
           </p>
         </DashboardPanel>
       </aside>
@@ -547,9 +671,17 @@ export function ReportsWorkspace() {
               <p>
                 <strong className="text-foreground">Status:</strong> {selectedReport.status}
               </p>
+              <p>
+                <strong className="text-foreground">Format:</strong> {selectedReport.format}
+              </p>
               <div className="pt-2">
-                <Button onClick={() => onDownloadHistory(selectedReport)}>
-                  Download
+                <Button
+                  onClick={() => {
+                    void onDownloadHistory(selectedReport);
+                  }}
+                  disabled={downloadingReportId === selectedReport.id}
+                >
+                  {downloadingReportId === selectedReport.id ? "Downloading..." : "Download"}
                 </Button>
               </div>
             </div>

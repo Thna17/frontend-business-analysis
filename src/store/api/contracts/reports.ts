@@ -1,6 +1,6 @@
 export interface ReportsDashboardResponse {
   generator: {
-    reportTypes: Array<"Sales" | "Revenue" | "Product" | "Customer">;
+    reportTypes: Array<"Sales" | "Revenue" | "Product">;
     categories: string[];
     dateRanges: Array<"Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year">;
     exportFormats: Array<"PDF" | "CSV" | "Excel">;
@@ -10,7 +10,15 @@ export interface ReportsDashboardResponse {
     description: string;
     tone: "amber" | "slate";
   }>;
-  quickExports: string[];
+  quickExports: Array<{
+    id: string;
+    label: string;
+    description: string;
+    reportType: "Sales" | "Revenue" | "Product";
+    dateRange: "Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year";
+    categoryFilter: string;
+    format: "PDF" | "CSV" | "Excel";
+  }>;
   history: Array<{
     id: string;
     name: string;
@@ -30,7 +38,7 @@ export interface ReportsDashboardResponse {
 }
 
 export interface GenerateReportRequest {
-  reportType: "Sales" | "Revenue" | "Product" | "Customer";
+  reportType: "Sales" | "Revenue" | "Product";
   categoryFilter: string;
   dateRange: "Last 7 Days" | "Last 30 Days" | "This Quarter" | "This Year";
   exportFormat: "PDF" | "CSV" | "Excel";
