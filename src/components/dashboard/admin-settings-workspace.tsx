@@ -48,6 +48,7 @@ const accessBadgeClass: Record<AccessTone, string> = {
   tickets: "bg-surface-subtle text-muted-foreground",
 };
 
+// Admin settings workspace manages branding, maintenance, roles, and platform controls.
 export function AdminSettingsWorkspace() {
   const { data, isLoading, refetch } = useGetAdminSettingsQuery();
   const [updateBranding, { isLoading: isSavingBranding }] = useUpdateAdminBrandingMutation();

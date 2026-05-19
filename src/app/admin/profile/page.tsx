@@ -17,6 +17,7 @@ function humanRole(role: string) {
   return role;
 }
 
+// Admin profile page entrypoint for account details and branding settings.
 export default function AdminProfilePage() {
   const { data, isLoading, isFetching } = useGetAdminProfileQuery();
   const { data: currentUser } = useGetCurrentUserQuery();

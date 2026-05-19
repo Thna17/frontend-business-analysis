@@ -65,6 +65,7 @@ function toMetricItems(data?: {
   ];
 }
 
+// Product page entrypoint for catalog management and product insights.
 export default function ProductPage() {
   const { data: overview } = useGetOwnerProductsOverviewQuery();
   const metrics = toMetricItems(overview);

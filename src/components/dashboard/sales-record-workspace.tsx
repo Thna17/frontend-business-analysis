@@ -126,6 +126,7 @@ function productSyncNotice(action?: "created" | "unchanged" | "suggestion_create
   return null;
 }
 
+// Sales workspace is the day-to-day transaction screen that feeds analytics and reports.
 export function SalesRecordWorkspace({ currency = "USD" }: SalesRecordWorkspaceProps) {
   const entitlements = useEntitlements();
   const voiceInputRef = useRef<HTMLInputElement | null>(null);

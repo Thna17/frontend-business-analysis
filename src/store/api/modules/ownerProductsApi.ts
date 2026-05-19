@@ -11,6 +11,7 @@ import type {
 } from "@/store/api/types";
 import { normalizeOwnerProductListMeta } from "@/store/api/utils";
 
+// Owner product endpoints back catalog CRUD, overview cards, and suggestion review.
 export const ownerProductsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getOwnerProductsOverview: builder.query<OwnerProductsOverviewResponse, void>({

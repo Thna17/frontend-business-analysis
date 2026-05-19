@@ -32,6 +32,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    // Update client auth state after login, refresh, or bootstrap succeeds.
     setCredentials: (
       state,
       action: PayloadAction<{ user: AuthUser; token: string }>,
@@ -49,6 +50,7 @@ const authSlice = createSlice({
       state.status = "unauthenticated";
     },
     loadUserFromStorage: (state) => {
+      // Session truth lives on the backend cookie, so local auth state always starts clean.
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;

@@ -1,6 +1,7 @@
 import { api } from "@/store/api/core";
 import type { ApiEnvelope, TelegramLinkCodeResponse, TelegramLinkStatusResponse } from "@/store/api/types";
 
+// Telegram link endpoints support the account-link handshake with the bot.
 export const telegramLinkApi = api.injectEndpoints({
   endpoints: (builder) => ({
     createTelegramLinkCode: builder.mutation<TelegramLinkCodeResponse, void>({

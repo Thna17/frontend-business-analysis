@@ -99,6 +99,7 @@ const defaultData: AnalyticsResponse = {
   recentActivities: [],
 };
 
+// Admin analytics workspace visualizes platform-wide trends and subscription distribution.
 export function AdminAnalyticsWorkspace() {
   const [trendKey, setTrendKey] = useState<TrendKey>("6m");
   const { data: analyticsData, isLoading } = useGetAdminAnalyticsQuery();

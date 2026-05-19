@@ -34,6 +34,7 @@ function buildPath(values: number[], width: number, height: number) {
   return d;
 }
 
+// Admin dashboard workspace summarizes platform health, growth, and recent user activity.
 export function AdminDashboardWorkspace() {
   const [dismissedUserIds, setDismissedUserIds] = useState<string[]>([]);
   const { data, isLoading, isFetching, isError, refetch } = useGetAdminDashboardQuery();

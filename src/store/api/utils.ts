@@ -9,6 +9,7 @@ import type {
 } from "@/store/api/types";
 import { shouldSkipAutoRefresh } from "@/store/api/auth-rules";
 
+// API normalization helpers turn loose backend payloads into the typed shapes the UI expects.
 export function asRecord(value: unknown): UnknownRecord {
   if (typeof value === "object" && value !== null) {
     return value as UnknownRecord;

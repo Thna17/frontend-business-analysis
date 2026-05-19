@@ -5,6 +5,7 @@ import type {
   NotificationListResponse,
 } from "@/store/api/types";
 
+// Notification endpoints drive the in-app inbox actions.
 export const notificationsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getNotifications: builder.query<

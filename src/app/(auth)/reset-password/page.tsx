@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useResetPasswordMutation } from "@/store/api";
 
+// Reset page that applies a new password using the emailed reset token.
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

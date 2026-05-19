@@ -67,6 +67,7 @@ const BUSINESS_TYPE_OPTIONS = [
   "Education",
 ] as const;
 
+// Settings workspace groups account, profile, business, notification, and security forms.
 export function SettingsWorkspace() {
   const currentUser = useSelector(selectCurrentUser);
   const isPrimaryOwner = currentUser?.role === "business_owner";

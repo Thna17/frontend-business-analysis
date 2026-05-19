@@ -31,12 +31,14 @@ interface ChartStats {
   isFlat: boolean;
 }
 
+// Small chart helpers live in this file so the dashboard can shape API data directly into SVG output.
 function metricToneClass(tone: "green" | "amber" | "slate") {
   if (tone === "green") return "dashboard-status-positive";
   if (tone === "amber") return "dashboard-status-warning";
   return "dashboard-status-neutral";
 }
 
+// Convert data points into a smooth SVG path for the revenue and customer mini-charts.
 function buildPath(points: AnalyticsSeriesPoint[], width: number, height: number, curve = 0.22) {
   if (points.length === 0) return "";
   const stats = getSeriesStats(points);
@@ -77,6 +79,7 @@ function getSeriesStats(points: AnalyticsSeriesPoint[]): ChartStats {
   };
 }
 
+// Flat series need special handling so the chart does not collapse into a broken line.
 function getChartY(
   value: number,
   stats: ChartStats,
@@ -144,6 +147,7 @@ export function AnalyticsWorkspace() {
 
   const { data, isFetching, isLoading } = useGetOwnerAnalyticsDashboardQuery({ range: period });
 
+  // Raw API payloads are reshaped once with useMemo so the chart and summary sections stay declarative.
   const revenueData = useMemo(
     () => (data?.revenue.series ?? []).map((item) => ({ label: item.label, value: item.amount })),
     [data?.revenue.series],
@@ -218,6 +222,7 @@ export function AnalyticsWorkspace() {
     },
   ];
 
+  // Export actions are event-driven so page actions can trigger downloads without prop-drilling callbacks.
   const exportAnalytics = useCallback(() => {
     const header = ["Month", "Revenue"];
     const rows = revenueData.map((row) => [row.label, row.value.toString()]);

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useForgotPasswordMutation } from "@/store/api";
 
+// Password recovery page that requests a reset link for the user's account.
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);

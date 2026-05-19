@@ -5,6 +5,7 @@ import type {
   TeamWorkspaceResponse,
 } from "@/store/api/types";
 
+// Team endpoints expose member seats and workspace membership actions.
 export const teamApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getTeamWorkspace: builder.query<TeamWorkspaceResponse, void>({

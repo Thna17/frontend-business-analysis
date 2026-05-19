@@ -50,6 +50,7 @@ function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}/`);
 }
 
+// Role-based route helpers keep redirects and guard checks consistent across the app.
 export function getHomeRouteByRole(role: AppRole): string {
   return role === "admin" ? "/admin" : "/owner";
 }

@@ -10,6 +10,7 @@ import {
   useGetOwnerDashboardOverviewQuery,
 } from "@/store/api";
 
+// Sales record page entrypoint for transaction capture and history review.
 export default function SaleRecordPage() {
   const { data: business } = useGetBusinessProfileQuery();
   const { data: overview, isLoading: isOverviewLoading } = useGetOwnerDashboardOverviewQuery({

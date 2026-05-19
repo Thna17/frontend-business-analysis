@@ -45,6 +45,7 @@ const kpiCardVariants = {
 
 const pageSize = 3;
 
+// Convert a single selected day into an inclusive ISO range for the sales query.
 function toIsoDateRange(value: string): { start?: string; end?: string } {
   if (!value) return {};
   const parsed = new Date(value);
@@ -71,6 +72,7 @@ export function OwnerDashboardWorkspace() {
   const authStatus = useSelector(selectAuthStatus);
   const isAuthReady = authStatus === "authenticated";
 
+  // Dashboard data comes from separate queries so profile, KPI, and sales table states can recover independently.
   const {
     data: business,
     error: businessError,
@@ -119,6 +121,7 @@ export function OwnerDashboardWorkspace() {
   useEffect(() => {
     if (!isAuthReady) return;
     if (!isOverviewUninitialized || overview) return;
+    // Force the first fetch after auth if the hook mounted while auth was still unresolved.
     void refetchOverview();
   }, [isAuthReady, isOverviewUninitialized, overview, refetchOverview]);
 
@@ -130,6 +133,7 @@ export function OwnerDashboardWorkspace() {
 
   const currency = business?.currency || "USD";
 
+  // Mapper helpers keep presentation components free from API-specific field names.
   const metrics = useMemo(
     () => (overview ? mapOverviewToMetrics(overview, currency) : []),
     [overview, currency],

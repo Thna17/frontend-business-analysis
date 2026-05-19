@@ -63,6 +63,7 @@ function isItemActive(pathname: string, href?: string) {
   return pathname.startsWith(`${href}/`);
 }
 
+// Shared top navigation adapts links and actions to the active dashboard shell.
 export function TopNavigation({
   items,
   workspaceLabel,

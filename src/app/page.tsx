@@ -6,6 +6,7 @@ import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 import "./style.css"
 
+// Public marketing page shown before users enter the authenticated app.
 export default function HomePage() {
   return (
     <main className="landing-page">

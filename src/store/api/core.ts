@@ -12,6 +12,7 @@ import { extractRouteFromArgs, shouldSkipAutoRefresh, transformAuthSession } fro
 
 const DEFAULT_PUBLIC_API_URL = "https://business-analytics-backend-5w1g.onrender.com/api";
 
+// Keep API URL resolution in one place for local, preview, and production environments.
 function resolveApiBaseUrl(): string {
   return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? DEFAULT_PUBLIC_API_URL);
 }
@@ -45,6 +46,7 @@ const baseQueryWithReauth: BaseQueryFn<
     return result;
   }
 
+  // Give expired sessions one silent refresh attempt before forcing a logout.
   const refreshResult = await rawBaseQuery(
     {
       url: "/auth/refresh",
@@ -69,6 +71,7 @@ const baseQueryWithReauth: BaseQueryFn<
     return result;
   }
 
+  // Once refresh fails, route guards can safely treat the user as signed out.
   api.dispatch(clearAuthState());
   return result;
 };

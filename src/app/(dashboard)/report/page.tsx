@@ -3,6 +3,7 @@ import { ReportsPageActions } from "@/components/dashboard/reports-page-actions"
 import { ReportsWorkspace } from "@/components/dashboard/reports-workspace";
 import { FeatureGate } from "@/components/shared/feature-gate";
 
+// Report page entrypoint for generator controls and export history.
 export default function ReportPage() {
   return (
     <DashboardPage

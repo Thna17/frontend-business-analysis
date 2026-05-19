@@ -5,6 +5,7 @@ import type {
   ReportsDashboardResponse,
 } from "@/store/api/types";
 
+// Report endpoints back the history table, generator, and export actions.
 export const reportsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getReportsDashboard: builder.query<ReportsDashboardResponse, { page?: number; limit?: number } | void>({

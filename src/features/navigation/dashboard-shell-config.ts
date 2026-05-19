@@ -18,6 +18,7 @@ export interface DashboardShellConfig {
   footerText: string;
 }
 
+// Owner routes focus on daily business operations and analytics.
 const ownerDashboardShellConfig: DashboardShellConfig = {
   variant: "owner",
   workspaceLabel: "Owner Workspace",
@@ -37,6 +38,7 @@ const ownerDashboardShellConfig: DashboardShellConfig = {
   footerText: "© 2026 Syntrix Analytics. All rights reserved.",
 };
 
+// Admin routes expose platform-level monitoring and subscription controls.
 const adminDashboardShellConfig: DashboardShellConfig = {
   variant: "admin",
   workspaceLabel: "Admin Console",
@@ -53,10 +55,12 @@ const adminDashboardShellConfig: DashboardShellConfig = {
   footerText: "© 2026 Syntrix Admin Console. All rights reserved.",
 };
 
+// Return the navigation contract for the active dashboard type.
 export function getDashboardShellConfig(variant: DashboardShellVariant): DashboardShellConfig {
   return variant === "admin" ? adminDashboardShellConfig : ownerDashboardShellConfig;
 }
 
+// Path naming decides whether the owner shell or admin shell should render.
 export function resolveDashboardShellVariant(pathname: string): DashboardShellVariant {
   if (
     pathname === "/admin"

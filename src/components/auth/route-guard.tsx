@@ -18,6 +18,7 @@ interface RouteGuardProps {
   children: React.ReactNode;
 }
 
+// Shared loading state while the app decides whether to render or redirect.
 function GuardFallback() {
   return (
     <LoadingScreen
@@ -27,6 +28,7 @@ function GuardFallback() {
   );
 }
 
+// Protects dashboard pages and routes users into the workspace allowed by their role.
 export function ProtectedRouteGuard({ children }: RouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,6 +72,7 @@ export function ProtectedRouteGuard({ children }: RouteGuardProps) {
   return <>{children}</>;
 }
 
+// Keeps signed-in users out of login and recovery screens.
 export function AuthPageGuard({ children }: RouteGuardProps) {
   const router = useRouter();
   const status = useSelector(selectAuthStatus);

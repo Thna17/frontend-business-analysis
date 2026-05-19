@@ -11,6 +11,7 @@ import {
 } from "@/store/slices/authSlice";
 import type { AppDispatch } from "@/store";
 
+// Rebuild client auth state on first load from the backend session cookie.
 export function AuthBootstrap() {
   const dispatch = useDispatch<AppDispatch>();
 
@@ -22,6 +23,7 @@ export function AuthBootstrap() {
       dispatch(setAuthStatus("checking"));
 
       try {
+        // Shared baseQuery already handles refresh logic before this request fails for real.
         const currentUser = await dispatch(
           authApi.endpoints.getCurrentUser.initiate(undefined, { forceRefetch: true }),
         ).unwrap();

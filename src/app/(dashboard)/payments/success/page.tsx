@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import SuccessCard from "@/components/payments/success/SuccessCard";
 import SuccessFooter from "@/components/payments/success/SuccessFooter";
 
+// Success page shown after a checkout flow returns to the dashboard.
 export default function PaymentSuccessPage() {
   return (
     <DashboardPage className="space-y-8 pb-12" footer={<SuccessFooter />}>

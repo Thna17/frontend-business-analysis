@@ -5,6 +5,7 @@ import PlanTierSection from "@/components/admin/subscriptions/PlanTierSection";
 import BillingTable from "@/components/admin/subscriptions/BillingTable";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 
+// Admin subscriptions page entrypoint for platform plan oversight.
 export default function SubscriptionsPage() {
   return (
     <DashboardPage footer="(c) 2026 Syntrix Admin Console. All rights reserved.">

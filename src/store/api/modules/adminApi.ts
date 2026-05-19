@@ -18,6 +18,7 @@ import type {
   UpsertAdminSubscriptionPlanConfigInput,
 } from "@/store/api/types";
 
+// Admin endpoints feed the platform console for users, plans, payments, and analytics.
 export const adminApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getAdminDashboard: builder.query<AdminDashboardResponse, void>({

@@ -106,6 +106,7 @@ const formDefaults: ProductFormState = {
   isActive: true,
 };
 
+// Product workspace handles catalog editing, category filters, and suggestion review.
 export function ProductManagementWorkspace() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");

@@ -6,6 +6,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { Button } from "@/components/ui/button";
 
+// Global error boundary for unexpected client-side route failures.
 export default function GlobalError({
   error,
   reset,

@@ -4,6 +4,7 @@ function stripTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, "");
 }
 
+// URL helpers keep local, preview, and production API endpoints in a consistent format.
 export function normalizeHttpUrl(value?: string | null): string | null {
   const candidate = value?.trim();
   if (!candidate) {

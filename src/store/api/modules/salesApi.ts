@@ -10,6 +10,7 @@ import type {
 } from "@/store/api/types";
 import { normalizeSalesListMeta } from "@/store/api/utils";
 
+// Sales endpoints support transaction CRUD and the sales workspace table.
 export const salesApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getSales: builder.query<SalesListResponse, SalesListQuery | void>({

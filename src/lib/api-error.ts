@@ -4,6 +4,7 @@ interface ApiErrorShape {
   };
 }
 
+// Normalize API errors so toast and form messages stay readable for users.
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   const maybeError = error as ApiErrorShape;
 

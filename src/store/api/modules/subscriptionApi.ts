@@ -11,6 +11,7 @@ import type {
   SubscriptionDashboardResponse,
 } from "@/store/api/types";
 
+// Subscription endpoints power plan management and the billing dashboard experience.
 export const subscriptionApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getSubscriptionDashboard: builder.query<

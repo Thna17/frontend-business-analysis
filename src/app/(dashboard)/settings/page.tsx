@@ -2,6 +2,7 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { SettingsPageActions } from "@/components/dashboard/settings-page-actions";
 import { SettingsWorkspace } from "@/components/dashboard/settings-workspace";
 
+// Settings page entrypoint for personal and workspace preferences.
 export default function SettingsPage() {
   return (
     <DashboardPage

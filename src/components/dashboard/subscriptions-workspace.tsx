@@ -168,6 +168,7 @@ const PLAN_RANK: Record<string, number> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+// Subscription workspace shows current plan state, usage, history, and upgrade options.
 export function SubscriptionsWorkspace() {
   const router = useRouter();
   const [page, setPage] = useState(1);

@@ -5,6 +5,7 @@ import type {
   BusinessAiInsightResponse,
 } from "@/store/api/types";
 
+// Insight endpoints fetch the AI-generated business narrative and prediction payloads.
 export const insightsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getBusinessAiInsight: builder.query<BusinessAiInsightResponse, BusinessAiInsightQuery | void>({

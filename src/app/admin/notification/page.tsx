@@ -1,5 +1,6 @@
 import { NotificationCenter } from "@/components/dashboard/notification-center";
 
+// Admin notification page entrypoint for platform inbox management.
 export default function AdminNotificationPage() {
   return (
     <NotificationCenter

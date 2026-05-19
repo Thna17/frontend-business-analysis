@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import PaymentsPageClient from "@/components/payments/PaymentsPageClient";
 
+// Payments page entrypoint for checkout and transaction management.
 export default function PaymentsPage() {
   return (
     <DashboardPage footer={false}>

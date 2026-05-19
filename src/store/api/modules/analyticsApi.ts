@@ -6,6 +6,7 @@ import type {
   OwnerOverviewQuery,
 } from "@/store/api/types";
 
+// Analytics endpoints feed the owner and admin dashboard charts.
 export const analyticsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getOwnerDashboardOverview: builder.query<OwnerDashboardOverviewResponse, OwnerOverviewQuery | void>({

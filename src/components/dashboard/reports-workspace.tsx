@@ -83,6 +83,7 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+// Reports workspace combines generator controls, export actions, and report history in one screen.
 export function ReportsWorkspace() {
   const [page, setPage] = useState(1);
   const [reportType, setReportType] = useState<GeneratorReportType>("Sales");

@@ -115,6 +115,7 @@ function isQrImageSource(value: string): boolean {
   );
 }
 
+// Payment page client coordinates checkout creation, provider polling, and success transitions.
 export default function PaymentsPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();

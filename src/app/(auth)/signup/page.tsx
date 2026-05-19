@@ -17,6 +17,7 @@ import { type AppDispatch } from "@/store";
 import { useRegisterMutation } from "@/store/api";
 import { toast } from "sonner";
 
+// Signup page that starts the owner registration and email verification flow.
 export default function SignupPage() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();

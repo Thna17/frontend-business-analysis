@@ -41,6 +41,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: authEase } },
 };
 
+// Shared auth page frame keeps login, signup, reset, and verification screens consistent.
 export function AuthShell({ title, subtitle, children }: AuthShellProps) {
   return (
     <main className="auth-shell">

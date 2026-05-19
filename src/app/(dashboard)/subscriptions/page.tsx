@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SubscriptionsPageActions } from "@/components/dashboard/subscriptions-page-actions";
 import { SubscriptionsWorkspace } from "@/components/dashboard/subscriptions-workspace";
 
+// Subscription page entrypoint for billing, plan usage, and upgrade management.
 export default function SubscriptionsPage() {
   return (
     <DashboardPage

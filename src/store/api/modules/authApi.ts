@@ -13,6 +13,7 @@ import type {
 } from "@/store/api/types";
 import { normalizeAuthUser, transformAuthSession } from "@/store/api/utils";
 
+// Auth endpoints define the browser-to-backend session lifecycle in one place.
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation<RegisterResponse, SignupRequest>({

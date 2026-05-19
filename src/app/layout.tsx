@@ -5,6 +5,7 @@ import { AuthBootstrap } from "@/components/auth/auth-bootstrap";
 import { PwaServiceWorker } from "@/components/pwa/pwa-service-worker";
 import { normalizeHttpUrl } from "@/lib/url-config";
 
+// Resolve the site base URL once so metadata links behave in dev and production.
 function resolveMetadataBase(): URL | undefined {
   const normalized = normalizeHttpUrl(process.env.NEXT_PUBLIC_APP_URL);
   if (normalized) {
@@ -64,6 +65,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
+        {/* Global providers live here so every route shares auth, theme, and toast state. */}
         <ReduxProvider>
           <AuthBootstrap />
           <PwaServiceWorker />

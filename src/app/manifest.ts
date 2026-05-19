@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+// PWA manifest so installed devices get the right name, icons, and colors.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Syntrix Business Analytics",

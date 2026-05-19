@@ -3,6 +3,7 @@ import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { AnalyticsWorkspace } from "@/components/dashboard/analytics-workspace";
 import { FeatureGate } from "@/components/shared/feature-gate";
 
+// Owner analytics page that renders the detailed chart workspace.
 export default function AnalyticsPage() {
   return (
     <DashboardPage

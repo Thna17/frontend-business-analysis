@@ -3,6 +3,7 @@ import PaymentQRCard from "@/components/payments/PaymentQRCard";
 import OrderSummaryCard from "@/components/payments/OrderSummaryCard";
 import PaymentFooter from "@/components/payments/PaymentFooter";
 
+// Admin payments page entrypoint for platform-side payment review.
 export default function PaymentsPage() {
   return (
     <DashboardPage className="pb-[18px]" footer={<PaymentFooter />}>

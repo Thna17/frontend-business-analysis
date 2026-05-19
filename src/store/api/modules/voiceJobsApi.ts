@@ -9,6 +9,7 @@ import type {
 } from "@/store/api/types";
 import { normalizeSalesListMeta } from "@/store/api/utils";
 
+// Voice-job endpoints manage the async speech-to-sale capture flow.
 export const voiceJobsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getVoiceJobs: builder.query<VoiceSaleJobListResponse, VoiceSaleJobListQuery | void>({

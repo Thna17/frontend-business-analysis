@@ -12,6 +12,7 @@ import type {
   UpdateSettingsSecurityInput,
 } from "@/store/api/types";
 
+// Settings endpoints group profile, business, notification, and security preferences.
 export const settingsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getBusinessProfile: builder.query<BusinessProfile, void>({

@@ -12,6 +12,7 @@ import {
 
 const DashboardShellContext = createContext<DashboardShellConfig | null>(null);
 
+// Expose shell config without threading navigation props through each page.
 export function useDashboardShell() {
   const context = useContext(DashboardShellContext);
 
@@ -27,6 +28,7 @@ interface DashboardShellProps {
   variant?: DashboardShellVariant | "auto";
 }
 
+// Shared dashboard frame that swaps nav config between owner and admin workspaces.
 export function DashboardShell({ children, variant = "auto" }: DashboardShellProps) {
   const pathname = usePathname();
   const resolvedVariant = variant === "auto" ? resolveDashboardShellVariant(pathname) : variant;

@@ -14,6 +14,7 @@ function formatMoney(value: number, currency = "USD") {
   }).format(value);
 }
 
+// AI insights panel turns analytics data into narrative opportunities, risks, and next actions.
 export function AiInsightsPanel() {
   const { data, isLoading, isFetching } = useGetBusinessAiInsightQuery({ lookbackDays: 90 });
 

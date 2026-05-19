@@ -22,6 +22,7 @@ import { type AppDispatch } from "@/store";
 import { useLoginMutation } from "@/store/api";
 import { toast } from "sonner";
 
+// Login page for restoring an existing business or admin session.
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

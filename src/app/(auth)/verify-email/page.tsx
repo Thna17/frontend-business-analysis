@@ -20,6 +20,7 @@ import { setCredentials } from "@/store/slices/authSlice";
 import { type AppDispatch } from "@/store";
 import { useResendVerificationOtpMutation, useVerifyEmailOtpMutation } from "@/store/api";
 
+// Verification page that completes signup after the user enters the email OTP.
 export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();

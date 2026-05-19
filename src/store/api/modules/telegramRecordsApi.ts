@@ -5,6 +5,7 @@ import type {
   TelegramRecordsSummary,
 } from "@/store/api/types";
 
+// Telegram record endpoints surface bot-linked sales activity in the dashboard.
 export const telegramRecordsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getTelegramRecords: builder.query<

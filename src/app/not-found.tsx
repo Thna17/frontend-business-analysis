@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from "lucide-react";
 
+// Fallback page shown when a route does not match a known screen.
 export default function NotFound() {
     return (
         <div className="min-h-screen bg-background px-4 py-10">

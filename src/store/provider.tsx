@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { ThemeProvider } from "next-themes";
 import { store } from "@/store";
 
+// Provide global Redux and theme state once at the app root.
 export function ReduxProvider({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider

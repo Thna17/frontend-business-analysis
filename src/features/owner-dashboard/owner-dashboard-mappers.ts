@@ -4,6 +4,7 @@ import type {
   SalesListItem,
 } from "@/store/api";
 
+// Mapper helpers convert backend analytics payloads into UI-friendly cards and tables.
 export function formatCurrency(value: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
