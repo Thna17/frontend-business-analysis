@@ -8,7 +8,6 @@ import {
   KeyRound,
   Shield,
   Trash2,
-  TriangleAlert,
   User,
   Users,
   Wrench,
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 import { useSelector } from "react-redux";
 import { SettingsSection } from "@/components/dashboard/settings-section";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PageSummaryStrip } from "@/components/shared/page-summary-strip";
 import { DashboardDataTable } from "@/components/shared/dashboard-data-table";
@@ -37,8 +35,6 @@ import {
   useGetTeamWorkspaceQuery,
   useCreateTeamMemberMutation,
   useDeleteTeamMemberMutation,
-  useRequestAccountDeactivationMutation,
-  useRequestAccountDeletionMutation,
   useUpdateSettingsAccountMutation,
   useUpdateSettingsBusinessMutation,
   useUpdateSettingsNotificationsMutation,
@@ -108,8 +104,6 @@ export function SettingsWorkspace() {
     currency?: string;
   }>({});
 
-  const [openDeactivate, setOpenDeactivate] = useState(false);
-  const [openDelete, setOpenDelete] = useState(false);
   const [inlineStatus, setInlineStatus] = useState<{ tone: "success" | "danger" | "info"; message: string } | null>(null);
 
   const { data, isLoading, isFetching } = useGetSettingsDashboardQuery();
@@ -121,8 +115,6 @@ export function SettingsWorkspace() {
   const [updatePreferences, { isLoading: isSavingPreferences }] = useUpdateSettingsPreferencesMutation();
   const [updateSecurity, { isLoading: isSavingSecurity }] = useUpdateSettingsSecurityMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
-  const [requestDeactivation, { isLoading: isRequestingDeactivate }] = useRequestAccountDeactivationMutation();
-  const [requestDeletion, { isLoading: isRequestingDeletion }] = useRequestAccountDeletionMutation();
   const [createTeamMember, { isLoading: isCreatingTeamMember }] = useCreateTeamMemberMutation();
   const [deleteTeamMember, { isLoading: isDeletingTeamMember }] = useDeleteTeamMemberMutation();
 
@@ -202,8 +194,6 @@ export function SettingsWorkspace() {
     || isSavingPreferences
     || isSavingSecurity
     || isChangingPassword
-    || isRequestingDeactivate
-    || isRequestingDeletion
     || isCreatingTeamMember
     || isDeletingTeamMember;
 
@@ -307,26 +297,6 @@ export function SettingsWorkspace() {
     return () => window.removeEventListener("settings:save", saveAll);
   }, [saveAll]);
 
-  const handleDeactivate = async () => {
-    try {
-      await requestDeactivation().unwrap();
-      toast.success("Deactivation request submitted");
-      setOpenDeactivate(false);
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Something went wrong. Please try again."));
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await requestDeletion().unwrap();
-      toast.success("Deletion request submitted");
-      setOpenDelete(false);
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Something went wrong. Please try again."));
-    }
-  };
-
   const saveAccountOnly = async () => {
     try {
       await updateAccount({
@@ -400,17 +370,6 @@ export function SettingsWorkspace() {
     }
   };
 
-  const statusNote = useMemo(() => {
-    if (!data) return null;
-    if (data.dangerZone.deletionRequestedAt) {
-      return "Account deletion request is pending review.";
-    }
-    if (data.dangerZone.deactivationRequestedAt) {
-      return "Account deactivation request is pending review.";
-    }
-    return null;
-  }, [data]);
-
   if (isLoading) {
     return (
       <StateMessage tone="loading" title="Loading settings" message="Workspace settings are being prepared." />
@@ -449,9 +408,6 @@ export function SettingsWorkspace() {
         ]}
       />
 
-      {statusNote ? (
-        <StateMessage tone="warning" message={statusNote} compact />
-      ) : null}
       {inlineStatus ? (
         <StateMessage
           tone={inlineStatus.tone === "success" ? "success" : inlineStatus.tone === "danger" ? "danger" : "info"}
@@ -816,74 +772,6 @@ export function SettingsWorkspace() {
           </Button>
         </div>
       </SettingsSection>
-
-      <article className="settings-danger-surface">
-        <div className="mb-2 inline-flex items-center gap-2">
-          <TriangleAlert className="size-5 text-destructive" />
-          <h3 className="text-2xl font-semibold text-destructive">Danger Zone</h3>
-        </div>
-        <p className="max-w-4xl text-sm text-destructive/90">
-          Deactivating or deleting your account will result in permanent loss of access to all business data and records associated with Syntrix.
-        </p>
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive/10"
-            onClick={() => setOpenDeactivate(true)}
-          >
-            Deactivate
-          </Button>
-          <Button variant="destructive" onClick={() => setOpenDelete(true)}>
-            Delete Account
-          </Button>
-        </div>
-      </article>
-
-      <Dialog open={openDeactivate} onOpenChange={setOpenDeactivate}>
-        <DialogContent className="max-w-[460px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Deactivate Account</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Your account will be temporarily disabled. You can reactivate later by contacting support.
-          </p>
-          <div className="mt-2 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpenDeactivate(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeactivate}
-              disabled={isRequestingDeactivate}
-            >
-              Confirm Deactivate
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={openDelete} onOpenChange={setOpenDelete}>
-        <DialogContent className="max-w-[460px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Delete Account</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This action is permanent. Your deletion request will be sent to support for final confirmation.
-          </p>
-          <div className="mt-2 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpenDelete(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isRequestingDeletion}
-            >
-              Confirm Delete
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </section>
   );
 }
